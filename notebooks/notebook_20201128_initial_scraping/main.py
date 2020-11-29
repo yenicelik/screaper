@@ -8,7 +8,7 @@ from datetime import datetime
 import pymongo
 import requests
 from pyquery import PyQuery as pq
-from persistqueue import Queue
+from persistqueue import Queue, SQLiteQueue
 
 basedir = "/Users/david/screaper/data/"
 
@@ -17,10 +17,12 @@ headers = {
     "From": "contact@theaicompany.com"
 }
 
+queue = SQLiteQueue(basedir + "queue", auto_commit=True, multithreading=True)
+# queue = Queue(basedir + "queue", autosave=True)
 mongo_client = pymongo.MongoClient("localhost", 27017)
 mongo_db = mongo_client["scraped_markups"]
 # Set an index
-mongo_db.create_index("url")
+mongo_db.collection.create_index("url")
 
 def retrieve_website_markup(url):
     """
@@ -29,16 +31,8 @@ def retrieve_website_markup(url):
     time.sleep(1.)
 
     content = requests.get(url, headers=headers).content
-    doc = pq(content)
 
-    print("What is the doc?", doc)
-
-    exit(0)
-
-    # respondent = doc(".content-inner p").text()
-
-    # print(respondent)
-    # return str(respondent)
+    return content
 
 
 def add_url_to_queue(target_url, referrer_url, queue):
@@ -54,7 +48,11 @@ def get_from_queue(queue):
     """
         Retrieves the item to work on in the queue
     """
-    target_url, referrer_url = queue.get()
+    if len(queue) == 0:
+        return None, None
+
+    tpl = queue.get()
+    target_url, referrer_url = tpl
     return target_url, referrer_url
 
 
@@ -64,7 +62,14 @@ def get_urls_from_markup(markup):
         Returns a list of all urls within a markup.
         If no url was found,
     """
-    pass
+    out = []
+
+    pyquery_object = pq(markup)
+    for link in pyquery_object('a').items():
+        out.append(link.attr['href'])
+        print(link.attr['href'])
+
+    return out
 
 def add_to_mongodb_database(url, referred_url, markup):
     """
@@ -77,6 +82,9 @@ def add_to_mongodb_database(url, referred_url, markup):
         # images ? => let's exclusively focus on text for now
         # url (also used as an index)
         # retries (in case of an unsuccessful try)  # also perhaps later? should perhaps do edge-case mitigation once this issue persists a bit more
+
+        # markup titles (title of the markup from the initial website (?))
+
     """
     obj = {
         "url": url,
@@ -102,35 +110,58 @@ if __name__ == "__main__":
         # "https://www.thomasnet.com/profile/01150392/bdi.html?cov=NA&what=Roller+Bearings&heading=4221206&cid=1150392&searchpos=1",  # example distributor website
         # "https://www.bdiexpress.com/us/en/",  # example distributor website
     ]
-    queue = Queue(basedir + "queue.txt")
+    # For startup and in case something goes wrong now
+    for url in initial_urls:
+        mongo_db.collection.remove({"url": url})
     for x in initial_urls:
-        queue.put(x)
+        queue.put((x, ".none",))
 
     print("Starting small scraping script")
 
     # for now, include a certain type of whitelisting
     whitelist = "https://www.thomasnet.com"
 
-    while True:
+    i = 0
 
+    while True:
+        i += 1
+        print("i is: ", i)
+        if i > 5:
+            exit(0)
+
+        print("Getting from queue")
         url, referrer_url = get_from_queue(queue)
+        print("Scraping url: ", url)
         if url is None:
+            print("skipping: url is None")
             break
         if mongo_db.collection.find({"url": url}):
             # if URL was crawled before, skip this
             # attention: has a chance of outliers
+            print("skipping: url was already scraped", mongo_db.collection.find({"url": url}))
+            continue
+        if whitelist not in url:
+            # if URL is not part of thomasnet, put it to the end of the queue for now (prioritize thomasnet websites)
+            print("skipping: url not whitelisted", whitelist)
+            add_url_to_queue(url, referrer_url, queue)
             continue
 
         # Ping the contents of the website
+        print("Retrieving markup")
         markup = retrieve_website_markup(url)
+        print("Markup is: ", markup)
 
         # Add scraped items to the mongodb database:
+        print("Adding to mongodb database")
         add_to_mongodb_database(url, referrer_url, markup)
 
         # parse all links from the markup
-
+        print("Getting urls from markup")
+        target_urls = get_urls_from_markup(markup)
+        print("target urls: ", target_urls)
 
         # for each link in the queue, add this to the queue:
-        add_url_to_queue(url, referrer_url, queue)
-
-    retrieve_website_markup()
+        for target_url in target_urls:
+            print("Adding target url: ", target_url)
+            add_url_to_queue(target_url, referrer_url, queue)
+            print("Added target url: ", target_url)
