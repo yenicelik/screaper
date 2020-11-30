@@ -2,7 +2,7 @@ import os
 
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 import screaper
 from screaper.resources.entities import Markup, UrlTaskQueue
@@ -24,7 +24,9 @@ class Database:
         db_url = os.getenv('DatabaseUrl')
         self.engine = create_engine(db_url, encoding='utf8')
 
-        self.engine = screaper.resources.entities.engine
+        # self.engine = screaper.resources.entities.engine
+        Session = sessionmaker()
+        Session.configure(bind=self.engine)
         self.session = Session()
 
         self.max_retries = 4
@@ -112,7 +114,7 @@ class Database:
             url
     ):
         # Can also make this conditional on a timeout variable
-        result = self.session.query(Markup).filter(Markup.url == url).fetchone()
+        result = self.session.query(Markup).filter(Markup.url == url).one()
         out = True if len(result) else False
         return out
 
