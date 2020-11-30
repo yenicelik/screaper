@@ -3,24 +3,19 @@
     - The scraped files
     - The task queue
 """
-import os
+import uuid
 
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import create_engine, Text, Boolean
+from sqlalchemy import Text, Boolean
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, DateTime
 
-from dotenv import load_dotenv
 from sqlalchemy_utils import URLType
 
 Base = declarative_base()
 
-load_dotenv()
-
-db_url = os.getenv('DatabaseUrl')
-engine = create_engine(db_url, encoding='utf8')
-
-# set default utf-8
+def generate_uuid():
+    return str(uuid.uuid4())
 
 class UrlTaskQueue(Base):
     """
@@ -29,19 +24,19 @@ class UrlTaskQueue(Base):
 
     __tablename__ = 'url_task_queue'
 
+    url = Column(URLType, primary_key=True, nullable=False)  # Make this an index
+    queue_uri = Column(String(length=64), unique=True, nullable=False)  # Create a random 64-char hash as a unique identifier
+    referrer_url = Column(URLType, nullable=False)
+    crawler_processing_sentinel = Column(Boolean(), nullable=False)  # Indicates if a worker is currently processing this
+    crawler_processed_sentinel = Column(Boolean(), nullable=False)  # Indicates if the URLTypeas been successfully crawled
+    crawler_skip = Column(Boolean(), nullable=False)  # Indicates whether or not to skip scraping this website
+    engine_version = Column(String(), nullable=False)  # Indicates the version under which the link was scraped for
+    retries = Column(Integer(), nullable=False, default=0)  # Indicates the version under which the link was scraped for
 
-    queue_uri = Column(String(length=64), unique=True)  # Create a random 64-char hash as a unique identifier
-    url = Column(URLType, primary_key=True)  # Make this an index
-    referrer_url = Column(URLType)
-    crawler_processing_sentinel = Column(Boolean())  # Indicates if a worker is currently processing this
-    crawler_processed_sentinel = Column(Boolean())  # Indicates if the URLTypeas been successfully crawled
-    crawler_skip = Column(Boolean())  # Indicates whether or not to skip scraping this website
-    engine_version = Column(String())  # Indicates the version under which the link was scraped for
+    id = Column(Integer(), primary_key=True, autoincrement=True, nullable=False)
+    created_at = Column(DateTime(), default=datetime.utcnow(), nullable=False)  # Timestamp when the query is added to the queue
 
-    id = Column(Integer(), primary_key=True, autoincrement=True)
-    created_at = Column(DateTime(), default=datetime.utcnow())  # Timestamp when the query is added to the queue
-
-
+# TODO: You will then this markup, and start reshaping this into a processed form
 class Markup(Base):
     """
         The index which aggregates all website data
@@ -49,23 +44,29 @@ class Markup(Base):
 
     __tablename__ = 'markup'
 
-    index_uri = Column(String(length=64), unique=True)  # Create a random 64-char hash as a unique identifier
-    url = Column(URLType, primary_key=True)  # Make this an index
-    referrer_url = Column(URLType)
-    markup = Column(Text())
-    spider_processing_sentinel = Column(Boolean())  # Indicates if a spider worker is currently processing this
-    spider_processed_sentinel = Column(Boolean())  # Indicates if a spider worker has been successfully processed
-    spider_skip = Column(Boolean())  # Indicates if a spider worker has been successfully processed
+    url = Column(URLType, primary_key=True, nullable=False)  # Make this an index
+    index_uri = Column(String(length=64), unique=True, default=generate_uuid, nullable=False)  # Create a random 64-char hash as a unique identifier
+    referrer_url = Column(URLType, nullable=False)
+    markup = Column(Text(), nullable=False)
+    spider_processing_sentinel = Column(Boolean(), nullable=False)  # Indicates if a spider worker is currently processing this
+    spider_processed_sentinel = Column(Boolean(), nullable=False)  # Indicates if a spider worker has been successfully processed
+    spider_skip = Column(Boolean(), nullable=False)  # Indicates if a spider worker has been successfully processed
+    engine_version = Column(String(), nullable=False)  # Indicates the version under which the link was scraped for
 
-    id = Column(Integer(), primary_key=True, autoincrement=True)
-    updated_at = Column(DateTime(), default=datetime.utcnow())
+    id = Column(Integer(), primary_key=True, autoincrement=True, nullable=False)
+    updated_at = Column(DateTime(), default=datetime.utcnow(), nullable=False)
 
 
 if __name__ == "__main__":
     print("Model files")
 
+    import os
+    from sqlalchemy import Text, Boolean, create_engine
+    from dotenv import load_dotenv
+
+    load_dotenv()
+
+    db_url = os.getenv('DatabaseUrl')
+    engine = create_engine(db_url, encoding='utf8')
     # create all tables
     Base.metadata.create_all(engine)
-
-
-
