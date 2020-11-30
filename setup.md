@@ -1,0 +1,16 @@
+### Install mongodb
+
+On mac:
+
+```
+brew tap | grep mongodb
+brew install mongodb-community@4.4
+brew services start mongodb-community@4.4
+brew services stop mongodb-community@4.4
+mongo
+```
+
+### Spawn a database
+
+Spawn one database for the storage,
+and one database for the queue of which websites were already crawled
