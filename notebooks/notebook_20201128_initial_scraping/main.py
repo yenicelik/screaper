@@ -16,6 +16,8 @@
 
 # sanitize html inputs before putting these into the postgres database: https://w3lib.readthedocs.io/en/latest/w3lib.html
 # create an embedded state-representation that determines to look for further selection or not
+import time
+
 import requests
 
 from screaper.crawl_frontier.crawl_frontier import crawl_frontier
@@ -62,7 +64,20 @@ if __name__ == "__main__":
             exit(0)
 
         print("Getting from queue")
-        queue_obj = crawl_frontier.pop_start()
+
+        # dirty try catch ; should resolve this in a better way
+        retries = 0
+        queue_obj = None
+        while not queue_obj:
+            if retries > 5:
+                exit(-1)
+            print("Pop from queue")
+            queue_obj = crawl_frontier.pop_start()
+            print("Pop from queue success!")
+            if not queue_obj:
+                retries += 1
+            time.sleep(1)
+
         url, referrer_url = queue_obj.url, queue_obj.referrer_url
 
         print("Scraping url: ", url)

@@ -24,8 +24,8 @@ class UrlTaskQueue(Base):
 
     __tablename__ = 'url_task_queue'
 
-    url = Column(URLType, primary_key=True, nullable=False)  # Make this an index
-    queue_uri = Column(String(length=64), unique=True, nullable=False)  # Create a random 64-char hash as a unique identifier
+    url = Column(URLType, primary_key=True, unique=True, nullable=False)  # Make this an index
+    queue_uri = Column(String(length=64), unique=True, nullable=False, default=generate_uuid)  # Create a random 64-char hash as a unique identifier
     referrer_url = Column(URLType, nullable=False)
     crawler_processing_sentinel = Column(Boolean(), nullable=False)  # Indicates if a worker is currently processing this
     crawler_processed_sentinel = Column(Boolean(), nullable=False)  # Indicates if the URLTypeas been successfully crawled
@@ -33,7 +33,7 @@ class UrlTaskQueue(Base):
     engine_version = Column(String(), nullable=False)  # Indicates the version under which the link was scraped for
     retries = Column(Integer(), nullable=False, default=0)  # Indicates the version under which the link was scraped for
 
-    id = Column(Integer(), primary_key=True, autoincrement=True, nullable=False)
+    id = Column(Integer(), autoincrement=True, nullable=False)
     created_at = Column(DateTime(), default=datetime.utcnow(), nullable=False)  # Timestamp when the query is added to the queue
 
 # TODO: You will then this markup, and start reshaping this into a processed form
@@ -44,7 +44,7 @@ class Markup(Base):
 
     __tablename__ = 'markup'
 
-    url = Column(URLType, primary_key=True, nullable=False)  # Make this an index
+    url = Column(URLType, primary_key=True, unique=True, nullable=False)  # Make this an index
     index_uri = Column(String(length=64), unique=True, default=generate_uuid, nullable=False)  # Create a random 64-char hash as a unique identifier
     referrer_url = Column(URLType, nullable=False)
     markup = Column(Text(), nullable=False)
@@ -53,8 +53,8 @@ class Markup(Base):
     spider_skip = Column(Boolean(), nullable=False)  # Indicates if a spider worker has been successfully processed
     engine_version = Column(String(), nullable=False)  # Indicates the version under which the link was scraped for
 
-    id = Column(Integer(), primary_key=True, autoincrement=True, nullable=False)
-    updated_at = Column(DateTime(), default=datetime.utcnow(), nullable=False)
+    id = Column(Integer(), autoincrement=True, nullable=False)
+    updated_at = Column(DateTime(), default=datetime.utcnow(), onupdate=datetime.utcnow(), nullable=False)
 
 
 if __name__ == "__main__":

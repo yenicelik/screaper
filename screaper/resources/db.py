@@ -1,7 +1,7 @@
 import os
 
 from dotenv import load_dotenv
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, false
 from sqlalchemy.orm import Session, sessionmaker
 
 import screaper
@@ -55,14 +55,19 @@ class Database:
     def get_url_task_queue_record_start(self):
         """
             implements the pop operation for queue,
-            retrieving the next item to work on
+            retrieving the next item to work on.
+
+            Return a success boolean
         """
         # Get the one inserted most recently
         obj = self.session.query(UrlTaskQueue)\
-            .where(UrlTaskQueue.crawler_skip != False)\
+            .filter(UrlTaskQueue.crawler_skip == false())\
             .order_by(UrlTaskQueue.created_at)\
-            .limit(1)
-        self.session.query(obj).update({"crawler_processing_sentinel": True})
+            .limit(1)\
+            .one_or_none()
+        # throw some exception that the queue is empty!
+        # (in this case, just restart the program or so, throwing an execption is fine)
+        obj.crawler_processing_sentinel = True
         return obj
 
     def get_url_task_queue_record_completed(self, url):
@@ -71,7 +76,8 @@ class Database:
             indicating that a crawler has processed the request successfully
         """
         obj = UrlTaskQueue(url=url)
-        self.session.query(obj).update({"crawler_processed_sentinel": True})
+        # self.session.query(obj).update({"crawler_processed_sentinel": True})
+        obj.crawler_processed_sentinel = True
         return obj
 
     def get_url_task_queue_record_failed(self, url):
@@ -82,11 +88,14 @@ class Database:
         obj = UrlTaskQueue(url=url)
         # If retried too many times and failed, skip
         skip = obj.retries + 1 >= self.max_retries
-        self.session.query(obj).update({
-            "crawler_processing_sentinel": False,
-            "skip": skip,
-            "retries": obj.retries + 1
-        })
+        # self.session.query(obj).update({
+        #     "crawler_processing_sentinel": False,
+        #     "skip": skip,
+        #     "retries": obj.retries + 1
+        # })
+        obj.crawler_processed_sentinel = False
+        obj.skip = skip
+        obj.retries += 1
         return obj
 
     # Markup
@@ -114,8 +123,8 @@ class Database:
             url
     ):
         # Can also make this conditional on a timeout variable
-        result = self.session.query(Markup).filter(Markup.url == url).one()
-        out = True if len(result) else False
+        result = self.session.query(Markup).filter(Markup.url == url).one_or_none()
+        out = True if result else False
         return out
 
 

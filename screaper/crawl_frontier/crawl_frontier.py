@@ -51,20 +51,23 @@ class CrawlFrontier:
             basic_url = get_base_url(referrer_url)  # Returns just the main url
             target_url = basic_url + target_url
 
-        if any([x not in target_url for x in self.whitelist]):
-            # if the link is not whitelisted, do not look for this further
-            return
-
         # Other ways to check if link is valid?
         # TODO: Implement contents to also be exported
         if resource_database.get_markup_exists(url=target_url):
             # If the url's markup was already crawled, do not ping this again
             return
 
+        # Add more cases why one would skip here
+        skip = False
+        if any([x not in target_url for x in self.whitelist]):
+            # if the link is not whitelisted, do not look for this further
+            skip = True
+
         # Check if the url was already indexed
         resource_database.create_url_task_queue_record(
             target_url=target_url,
-            referrer_url=referrer_url
+            referrer_url=referrer_url,
+            skip=skip
         )
         resource_database.commit()
 

@@ -5,6 +5,7 @@ import time
 
 import bleach
 import requests
+from lxml.html.clean import clean_html
 
 from screaper.resources.db import resource_database
 
@@ -44,7 +45,9 @@ class Downloader:
         print("content is: ", content)
 
         # Do some basic sanitizing
-        content = bleach.clean(content)
+        # content = bleach.clean(content)
+        # let's assume no one on the web is trying to fuck you lol
+        content = clean_html(content)
         response_code = response.status_code
 
         return content, response_code
