@@ -3,7 +3,6 @@
 """
 import time
 
-import bleach
 import requests
 from lxml.html.clean import clean_html
 
@@ -18,7 +17,7 @@ class Downloader:
             "From": "contact@theaicompany.com"
         }
 
-    def add_to_index(self, url, referrer_url, markup):
+    def add_to_index(self, url, markup):
         """
             Adds a downloaded item to the markup
         """
@@ -26,7 +25,6 @@ class Downloader:
         # For now, analyse any kind of markup
         resource_database.create_markup_record(
             url=url,
-            referrer_url=referrer_url,
             markup=markup,
             skip=False
         )

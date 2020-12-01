@@ -63,8 +63,8 @@ class CrawlFrontier:
             # if the link is not whitelisted, do not look for this further
             skip = True
 
-        # Check if the url was already indexed
-        resource_database.create_url_task_queue_record(
+        # Create index into queue
+        resource_database.create_or_update_url_task_queue_record(
             target_url=target_url,
             referrer_url=referrer_url,
             skip=skip

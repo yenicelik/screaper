@@ -36,21 +36,31 @@ class Database:
         self.session.commit()
 
     # Task queue
-    def create_url_task_queue_record(
+    def create_or_update_url_task_queue_record(
             self,
             target_url,
             referrer_url,
             skip
     ):
-        obj = UrlTaskQueue(
-            url=target_url,
-            referrer_url=referrer_url,
-            crawler_processing_sentinel=False,
-            crawler_processed_sentinel=False,
-            crawler_skip=skip,
-            engine_version=self.engine_version
-        )
-        self.session.add(obj)
+
+        # occurrences
+        obj = self.session.query(UrlTaskQueue)\
+            .filter(UrlTaskQueue.url == target_url)\
+            .filter(UrlTaskQueue.referrer_url == referrer_url)\
+            .one_or_none()
+
+        if obj is not None:
+            obj.occurrences += 1
+        else:
+            obj = UrlTaskQueue(
+                url=target_url,
+                referrer_url=referrer_url,
+                crawler_processing_sentinel=False,
+                crawler_processed_sentinel=False,
+                crawler_skip=skip,
+                engine_version=self.engine_version
+            )
+            self.session.add(obj)
 
     def get_url_task_queue_record_start(self):
         """
@@ -102,14 +112,12 @@ class Database:
     def create_markup_record(
             self,
             url,
-            referrer_url,
             markup,
             skip
     ):
         # generate a random 64-bit random string
         obj = Markup(
             url=url,
-            referrer_url=referrer_url,
             markup=markup,
             spider_processing_sentinel=False,
             spider_processed_sentinel=False,

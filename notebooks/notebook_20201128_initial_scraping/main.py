@@ -44,10 +44,12 @@ if __name__ == "__main__":
     ]
     # For startup and in case something goes wrong now
     # remove everything from the table
-    resource_database.session.query(UrlTaskQueue)
-    resource_database.session.query(Markup)
+    resource_database.session.query(UrlTaskQueue).delete()
+    resource_database.session.query(Markup).delete()
+    resource_database.commit()
 
     for x in initial_urls:
+        print("Adding: ", x)
         crawl_frontier.add(target_url=x, referrer_url="")
 
     print("Starting small scraping script")
@@ -96,7 +98,7 @@ if __name__ == "__main__":
 
         # Add scraped items to the mongodb database:
         print("Adding to mongodb database")
-        downloader.add_to_index(url, referrer_url, markup)
+        downloader.add_to_index(url, markup)
 
         # parse all links from the markup
         print("Getting urls from markup")

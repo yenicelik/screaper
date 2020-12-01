@@ -21,14 +21,17 @@ class MarkupProcessor:
             print("Link looks as follows: ", link, type(link))
             link = link.attr['href']  # only grab the href attribute
 
-            # if link is empty, it is probably broken, skip
+            if link is None:
+                # if link is None, then just skip (for whatever reasons of the website, or the crawler
+                continue
             if link.strip() == "":
+                # if link is empty, it is probably broken, skip
                 continue
-            # if link starts with "#", skip this (because this is just an anchor
             if link.strip()[0] == "#":
+                # if link starts with "#", skip this (because this is just an anchor
                 continue
-            # if link starts with slash, then this is a relative link. We append the domain to the url
             if link.strip()[0] == "/":
+                # if link starts with slash, then this is a relative link. We append the domain to the url
                 basic_url = get_base_url(url)  # Returns just the main url
                 link = basic_url + link
 
