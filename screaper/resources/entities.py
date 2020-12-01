@@ -31,9 +31,9 @@ class UrlTaskQueue(Base):
     crawler_processing_sentinel = Column(Boolean(), nullable=False)  # Indicates if a worker is currently processing this
     crawler_processed_sentinel = Column(Boolean(), nullable=False)  # Indicates if the URLTypeas been successfully crawled
     crawler_skip = Column(Boolean(), nullable=False)  # Indicates whether or not to skip scraping this website
-    engine_version = Column(String(), nullable=False)  # Indicates the version under which the link was scraped for
     retries = Column(Integer(), nullable=False, default=0)  # Indicates the version under which the link was scraped for
     occurrences = Column(Integer(), nullable=False, default=0)  # Indicates how often this link was found, s.t. a priority queue can be managed through this
+    engine_version = Column(String(), nullable=False)  # Indicates the version under which the link was scraped for
 
     id = Column(Integer(), autoincrement=True, nullable=False, default=0)
     created_at = Column(DateTime(), default=datetime.utcnow(), nullable=False)  # Timestamp when the query is added to the queue

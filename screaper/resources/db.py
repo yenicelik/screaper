@@ -79,7 +79,6 @@ class Database:
             .limit(1)\
             .one_or_none()
         obj.crawler_processing_sentinel = True
-        self.session.commit()
 
         # throw some exception that the queue is empty!
         # (in this case, just restart the program or so, throwing an execption is fine)
@@ -91,9 +90,10 @@ class Database:
             implements part of the pop operation for queue,
             indicating that a crawler has processed the request successfully
         """
-        obj = UrlTaskQueue(url=url)
+        obj = self.session.query(UrlTaskQueue).filter(UrlTaskQueue.url == url).one()
         # self.session.query(obj).update({"crawler_processed_sentinel": True})
         obj.crawler_processed_sentinel = True
+        assert obj.crawler_processed_sentinel, obj.crawler_processed_sentinel
         return obj
 
     def get_url_task_queue_record_failed(self, url):
@@ -101,7 +101,7 @@ class Database:
             implements the pop operation for queue
             indicating that a crawler has processed the request successfully
         """
-        obj = UrlTaskQueue(url=url)
+        obj = self.session.query(UrlTaskQueue).filter(UrlTaskQueue.url == url).one()
         # If retried too many times and failed, skip
         skip = obj.retries + 1 >= self.max_retries
         # self.session.query(obj).update({

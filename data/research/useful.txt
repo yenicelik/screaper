@@ -1,1 +1,4 @@
 https://www.theseus.fi/bitstream/handle/10024/166489/Phan%20Huy%20Thesis%20Building%20Application%20Powered%20by%20Web%20Scraping.pdf?isAllowed=y&sequence=2
+
+# implement algorithm to paraphrase text?
+# against copyright claims

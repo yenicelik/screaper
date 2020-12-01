@@ -31,7 +31,6 @@ class CrawlFrontier:
         resource_database.get_url_task_queue_record_completed(url=url)
         resource_database.commit()
 
-
     def add(self, target_url, referrer_url):
         """
             Adds an item to be scraped to the persistent queue

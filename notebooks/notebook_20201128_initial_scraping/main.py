@@ -28,12 +28,11 @@ from screaper.resources.entities import UrlTaskQueue, Markup
 
 basedir = "/Users/david/screaper/data/"
 
-
 if __name__ == "__main__":
 
     # Tools to build: distributor website classification (hand-picked / labelled tools to make sure that this works)
 
-    initial_urls = [
+    seed_urls = [
         # "https://www.thomasnet.com/browse/",  # entire database
         # "https://www.thomasnet.com/browse/machinery-tools-supplies-1.html",  # category depth 1
         "https://www.thomasnet.com/browse/machinery-tools-supplies/bearings-1.html",  # category depth 2
@@ -44,11 +43,11 @@ if __name__ == "__main__":
     ]
     # For startup and in case something goes wrong now
     # remove everything from the table
+
     resource_database.session.query(UrlTaskQueue).delete()
     resource_database.session.query(Markup).delete()
     resource_database.commit()
-
-    for x in initial_urls:
+    for x in seed_urls:
         print("Adding: ", x)
         crawl_frontier.add(target_url=x, referrer_url="")
 
