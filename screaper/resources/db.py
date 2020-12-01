@@ -1,10 +1,9 @@
 import os
 
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, false
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy import create_engine, false, exists
+from sqlalchemy.orm import sessionmaker
 
-import screaper
 from screaper.resources.entities import Markup, UrlTaskQueue
 
 load_dotenv()
@@ -69,15 +68,22 @@ class Database:
 
             Return a success boolean
         """
-        # Get the one inserted most recently
+        # Get the one inserted most recently,
+        # which is not processing
+        # and is not included in the index already
         obj = self.session.query(UrlTaskQueue)\
+            .filter(UrlTaskQueue.crawler_processing_sentinel == false())\
             .filter(UrlTaskQueue.crawler_skip == false())\
-            .order_by(UrlTaskQueue.created_at)\
+            .filter(~ exists().where(Markup.url == UrlTaskQueue.url))\
+            .order_by(UrlTaskQueue.occurrences.desc())\
             .limit(1)\
             .one_or_none()
+        obj.crawler_processing_sentinel = True
+        self.session.commit()
+
         # throw some exception that the queue is empty!
         # (in this case, just restart the program or so, throwing an execption is fine)
-        obj.crawler_processing_sentinel = True
+
         return obj
 
     def get_url_task_queue_record_completed(self, url):
@@ -103,6 +109,7 @@ class Database:
         #     "skip": skip,
         #     "retries": obj.retries + 1
         # })
+        obj.crawler_processing_sentinel = False
         obj.crawler_processed_sentinel = False
         obj.skip = skip
         obj.retries += 1
@@ -126,10 +133,7 @@ class Database:
         )
         self.session.add(obj)
 
-    def get_markup_exists(
-            self,
-            url
-    ):
+    def get_markup_exists(self, url):
         # Can also make this conditional on a timeout variable
         result = self.session.query(Markup).filter(Markup.url == url).one_or_none()
         out = True if result else False
