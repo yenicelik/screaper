@@ -44,24 +44,23 @@ if __name__ == "__main__":
     # For startup and in case something goes wrong now
     # remove everything from the table
 
-    resource_database.session.query(UrlTaskQueue).delete()
-    resource_database.session.query(Markup).delete()
-    resource_database.commit()
-    for x in seed_urls:
-        print("Adding: ", x)
-        crawl_frontier.add(target_url=x, referrer_url="")
+    # resource_database.session.query(UrlTaskQueue).delete()
+    # resource_database.session.query(Markup).delete()
+    # resource_database.commit()
+    # for x in seed_urls:
+    #     print("Adding: ", x)
+    #     crawl_frontier.add(target_url=x, referrer_url="")
 
     print("Starting small scraping script")
 
     # for now, include a certain type of whitelisting
 
     # TODO: how to identify distributor websites?
-    i = 0
-
     while True:
-        i += 1
-        print("i is: ", i)
-        if i > 5:
+
+        crawled_sites = resource_database.get_number_of_crawled_sizes()
+        print("Number of crawled sites are: ", crawled_sites)
+        if crawled_sites > 100:
             exit(0)
 
         print("Getting from queue")

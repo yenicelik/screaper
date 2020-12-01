@@ -139,6 +139,10 @@ class Database:
         out = True if result else False
         return out
 
+    def get_number_of_crawled_sizes(self):
+        result = self.session.query(Markup).count()
+        return result
+
 
 
 resource_database = Database()
