@@ -11,6 +11,8 @@ from lxml.html.clean import clean_html
 
 from screaper.resources.db import resource_database
 
+# Limit content - length?
+# Implement proxies with threadpools, not earlier
 
 class Downloader:
 
@@ -35,7 +37,7 @@ class Downloader:
         self.proxies = self.load_proxy_list()
 
         self.headers = {
-            "User-Agent": "Mozilla/5.0",  # (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36",  # (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)
             "From": "contact@theaicompany.com"
         }
         self.sleeptime = 1.0
@@ -66,7 +68,7 @@ class Downloader:
             url,
             headers=self.headers,
             # proxies={"http": proxy, "https": proxy},
-            timeout=2.
+            # timeout=2.
         )
         # print("Response is: ", response)
         content = response.text

@@ -3,6 +3,7 @@
 """
 
 # TODO: Implement some mechanism that checks how many failed requests per second,
+# TODO: Remove all style tags
 # and skips all items in the queue with that domainname
 
 # implement selectiveness
@@ -64,7 +65,6 @@ if __name__ == "__main__":
             exit(0)
 
         # print("Getting from queue")
-
 
         # dirty try catch ; should resolve this in a better way
         retries = 0
