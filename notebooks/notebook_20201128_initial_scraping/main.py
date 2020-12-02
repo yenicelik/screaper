@@ -58,9 +58,9 @@ if __name__ == "__main__":
     # TODO: how to identify distributor websites?
     while True:
 
-        crawled_sites = resource_database.get_number_of_crawled_sizes()
+        crawled_sites = resource_database.get_number_of_crawled_sites()
         print("Number of crawled sites are: ", crawled_sites)
-        if crawled_sites > 100:
+        if crawled_sites > 5000:
             exit(0)
 
         print("Getting from queue")
@@ -80,33 +80,42 @@ if __name__ == "__main__":
 
         url, referrer_url = queue_obj.url, queue_obj.referrer_url
 
+        print("Referring url is: ", referrer_url)
+
         print("Scraping url: ", url)
         if url is None:
             print("skipping: url is None")
             break
 
-        # Ping the contents of the website
-        print("Retrieving markup")
-        markup, response_code = downloader.get(url)
-        print("Markup is: ", markup)
+        markup_exists = resource_database.get_markup_exists(url)
+        if not markup_exists:
 
-        # If response code is not a 200, put it back into the queue and process it at a later stage again
-        if not (response_code == requests.codes.ok):
-            crawl_frontier.pop_failed(url)
+            # Ping the contents of the website
+            print("Retrieving markup")
+            markup, response_code = downloader.get(url)
+            print("Markup is: ", markup)
 
-        # Add scraped items to the mongodb database:
-        print("Adding to mongodb database")
-        downloader.add_to_index(url, markup)
+            # If response code is not a 200, put it back into the queue and process it at a later stage again
+            if not (response_code == requests.codes.ok):
+                crawl_frontier.pop_failed(url, referrer_url)
 
-        # parse all links from the markup
-        print("Getting urls from markup")
-        target_urls = markup_processor.get_links(url, markup)
-        print("target urls: ", target_urls)
+            # Add scraped items to the mongodb database:
+            print("Adding to mongodb database")
+            downloader.add_to_index(url, markup)
 
-        crawl_frontier.pop_verify(url)
+            # parse all links from the markup
+            print("Getting urls from markup")
+            target_urls = markup_processor.get_links(url, markup)
+            print("target urls: ", target_urls)
 
-        # for each link in the queue, add this to the queue:
-        for target_url in target_urls:
-            print("Adding target url: ", target_url)
-            crawl_frontier.add(target_url=target_url, referrer_url=referrer_url)
-            print("Added target url: ", target_url)
+            # for each link in the queue, add this to the queue:
+            for target_url in target_urls:
+                print("Adding target url: ", target_url)
+                print("Adding reference url: ", url)
+                crawl_frontier.add(target_url=target_url, referrer_url=url)
+                print("Added target url: ", target_url)
+                print("Adding reference url: ", url)
+        else:
+            print("Markup already exists!", url)
+
+        crawl_frontier.pop_verify(url, referrer_url)

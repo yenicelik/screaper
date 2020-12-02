@@ -16,7 +16,7 @@ class Downloader:
             "User-Agent": "Mozilla/5.0",  # (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)
             "From": "contact@theaicompany.com"
         }
-        self.sleeptime = 1.0
+        self.sleeptime = 2.0
 
     def add_to_index(self, url, markup):
         """

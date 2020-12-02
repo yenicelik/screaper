@@ -75,7 +75,7 @@ class Database:
             .filter(UrlTaskQueue.crawler_processing_sentinel == false())\
             .filter(UrlTaskQueue.crawler_skip == false())\
             .filter(~ exists().where(Markup.url == UrlTaskQueue.url))\
-            .order_by(UrlTaskQueue.occurrences.desc())\
+            .order_by(UrlTaskQueue.occurrences.asc())\
             .limit(1)\
             .one_or_none()
         obj.crawler_processing_sentinel = True
@@ -85,23 +85,31 @@ class Database:
 
         return obj
 
-    def get_url_task_queue_record_completed(self, url):
+    def get_url_task_queue_record_completed(self, url, referrer_url):
         """
             implements part of the pop operation for queue,
             indicating that a crawler has processed the request successfully
         """
-        obj = self.session.query(UrlTaskQueue).filter(UrlTaskQueue.url == url).one()
+        obj = self.session.query(UrlTaskQueue)\
+            .filter(UrlTaskQueue.url == url)\
+            .filter(UrlTaskQueue.referrer_url == referrer_url)\
+            .first()
         # self.session.query(obj).update({"crawler_processed_sentinel": True})
         obj.crawler_processed_sentinel = True
         assert obj.crawler_processed_sentinel, obj.crawler_processed_sentinel
         return obj
 
-    def get_url_task_queue_record_failed(self, url):
+    def get_url_task_queue_record_failed(self, url, referrer_url):
         """
             implements the pop operation for queue
             indicating that a crawler has processed the request successfully
         """
-        obj = self.session.query(UrlTaskQueue).filter(UrlTaskQueue.url == url).one()
+        obj = self.session.query(UrlTaskQueue)\
+            .filter(UrlTaskQueue.url == url) \
+            .filter(UrlTaskQueue.referrer_url == referrer_url)\
+            .one()
+
+        # TODO: Will probably have to have a separate queue for referrer and url
         # If retried too many times and failed, skip
         skip = obj.retries + 1 >= self.max_retries
         # self.session.query(obj).update({
@@ -139,7 +147,7 @@ class Database:
         out = True if result else False
         return out
 
-    def get_number_of_crawled_sizes(self):
+    def get_number_of_crawled_sites(self):
         result = self.session.query(Markup).count()
         return result
 

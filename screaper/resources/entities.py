@@ -24,7 +24,7 @@ class UrlTaskQueue(Base):
 
     __tablename__ = 'url_task_queue'
 
-    url = Column(URLType, primary_key=True, unique=True, nullable=False)  # Make this an index
+    url = Column(URLType, primary_key=True, nullable=False)  # Make this an index
     referrer_url = Column(URLType, primary_key=True, nullable=False)
 
     queue_uri = Column(String(length=64), unique=True, nullable=False, default=generate_uuid)  # Create a random 64-char hash as a unique identifier
