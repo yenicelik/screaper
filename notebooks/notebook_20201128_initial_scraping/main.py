@@ -63,7 +63,8 @@ if __name__ == "__main__":
         if crawled_sites > 5000:
             exit(0)
 
-        print("Getting from queue")
+        # print("Getting from queue")
+
 
         # dirty try catch ; should resolve this in a better way
         retries = 0
@@ -80,7 +81,7 @@ if __name__ == "__main__":
 
         url, referrer_url = queue_obj.url, queue_obj.referrer_url
 
-        print("Referring url is: ", referrer_url)
+        # print("Referring url is: ", referrer_url)
 
         print("Scraping url: ", url)
         if url is None:
@@ -91,30 +92,30 @@ if __name__ == "__main__":
         if not markup_exists:
 
             # Ping the contents of the website
-            print("Retrieving markup")
+            # print("Retrieving markup")
             markup, response_code = downloader.get(url)
-            print("Markup is: ", markup)
+            # print("Markup is: ", markup)
 
             # If response code is not a 200, put it back into the queue and process it at a later stage again
             if not (response_code == requests.codes.ok):
                 crawl_frontier.pop_failed(url, referrer_url)
 
             # Add scraped items to the mongodb database:
-            print("Adding to mongodb database")
+            # print("Adding to database")
             downloader.add_to_index(url, markup)
 
             # parse all links from the markup
-            print("Getting urls from markup")
+            # print("Getting urls from markup")
             target_urls = markup_processor.get_links(url, markup)
-            print("target urls: ", target_urls)
+            # print("target urls: ", target_urls)
 
             # for each link in the queue, add this to the queue:
             for target_url in target_urls:
-                print("Adding target url: ", target_url)
-                print("Adding reference url: ", url)
+                # print("Adding target url: ", target_url)
+                # print("Adding reference url: ", url)
                 crawl_frontier.add(target_url=target_url, referrer_url=url)
-                print("Added target url: ", target_url)
-                print("Adding reference url: ", url)
+                # print("Added target url: ", target_url)
+                # print("Adding reference url: ", url)
         else:
             print("Markup already exists!", url)
 

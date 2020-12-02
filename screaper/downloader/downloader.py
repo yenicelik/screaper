@@ -2,8 +2,11 @@
     Implements a downloader which retrieves the markup and saves this into the index
 """
 import time
+import json
+import random
 
 import requests
+from urllib.request import urlopen
 from lxml.html.clean import clean_html
 
 from screaper.resources.db import resource_database
@@ -11,12 +14,31 @@ from screaper.resources.db import resource_database
 
 class Downloader:
 
+    def load_proxy_list(self):
+
+        json_url = "https://raw.githubusercontent.com/scidam/proxy-list/master/proxy.json"
+        with urlopen(json_url) as url:
+            proxies = json.loads(url.read().decode('utf-8'))
+
+        proxies = proxies['proxies']
+        print("Proxies are: ", proxies)
+
+        # TODO: Replace with environment variable
+        proxies = [(x["ip"], x["port"]) for x in proxies if x["google_status"] == 200]
+        proxies = [("http://" + str(x[0]) + ":" + str(x[1])) for x in proxies]
+
+        return proxies
+
+
     def __init__(self):
-        self.headers = headers = {
+        # Prepare proxies list:
+        self.proxies = self.load_proxy_list()
+
+        self.headers = {
             "User-Agent": "Mozilla/5.0",  # (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)
             "From": "contact@theaicompany.com"
         }
-        self.sleeptime = 2.0
+        self.sleeptime = 1.0
 
     def add_to_index(self, url, markup):
         """
@@ -36,13 +58,19 @@ class Downloader:
             retrieve the website markup
         """
 
-        print("Sleep...")
+        proxy = random.choice(self.proxies)
+        print("Sleep... Proxy is: ", proxy)
         time.sleep(self.sleeptime)
 
-        response = requests.get(url, headers=self.headers)
-        print("Response is: ", response)
+        response = requests.get(
+            url,
+            headers=self.headers,
+            # proxies={"http": proxy, "https": proxy},
+            timeout=2.
+        )
+        # print("Response is: ", response)
         content = response.text
-        print("content is: ", content)
+        # print("content is: ", content)
 
         # Do some basic sanitizing
         # content = bleach.clean(content)
