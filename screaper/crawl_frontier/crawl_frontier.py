@@ -11,10 +11,10 @@ class CrawlFrontier:
     def __init__(self):
         self.blacklist = []
         self.whitelist = [
-            # "https://www.thomasnet.com",
-            # "https://www.thomasnet.com",
-            "https://www.thomasnet.com/products/roller-bearings-4221206",
-            "https://www.thomasnet.com/products/roller-bearings-4221206"
+            "https://www.thomasnet.com",
+            "https://www.thomasnet.com",
+            # "https://www.thomasnet.com/products/roller-bearings-4221206",
+            # "https://www.thomasnet.com/products/roller-bearings-4221206"
         ]
 
         # Later on implement when a website is considered outdated

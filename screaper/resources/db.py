@@ -76,7 +76,7 @@ class Database:
             .filter(UrlTaskQueue.crawler_processing_sentinel == false())\
             .filter(UrlTaskQueue.crawler_skip == false())\
             .filter(~ exists().where(Markup.url == UrlTaskQueue.url))\
-            .order_by(UrlTaskQueue.occurrences.asc())\
+            .order_by(UrlTaskQueue.occurrences.asc(), UrlTaskQueue.created_at.asc())\
             .limit(1)\
             .one_or_none()
         obj.crawler_processing_sentinel = True
@@ -163,8 +163,6 @@ class Database:
 
         df = pd.DataFrame(query_result, columns=column_names)
         return df
-
-
 
 resource_database = Database()
 
