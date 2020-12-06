@@ -11,14 +11,13 @@ class MarkupProcessor:
         pass
 
     def get_links(self, url, markup):
-        pass
 
         out = []
 
         pyquery_object = pq(markup)
         for link in pyquery_object('a').items():
 
-            print("Link looks as follows: ", link, type(link))
+            # print("Link looks as follows: ", link, type(link))
             link = link.attr['href']  # only grab the href attribute
 
             if link is None:
@@ -39,7 +38,7 @@ class MarkupProcessor:
             # TODO: Implement contents to also be exported
 
             out.append(link)
-            print(link)
+            # print(link)
 
         return out
 

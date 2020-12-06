@@ -11,8 +11,10 @@ class CrawlFrontier:
     def __init__(self):
         self.blacklist = []
         self.whitelist = [
-            "https://www.thomasnet.com",
-            "https://www.thomasnet.com"
+            # "https://www.thomasnet.com",
+            # "https://www.thomasnet.com",
+            "https://www.thomasnet.com/products/roller-bearings-4221206",
+            "https://www.thomasnet.com/products/roller-bearings-4221206"
         ]
 
         # Later on implement when a website is considered outdated
@@ -61,9 +63,9 @@ class CrawlFrontier:
 
         # Add more cases why one would skip here
         skip = False
-        print("Skipping any: ", [x not in target_url for x in self.whitelist])
-        print("Skipping any: ", any([x not in target_url for x in self.whitelist]))
-        print("Skipping any: ", all([x not in target_url for x in self.whitelist]))
+        # print("Skipping any: ", [x not in target_url for x in self.whitelist])
+        # print("Skipping any: ", any([x not in target_url for x in self.whitelist]))
+        # print("Skipping any: ", all([x not in target_url for x in self.whitelist]))
         if all([x not in target_url for x in self.whitelist]):
             # if the link is not whitelisted, do not look for this further
             skip = True
