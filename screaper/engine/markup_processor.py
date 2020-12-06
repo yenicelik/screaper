@@ -38,7 +38,7 @@ class MarkupProcessor:
             # TODO: Implement contents to also be exported
 
             out.append(link)
-            print(link)
+            # print(link)
 
         return out
 

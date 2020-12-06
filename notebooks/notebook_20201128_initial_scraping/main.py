@@ -61,7 +61,7 @@ if __name__ == "__main__":
 
         crawled_sites = resource_database.get_number_of_crawled_sites()
         print("Number of crawled sites are: ", crawled_sites)
-        if crawled_sites > 5000:
+        if crawled_sites > 10000:
             exit(0)
 
         # print("Getting from queue")
@@ -72,12 +72,12 @@ if __name__ == "__main__":
         while not queue_obj:
             if retries > 5:
                 exit(-1)
-            print("Pop from queue")
+            # print("Pop from queue")
             queue_obj = crawl_frontier.pop_start()
-            print("Pop from queue success!")
+            # print("Pop from queue success!")
             if not queue_obj:
                 retries += 1
-            time.sleep(1)
+                time.sleep(0.1)
 
         url, referrer_url = queue_obj.url, queue_obj.referrer_url
 
@@ -85,7 +85,7 @@ if __name__ == "__main__":
 
         print("Scraping url: ", url)
         if url is None:
-            print("skipping: url is None")
+            # print("skipping: url is None")
             break
 
         markup_exists = resource_database.get_markup_exists(url)

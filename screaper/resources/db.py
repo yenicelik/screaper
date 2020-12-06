@@ -1,4 +1,5 @@
 import os
+import pandas as pd
 
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, false, exists
@@ -150,6 +151,18 @@ class Database:
     def get_number_of_crawled_sites(self):
         result = self.session.query(Markup).count()
         return result
+
+    def get_all_indexed_documents(self):
+        with self.engine.connect() as connection:
+            query_result = connection.execute("SELECT * FROM markup;")
+            column_names = query_result.keys()
+            query_result = query_result.fetchall()
+
+        print("Query result:", query_result)
+        print("Column names: ", column_names)
+
+        df = pd.DataFrame(query_result, columns=column_names)
+        return df
 
 
 

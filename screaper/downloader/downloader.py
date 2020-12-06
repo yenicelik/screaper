@@ -40,7 +40,7 @@ class Downloader:
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36",  # (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)
             "From": "contact@theaicompany.com"
         }
-        self.sleeptime = 1.0
+        self.sleeptime = 0.5
 
     def add_to_index(self, url, markup):
         """
@@ -60,9 +60,10 @@ class Downloader:
             retrieve the website markup
         """
 
-        proxy = random.choice(self.proxies)
-        print("Sleep... Proxy is: ", proxy)
+        # proxy = random.choice(self.proxies)
+        # print("Sleep... Proxy is: ", proxy)
         time.sleep(self.sleeptime)
+        time.sleep(random.random() * 0.5)
 
         response = requests.get(
             url,

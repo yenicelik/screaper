@@ -2,3 +2,14 @@ https://www.theseus.fi/bitstream/handle/10024/166489/Phan%20Huy%20Thesis%20Build
 
 # implement algorithm to paraphrase text?
 # against copyright claims
+
+# Good resources on how to determine what a single document is about (extracing text from the documents)
+https://tuhrig.de/extracting-meaningful-content-from-raw-html/
+
+-> Beautifulsoup get_text
+https://stackoverflow.com/questions/328356/extracting-text-from-html-file-using-python
+https://github.com/Alir3z4/html2text
+
+https://github.com/adbar/trafilatura -> really good library for text and metadata extraction within html documents
+
+
