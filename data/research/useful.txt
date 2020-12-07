@@ -12,4 +12,14 @@ https://github.com/Alir3z4/html2text
 
 https://github.com/adbar/trafilatura -> really good library for text and metadata extraction within html documents
 
+# NER items
+Models for multilingual NER
+https://huggingface.co/wietsedv/bert-base-multilingual-cased-finetuned-conll2002-ner
+https://huggingface.co/wietsedv/bert-base-multilingual-cased-finetuned-udlassy-ner
+https://huggingface.co/wietsedv/bert-base-multilingual-cased-finetuned-sonar-ner
+
+
+# Need to create another index which links a link to a document. There are many documents that are downloaded multiple times which are duplicates of each other.
+
+=> just start building / working on the product design, and start iterating over this with target-users
 

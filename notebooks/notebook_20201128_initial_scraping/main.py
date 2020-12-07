@@ -20,6 +20,7 @@
 import time
 
 import requests
+from requests.exceptions import ProxyError, ConnectTimeout
 
 from screaper.crawl_frontier.crawl_frontier import crawl_frontier
 from screaper.downloader.downloader import downloader
@@ -93,7 +94,24 @@ if __name__ == "__main__":
 
             # Ping the contents of the website
             # print("Retrieving markup")
-            markup, response_code = downloader.get(url)
+
+            try:
+                markup, response_code = downloader.get(url)
+            except ProxyError as e:
+                print("Connection Timeout Expection 1!", e)
+                downloader.set_proxy()
+                crawl_frontier.pop_failed(url, referrer_url)
+                continue
+            except ConnectTimeout as e:
+                print("Connection Timeout Expection 2!", e)
+                downloader.set_proxy()
+                crawl_frontier.pop_failed(url, referrer_url)
+                continue
+            except Exception as e:
+                print("Encountered exception: ", e)
+                crawl_frontier.pop_failed(url, referrer_url)
+                continue
+
             # print("Markup is: ", markup)
 
             # If response code is not a 200, put it back into the queue and process it at a later stage again

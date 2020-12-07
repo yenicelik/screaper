@@ -30,7 +30,7 @@ class CrawlFrontier:
         resource_database.commit()
 
     def pop_failed(self, url, referrer_url):
-        resource_database.get_url_task_queue_record_completed(url=url, referrer_url=referrer_url)
+        resource_database.get_url_task_queue_record_failed(url=url, referrer_url=referrer_url)
         resource_database.commit()
 
     def add(self, target_url, referrer_url):
