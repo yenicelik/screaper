@@ -55,6 +55,9 @@ class CrawlFrontier:
             basic_url = get_base_url(referrer_url)  # Returns just the main url
             target_url = basic_url + target_url
 
+        # remove all anchors if existent
+        target_url = target_url.split('#')[0]
+
         # Other ways to check if link is valid?
         # TODO: Implement contents to also be exported
         if resource_database.get_markup_exists(url=target_url):

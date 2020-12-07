@@ -15,6 +15,8 @@
 
 # look at robots.txt and ignore the ones that are not allowed
 
+# link: remove # at the end
+
 # sanitize html inputs before putting these into the postgres database: https://w3lib.readthedocs.io/en/latest/w3lib.html
 # create an embedded state-representation that determines to look for further selection or not
 import time

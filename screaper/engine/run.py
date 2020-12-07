@@ -4,9 +4,12 @@
 import time
 
 import requests
+from requests import ConnectTimeout
+from requests.exceptions import ProxyError
 
 from screaper.crawl_frontier.crawl_frontier import crawl_frontier
 from screaper.downloader.downloader import downloader
+from screaper.engine.markup_processor import markup_processor
 from screaper.resources.db import resource_database
 
 
@@ -69,9 +72,22 @@ class Engine():
             if not markup_exists:
 
                 # Ping the contents of the website
-                # print("Retrieving markup")
-                markup, response_code = downloader.get(url)
-                # print("Markup is: ", markup)
+                try:
+                    markup, response_code = downloader.get(url)
+                except ProxyError as e:
+                    print("Connection Timeout Expection 1!", e)
+                    downloader.set_proxy()
+                    crawl_frontier.pop_failed(url, referrer_url)
+                    continue
+                except ConnectTimeout as e:
+                    print("Connection Timeout Expection 2!", e)
+                    downloader.set_proxy()
+                    crawl_frontier.pop_failed(url, referrer_url)
+                    continue
+                except Exception as e:
+                    print("Encountered exception: ", e)
+                    crawl_frontier.pop_failed(url, referrer_url)
+                    continue
 
                 # If response code is not a 200, put it back into the queue and process it at a later stage again
                 if not (response_code == requests.codes.ok):
