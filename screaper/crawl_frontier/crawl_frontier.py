@@ -25,8 +25,8 @@ class CrawlFrontier:
         resource_database.commit()
         return obj
 
-    def pop_verify(self, url, referrer_url):
-        resource_database.get_url_task_queue_record_completed(url=url, referrer_url=referrer_url)
+    def pop_verify(self, url):
+        resource_database.get_url_task_queue_record_completed(url=url)
         resource_database.commit()
 
     def pop_failed(self, url, referrer_url):
@@ -60,7 +60,7 @@ class CrawlFrontier:
 
         # Other ways to check if link is valid?
         # TODO: Implement contents to also be exported
-        if resource_database.get_markup_exists(url=target_url):
+        if resource_database.get_url_exists(url=target_url):
             # If the url's markup was already crawled, do not ping this again
             return
 
@@ -73,8 +73,12 @@ class CrawlFrontier:
             # if the link is not whitelisted, do not look for this further
             skip = True
 
+        # Add to queue
+
+        # Add to graph
+
         # Create index into queue
-        resource_database.create_or_update_url_task_queue_record(
+        resource_database.create_entry_in_queue(
             target_url=target_url,
             referrer_url=referrer_url,
             skip=skip

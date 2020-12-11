@@ -91,11 +91,10 @@ if __name__ == "__main__":
             # print("skipping: url is None")
             break
 
-        markup_exists = resource_database.get_markup_exists(url)
-        if not markup_exists:
+        # url exists
 
-            # Ping the contents of the website
-            # print("Retrieving markup")
+        url_exists = resource_database.get_url_exists(url)
+        if not url_exists:
 
             try:
                 markup, response_code = downloader.get(url)
@@ -139,4 +138,4 @@ if __name__ == "__main__":
         else:
             print("Markup already exists!", url)
 
-        crawl_frontier.pop_verify(url, referrer_url)
+        crawl_frontier.pop_verify(url)

@@ -68,7 +68,7 @@ class Engine():
                 # print("skipping: url is None")
                 break
 
-            markup_exists = resource_database.get_markup_exists(url)
+            markup_exists = resource_database.get_url_exists(url)
             if not markup_exists:
 
                 # Ping the contents of the website
@@ -112,7 +112,7 @@ class Engine():
             else:
                 print("Markup already exists!", url)
 
-            crawl_frontier.pop_verify(url, referrer_url)
+            crawl_frontier.pop_verify(url)
 
 
 if __name__ == "__main__":

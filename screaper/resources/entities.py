@@ -26,9 +26,8 @@ class URLEntity(Base):
     __tablename__ = 'url'
 
     id = Column(Integer(), primary_key=True, autoincrement=True, nullable=False, default=0)
-    url = Column(URLType, index=True, nullable=False)  # Make this an index
+    url = Column(URLType, unqiue=True, index=True, nullable=False)  # Make this an index
 
-    occurrences = Column(Integer(), nullable=False, default=0)  # Indicates how often this link was found, s.t. a priority queue can be managed through this
     engine_version = Column(String(), nullable=False)  # Indicates the version under which the link was scraped for
     created_at = Column(DateTime(), default=datetime.utcnow(), nullable=False)  # Timestamp when the query is added to the queue
 
@@ -40,7 +39,7 @@ class URLQueueEntity(Base):
     __tablename__ = 'url_queue'
 
     id = Column(Integer(), primary_key=True, autoincrement=True, nullable=False, default=0)
-    url = Column(Integer(), ForeignKey('url.id'), index=True, nullable=False)  # Make this an index
+    url_id = Column(Integer(), ForeignKey('url.id'), unqiue=True, index=True, nullable=False)  # Make this an index
     crawler_processing_sentinel = Column(Boolean(), nullable=False)  # Indicates if a worker is currently processing this
     crawler_processed_sentinel = Column(Boolean(), nullable=False)  # Indicates if the URLTypeas been successfully crawled
     crawler_skip = Column(Boolean(), nullable=False)  # Indicates whether or not to skip scraping this website
@@ -50,15 +49,15 @@ class URLQueueEntity(Base):
     version_crawl_frontier = Column(String(), nullable=False)  # Indicates the version under which the link was scraped for
 
 
-class URLReferralsEnttiy(Base):
+class URLReferralsEntity(Base):
     """
         The URL Queue Class that indicates what URL referred to what other URL
     """
     __tablename__ = 'url_referrals'
 
     id = Column(Integer(), primary_key=True, autoincrement=True, nullable=False, default=0)
-    url = Column(Integer(), ForeignKey('url.id'), index=True, nullable=False)  # Make this an index
-    referrer_url = Column(Integer(), ForeignKey('url.id'), primary_key=True, nullable=False)
+    target_url_id = Column(Integer(), ForeignKey('url.id'), index=True, nullable=False)  # Make this an index
+    referrer_url_id = Column(Integer(), ForeignKey('url.id'), primary_key=True, nullable=False)
     created_at = Column(DateTime(), default=datetime.utcnow(), nullable=False)  # Timestamp when the query is added to the queue
 
     __table_args__ = (
@@ -75,7 +74,7 @@ class RawMarkup(Base):
     __tablename__ = 'raw_markup'
 
     id = Column(Integer(), primary_key=True, autoincrement=True, nullable=False, default=0)
-    url = Column(Integer(), ForeignKey('url.id'), index=True, nullable=False)  # Make this an index
+    url_id = Column(Integer(), ForeignKey('url.id'), index=True, nullable=False)  # Make this an index
     markup = Column(Text(), nullable=False)
     version_crawl_processor = Column(String(), nullable=False)  # Indicates the version under which the link was scraped for
     updated_at = Column(DateTime(), default=datetime.utcnow(), onupdate=datetime.utcnow(), nullable=False)
