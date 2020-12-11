@@ -1,0 +1,1 @@
+/Applications/Postgres.app/Contents/Versions/10/bin/pg_dump --no-acl --no-owner scraper > local_dump.sql
