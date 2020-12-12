@@ -30,16 +30,16 @@ class Engine:
     def __init__(self):
         # establish a database connection
 
-        self.add_seed_urls = True
+        self.add_seed_urls = False or (resource_database.get_number_of_crawled_sites() == 0)
 
         # Delete all in URL and other tables
 
         if self.add_seed_urls:
 
-            resource_database.session.query(URLQueueEntity).delete()
-            resource_database.session.query(URLReferralsEntity).delete()
-            resource_database.session.query(RawMarkup).delete()
-            resource_database.session.query(URLEntity).delete()
+            # resource_database.session.query(URLQueueEntity).delete()
+            # resource_database.session.query(URLReferralsEntity).delete()
+            # resource_database.session.query(RawMarkup).delete()
+            # resource_database.session.query(URLEntity).delete()
 
             for x in self.seed_urls():
                 print("Adding: ", x)
@@ -59,7 +59,7 @@ class Engine:
 
             crawled_sites = resource_database.get_number_of_crawled_sites()
             print("Number of crawled sites are: ", crawled_sites)
-            if crawled_sites > 10:
+            if crawled_sites > 20:
                 exit(0)
 
             # print("Getting from queue")

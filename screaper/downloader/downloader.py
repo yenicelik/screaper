@@ -73,7 +73,7 @@ class Downloader:
         response = requests.get(
             url,
             headers=self.headers,
-            proxies={"http": self.proxy, "https": self.proxy},
+            # proxies={"http": self.proxy, "https": self.proxy},
             timeout=20.
         )
         # print("Response is: ", response)
