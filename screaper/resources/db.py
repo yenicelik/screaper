@@ -122,6 +122,7 @@ class Database:
         obj = self.session.query(URLQueueEntity)\
             .filter(URLQueueEntity.crawler_processing_sentinel == false())\
             .filter(URLQueueEntity.crawler_skip == false())\
+            .filter(URLQueueEntity.retries < self.max_retries)\
             .order_by(
                 URLQueueEntity.occurrences.asc(),
                 URLQueueEntity.created_at.asc()
@@ -170,7 +171,6 @@ class Database:
         obj.retries += 1
         return obj
 
-
     # Markup
     def create_markup_record(
             self,
@@ -185,7 +185,10 @@ class Database:
         obj = RawMarkup(
             url_id=url_entity.id,
             markup=markup,
-            version_crawl_processor=self.engine_version
+            spider_processing_sentinel=False,
+            spider_processed_sentinel=False,
+            spider_skip=False,
+            version_spider=self.engine_version
         )
         self.session.add(obj)
 

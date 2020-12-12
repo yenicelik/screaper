@@ -1,9 +1,14 @@
 """
-    Process downloaded html
+    Process downloaded html.
+
+    We will apply NER on some of the htmls that we already downloaded.
+    Some of the NER models include:
+
+    - https://spacy.io/models/xx
 """
 import pandas as pd
-
-from random import randint
+import spacy as spacy
+from numpy.random.mtrand import randint
 
 from screaper.resources.db import resource_database
 from screaper.scraper.scraper import Scraper
@@ -40,8 +45,17 @@ def preprocess_html(html):
     """
     scraper.process(html)
 
+def extract_organizations(html):
+    nlp = spacy.load("xx_ent_wiki_sm")
+
+
 if __name__ == "__main__":
     print("Starting to process the collected data")
-    df = load_df()
-    sample_markup = sample_htmls()
-    preprocess_html(sample_markup)
+    # df = load_df()
+    # sample_markup = sample_htmls()
+    # preprocess_html(sample_markup)
+
+    with open('/Users/david/screaper/notebooks/notebooks_20201205_process_downloaded_html/sample_12329.html', 'r') as file:
+        html = file.read()
+
+    preprocess_html(html)

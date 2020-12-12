@@ -82,7 +82,14 @@ class Downloader:
         # Do some basic sanitizing
         # content = bleach.clean(content)
         # let's assume no one on the web is trying to fuck you lol
-        content = clean_html(content)
+
+        # This cleaner is too strong!
+        # content = clean_html(content)
+
+        # TODO: This removes the html head!!!
+        # Perhaps do now clean but just put this into the database
+        # links, meta, page_structure,
+
         response_code = response.status_code
 
         return content, response_code
@@ -93,8 +100,6 @@ class Downloader:
 
 
 downloader = Downloader()
-
-
 
 if __name__ == "__main__":
     print("Starting indexer")

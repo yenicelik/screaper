@@ -23,3 +23,10 @@ https://huggingface.co/wietsedv/bert-base-multilingual-cased-finetuned-sonar-ner
 
 => just start building / working on the product design, and start iterating over this with target-users
 
+
+
+=> probably will need to apply information extraction: https://stanfordnlp.github.io/CoreNLP/openie.html to find "sells_to(company1, company2)" and "sells_part(company, part_name)"
+
+=> create a knowledge based from scratch : https://tac.nist.gov/2017/KBP/
+
+=> https://tabula.technology/ open source pdf table extraction tool
