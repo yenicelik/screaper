@@ -107,6 +107,8 @@ class Database:
             )
             self.session.add(url_referral_entity_obj)
 
+        return url_referral_entity_obj
+
 
     def get_url_task_queue_record_start(self):
         """
@@ -119,21 +121,22 @@ class Database:
         # which is not processing
         # and is not included in the index already
 
-        obj = self.session.query(URLQueueEntity)\
+        url_obj, url_queue_obj = self.session.query(URLEntity, URLQueueEntity)\
             .filter(URLQueueEntity.crawler_processing_sentinel == false())\
             .filter(URLQueueEntity.crawler_skip == false())\
             .filter(URLQueueEntity.retries < self.max_retries)\
+            .filter(URLEntity.id == URLQueueEntity.url_id)\
+            .join(URLEntity) \
             .order_by(
                 URLQueueEntity.occurrences.asc(),
                 URLQueueEntity.created_at.asc()
             )\
             .limit(1)\
-            .join(URLEntity)\
             .one_or_none()
 
-        obj.crawler_processing_sentinel = True
+        url_queue_obj.crawler_processing_sentinel = True
 
-        return obj
+        return url_obj
 
 
     def get_url_task_queue_record_completed(self, url):
@@ -157,9 +160,9 @@ class Database:
             implements the pop operation for queue
             indicating that a crawler has processed the request successfully
         """
-        obj = self.session.query(URLEntity)\
+        obj = self.session.query(URLQueueEntity)\
+            .join(URLEntity)\
             .filter(URLEntity.url == url)\
-            .join(URLQueueEntity)\
             .one()
 
         # TODO: Will this update the sub-object in the database? (because join?)
@@ -195,6 +198,14 @@ class Database:
     def get_url_exists(self, url):
         url_entity = self.session.query(URLEntity)\
             .filter(URLEntity.url == url)\
+            .one_or_none()
+
+        return url_entity
+
+    def get_markup_exists(self, url):
+        url_entity = self.session.query(URLEntity) \
+            .filter(URLEntity.url == url)\
+            .join(RawMarkup)\
             .one_or_none()
 
         return url_entity

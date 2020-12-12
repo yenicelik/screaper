@@ -11,9 +11,10 @@ from screaper.crawl_frontier.crawl_frontier import crawl_frontier
 from screaper.downloader.downloader import downloader
 from screaper.engine.markup_processor import markup_processor
 from screaper.resources.db import resource_database
+from screaper.resources.entities import URLEntity, URLQueueEntity, RawMarkup, URLReferralsEntity
 
 
-class Engine():
+class Engine:
 
     def seed_urls(self):
         return [
@@ -28,7 +29,24 @@ class Engine():
 
     def __init__(self):
         # establish a database connection
-        pass
+
+        self.add_seed_urls = True
+
+        # Delete all in URL and other tables
+
+        if self.add_seed_urls:
+
+            resource_database.session.query(URLQueueEntity).delete()
+            resource_database.session.query(URLReferralsEntity).delete()
+            resource_database.session.query(RawMarkup).delete()
+            resource_database.session.query(URLEntity).delete()
+
+            for x in self.seed_urls():
+                print("Adding: ", x)
+                resource_database.create_url_entity(url="")
+                crawl_frontier.add(target_url=x, referrer_url="")
+
+            resource_database.commit()
 
     def run(self):
         """
@@ -41,7 +59,7 @@ class Engine():
 
             crawled_sites = resource_database.get_number_of_crawled_sites()
             print("Number of crawled sites are: ", crawled_sites)
-            if crawled_sites > 10000:
+            if crawled_sites > 10:
                 exit(0)
 
             # print("Getting from queue")
@@ -59,61 +77,62 @@ class Engine():
                     retries += 1
                     time.sleep(0.1)
 
-            url, referrer_url = queue_obj.url, queue_obj.referrer_url
-
             # print("Referring url is: ", referrer_url)
 
-            print("Scraping url: ", url)
-            if url is None:
+            print("Scraping url: ", queue_obj.url)
+            if queue_obj.url is None:
                 # print("skipping: url is None")
                 break
 
-            markup_exists = resource_database.get_url_exists(url)
+            markup_exists = resource_database.get_markup_exists(queue_obj.url)
             if not markup_exists:
 
                 # Ping the contents of the website
                 try:
-                    markup, response_code = downloader.get(url)
+                    markup, response_code = downloader.get(queue_obj.url)
                 except ProxyError as e:
-                    print("Connection Timeout Expection 1!", e)
+                    print("Connection Timeout Exception 1!", e)
                     downloader.set_proxy()
-                    crawl_frontier.pop_failed(url, referrer_url)
+                    crawl_frontier.pop_failed(queue_obj.url)
                     continue
                 except ConnectTimeout as e:
-                    print("Connection Timeout Expection 2!", e)
+                    print("Connection Timeout Exception 2!", e)
                     downloader.set_proxy()
-                    crawl_frontier.pop_failed(url, referrer_url)
+                    crawl_frontier.pop_failed(queue_obj.url)
                     continue
                 except Exception as e:
                     print("Encountered exception: ", e)
-                    crawl_frontier.pop_failed(url, referrer_url)
+                    crawl_frontier.pop_failed(queue_obj.url)
                     continue
 
                 # If response code is not a 200, put it back into the queue and process it at a later stage again
                 if not (response_code == requests.codes.ok):
-                    crawl_frontier.pop_failed(url, referrer_url)
+                    crawl_frontier.pop_failed(queue_obj.url)
 
                 # Add scraped items to the mongodb database:
                 # print("Adding to database")
-                downloader.add_to_index(url, markup)
+                downloader.add_to_index(queue_obj.url, markup)
 
                 # parse all links from the markup
                 # print("Getting urls from markup")
-                target_urls = markup_processor.get_links(url, markup)
+                target_urls = markup_processor.get_links(queue_obj.url, markup)
                 # print("target urls: ", target_urls)
 
                 # for each link in the queue, add this to the queue:
                 for target_url in target_urls:
                     # print("Adding target url: ", target_url)
                     # print("Adding reference url: ", url)
-                    crawl_frontier.add(target_url=target_url, referrer_url=url)
+                    crawl_frontier.add(target_url=target_url, referrer_url=queue_obj.url)
                     # print("Added target url: ", target_url)
                     # print("Adding reference url: ", url)
             else:
-                print("Markup already exists!", url)
+                print("Markup already exists!", queue_obj.url)
 
-            crawl_frontier.pop_verify(url)
+            crawl_frontier.pop_verify(queue_obj.url)
 
 
 if __name__ == "__main__":
     print("Starting the engine ...")
+    engine = Engine()
+
+    engine.run()

@@ -7,6 +7,8 @@ import random
 
 import requests
 from urllib.request import urlopen
+
+from bs4 import BeautifulSoup
 from lxml.html.clean import clean_html
 
 from screaper.resources.db import resource_database
@@ -54,8 +56,7 @@ class Downloader:
         # For now, analyse any kind of markup
         resource_database.create_markup_record(
             url=url,
-            markup=markup,
-            skip=False
+            markup=markup
         )
         resource_database.commit()
 

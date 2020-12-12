@@ -29,8 +29,8 @@ class CrawlFrontier:
         resource_database.get_url_task_queue_record_completed(url=url)
         resource_database.commit()
 
-    def pop_failed(self, url, referrer_url):
-        resource_database.get_url_task_queue_record_failed(url=url, referrer_url=referrer_url)
+    def pop_failed(self, url):
+        resource_database.get_url_task_queue_record_failed(url=url)
         resource_database.commit()
 
     def add(self, target_url, referrer_url):
@@ -60,7 +60,7 @@ class CrawlFrontier:
 
         # Other ways to check if link is valid?
         # TODO: Implement contents to also be exported
-        if resource_database.get_url_exists(url=target_url):
+        if resource_database.get_markup_exists(url=target_url):
             # If the url's markup was already crawled, do not ping this again
             return
 
@@ -73,16 +73,16 @@ class CrawlFrontier:
             # if the link is not whitelisted, do not look for this further
             skip = True
 
+        # Create URL entity
+        url_obj = resource_database.create_url_entity(url=target_url)
+
         # Add to queue
+        url_queue_obj = resource_database.create_url_queue_entity(url_entity_obj=url_obj, skip=skip)
 
         # Add to graph
+        url_referral_obj = resource_database.create_referral_entity(url_entity=url_obj, referrer_url=referrer_url)
 
-        # Create index into queue
-        resource_database.create_entry_in_queue(
-            target_url=target_url,
-            referrer_url=referrer_url,
-            skip=skip
-        )
+        # Commit database
         resource_database.commit()
 
     # TODO: When getting, always prioritize the thomasnet pages before spanning out!
