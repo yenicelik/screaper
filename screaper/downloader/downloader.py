@@ -7,6 +7,8 @@ import random
 
 import requests
 from urllib.request import urlopen
+
+from bs4 import BeautifulSoup
 from lxml.html.clean import clean_html
 
 from screaper.resources.db import resource_database
@@ -31,16 +33,20 @@ class Downloader:
 
         return proxies
 
+    def set_proxy(self):
+        self.proxy = random.choice(self.proxies)
+        print("Proxy is now: ", self.proxy)
 
     def __init__(self):
         # Prepare proxies list:
         self.proxies = self.load_proxy_list()
+        self.set_proxy()
 
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36",  # (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)
-            "From": "contact@theaicompany.com"
+            # "From": "contact@theaicompany.com"
         }
-        self.sleeptime = 0.5
+        self.sleeptime = 0.3
 
     def add_to_index(self, url, markup):
         """
@@ -50,8 +56,7 @@ class Downloader:
         # For now, analyse any kind of markup
         resource_database.create_markup_record(
             url=url,
-            markup=markup,
-            skip=False
+            markup=markup
         )
         resource_database.commit()
 
@@ -60,16 +65,16 @@ class Downloader:
             retrieve the website markup
         """
 
-        # proxy = random.choice(self.proxies)
         # print("Sleep... Proxy is: ", proxy)
         time.sleep(self.sleeptime)
-        time.sleep(random.random() * 0.5)
+        time.sleep(random.random() * self.sleeptime)
 
+        # Try again if the proxy is just a bad one
         response = requests.get(
             url,
             headers=self.headers,
-            # proxies={"http": proxy, "https": proxy},
-            # timeout=2.
+            # proxies={"http": self.proxy, "https": self.proxy},
+            timeout=20.
         )
         # print("Response is: ", response)
         content = response.text
@@ -78,7 +83,14 @@ class Downloader:
         # Do some basic sanitizing
         # content = bleach.clean(content)
         # let's assume no one on the web is trying to fuck you lol
-        content = clean_html(content)
+
+        # This cleaner is too strong!
+        # content = clean_html(content)
+
+        # TODO: This removes the html head!!!
+        # Perhaps do now clean but just put this into the database
+        # links, meta, page_structure,
+
         response_code = response.status_code
 
         return content, response_code
@@ -89,8 +101,6 @@ class Downloader:
 
 
 downloader = Downloader()
-
-
 
 if __name__ == "__main__":
     print("Starting indexer")
