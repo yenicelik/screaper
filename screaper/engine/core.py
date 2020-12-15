@@ -128,6 +128,17 @@ class Engine:
 
             crawl_frontier.pop_verify(queue_obj.url)
 
+class ThreadedEngine:
+    """
+        Threaded Wrapper around the engine
+    """
+
+    def __init__(self):
+        pass
+
+    def run(self):
+        pass
+
 engine = Engine()
 
 if __name__ == "__main__":

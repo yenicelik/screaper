@@ -3,6 +3,8 @@ FROM python:3.7.9-slim
 # Both items are required
 RUN apt-get update -y
 RUN apt-get install postgresql -y postgresql-contrib
+RUN apt-get install python-psycopg2 -y
+RUN apt-get install libpq-dev -y
 
 # Copy all files into the docker dir
 # Copy all core files into docker dir
@@ -15,11 +17,6 @@ WORKDIR /app
 
 # Install Python web server and dependencies
 RUN pip install -r ./requirements.txt
-
-# Expose port
-EXPOSE 5000
-EXPOSE 80
-EXPOSE 8080
 
 # Run a single python application
 

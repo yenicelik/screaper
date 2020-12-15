@@ -2,7 +2,7 @@ import os
 import pandas as pd
 
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, false, exists
+from sqlalchemy import create_engine, false
 from sqlalchemy.orm import sessionmaker
 
 from screaper.resources.entities import URLEntity, URLReferralsEntity, URLQueueEntity, RawMarkup
