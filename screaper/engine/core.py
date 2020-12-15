@@ -2,6 +2,7 @@
     Run the scrapy web crawler
 """
 import time
+from multiprocessing import Process
 
 import requests
 from requests import ConnectTimeout
@@ -14,8 +15,11 @@ from screaper.resources.db import resource_database
 
 class Engine:
 
-    def seed_urls(self):
-        return [
+    @staticmethod
+    def __init__():
+        # establish a database connection
+
+        seed_urls = [
             # "https://www.thomasnet.com/browse/",  # entire database
             # "https://www.thomasnet.com/browse/machinery-tools-supplies-1.html",  # category depth 1
             "https://www.thomasnet.com/browse/machinery-tools-supplies/bearings-1.html",  # category depth 2
@@ -25,28 +29,26 @@ class Engine:
             # "https://www.bdiexpress.com/us/en/",  # example distributor website
         ]
 
-    def __init__(self):
-        # establish a database connection
-
-        self.add_seed_urls = False or (resource_database.get_number_of_crawled_sites() == 0)
+        add_seed_urls = False or (resource_database.get_number_of_crawled_sites() == 0)
 
         # Delete all in URL and other tables
 
-        if self.add_seed_urls:
+        if add_seed_urls:
 
             # resource_database.session.query(URLQueueEntity).delete()
             # resource_database.session.query(URLReferralsEntity).delete()
             # resource_database.session.query(RawMarkup).delete()
             # resource_database.session.query(URLEntity).delete()
 
-            for x in self.seed_urls():
+            for x in seed_urls:
                 print("Adding: ", x)
                 resource_database.create_url_entity(url="")
                 crawl_frontier.add(target_url=x, referrer_url="")
 
             resource_database.commit()
 
-    def run(self):
+    @staticmethod
+    def run():
         """
             Run the crawler. This will run for many, many hours (up to 80 days, unless parallalized).
             I will try to setup a single docker container.
@@ -134,15 +136,41 @@ class ThreadedEngine:
     """
 
     def __init__(self):
-        pass
+        self.max_time = 10 # 3600  # Let each thread run for a maximum of 1h
+        self.number_processes = 4
+        self.ping_interval = 20
 
     def run(self):
-        pass
+
+        engine = Engine()
+
+        # Now do this in a for-loop
+        processes = []
+
+        try:
+
+            while True:
+
+                # Spawn additional processes if there are not enough processes
+                for i in range(self.number_processes - len(processes)):
+                    print("Spawning process {}".format(i))
+                    p = Process(target=engine.run)
+                    p.start()
+                    processes.append(p)
+
+                time.sleep(self.ping_interval)
+
+        finally:
+            for i in range(len(processes)):
+                processes[i].terminate()
+
 
 engine = Engine()
 
 if __name__ == "__main__":
     print("Starting the engine ...")
-    engine = Engine()
+    # engine = Engine()
+    # engine.run()
 
-    engine.run()
+    engine_wrapper = ThreadedEngine()
+    engine_wrapper.run()
