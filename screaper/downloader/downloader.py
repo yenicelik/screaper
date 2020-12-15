@@ -25,7 +25,6 @@ class Downloader:
             proxies = json.loads(url.read().decode('utf-8'))
 
         proxies = proxies['proxies']
-        print("Proxies are: ", proxies)
 
         # TODO: Replace with environment variable
         proxies = [(x["ip"], x["port"]) for x in proxies if x["google_status"] == 200]
@@ -73,7 +72,7 @@ class Downloader:
         response = requests.get(
             url,
             headers=self.headers,
-            # proxies={"http": self.proxy, "https": self.proxy},
+            proxies={"http": self.proxy, "https": self.proxy},
             timeout=20.
         )
         # print("Response is: ", response)

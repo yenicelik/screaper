@@ -13,7 +13,6 @@ from screaper.engine.markup_processor import markup_processor
 from screaper.resources.db import resource_database
 from screaper.resources.entities import URLEntity, URLQueueEntity, RawMarkup, URLReferralsEntity
 
-
 class Engine:
 
     def seed_urls(self):
@@ -59,7 +58,7 @@ class Engine:
 
             crawled_sites = resource_database.get_number_of_crawled_sites()
             print("Number of crawled sites are: ", crawled_sites)
-            if crawled_sites > 20:
+            if crawled_sites > 40:
                 exit(0)
 
             # print("Getting from queue")
