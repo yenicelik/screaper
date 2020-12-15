@@ -1,7 +1,6 @@
 """
     Implements a scraper which processes the downloaded markup
 """
-import trafilatura
 from bs4 import BeautifulSoup
 
 

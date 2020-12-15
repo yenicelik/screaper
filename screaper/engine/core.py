@@ -11,7 +11,6 @@ from screaper.crawl_frontier.crawl_frontier import crawl_frontier
 from screaper.downloader.downloader import downloader
 from screaper.engine.markup_processor import markup_processor
 from screaper.resources.db import resource_database
-from screaper.resources.entities import URLEntity, URLQueueEntity, RawMarkup, URLReferralsEntity
 
 class Engine:
 
@@ -129,6 +128,7 @@ class Engine:
 
             crawl_frontier.pop_verify(queue_obj.url)
 
+engine = Engine()
 
 if __name__ == "__main__":
     print("Starting the engine ...")
