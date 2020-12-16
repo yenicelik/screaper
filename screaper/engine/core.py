@@ -1,6 +1,7 @@
 """
     Run the scrapy web crawler
 """
+import multiprocessing
 import time
 from multiprocessing import Process
 
@@ -12,6 +13,7 @@ from screaper.crawl_frontier.crawl_frontier import crawl_frontier
 from screaper.downloader.downloader import downloader
 from screaper.engine.markup_processor import markup_processor
 from screaper.resources.db import resource_database
+
 
 class Engine:
 
@@ -59,7 +61,7 @@ class Engine:
 
             crawled_sites = resource_database.get_number_of_crawled_sites()
             print("Number of crawled sites are: ", crawled_sites)
-            if crawled_sites > 40:
+            if crawled_sites > 200:
                 exit(0)
 
             # print("Getting from queue")
@@ -136,16 +138,16 @@ class ThreadedEngine:
     """
 
     def __init__(self):
-        self.max_time = 10 # 3600  # Let each thread run for a maximum of 1h
-        self.number_processes = 4
-        self.ping_interval = 20
+        self.max_time = 3600
+        self.number_processes = 4  # Number of processes to spawn. Each process will have a different proxy for a long while
+        self.ping_interval = 120  # Ping threads every 2 minutes to make sure that the threads are not dead yet
 
     def run(self):
 
         engine = Engine()
 
         # Now do this in a for-loop
-        processes = []
+        processes = dict()
 
         try:
 
@@ -153,19 +155,46 @@ class ThreadedEngine:
 
                 # Spawn additional processes if there are not enough processes
                 for i in range(self.number_processes - len(processes)):
-                    print("Spawning process {}".format(i))
                     p = Process(target=engine.run)
+                    time.sleep(0.1)
                     p.start()
-                    processes.append(p)
+                    start_time = time.time()
+                    # a bit disgusting, but that's fine
+                    name = str(p.name) + str(p._identity)
+                    print("Spawning process nr: {} name: {} len: {}".format(i, name, len(processes)))
+                    processes[name] = {
+                        "process": p,
+                        "time": start_time
+                    }
 
                 time.sleep(self.ping_interval)
 
+                # Kill any process that has been alive for too long
+                tokill = set()
+
+                for name, proc_obj in processes.items():
+                    proc = proc_obj["process"]
+                    proc_time = proc_obj["time"]
+
+                    # Try to join with a timeout
+                    # proc.join(timeout=0)
+                    if (time.time() - proc_time) > self.max_time:
+                        print("Time is: ", (time.time() - proc_time), self.max_time, (time.time() - proc_time) > self.max_time)
+                        print("Process {} will now be terminated".format(name))
+                        tokill.add(name)
+                    elif proc.is_alive():
+                        print("Job is not finished!")
+                    else:
+                        print("Process {} is dead.".format(name))
+                        tokill.add(name)
+
+                for proc_name in tokill:
+                    processes[proc_name]['process'].kill()
+                    del processes[proc_name]
+
         finally:
-            for i in range(len(processes)):
-                processes[i].terminate()
-
-
-engine = Engine()
+                for name, proc_obj in processes.items():
+                        proc_obj['process'].kill()
 
 if __name__ == "__main__":
     print("Starting the engine ...")

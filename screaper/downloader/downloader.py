@@ -25,6 +25,7 @@ class Downloader:
             proxies = json.loads(url.read().decode('utf-8'))
 
         proxies = proxies['proxies']
+        print("Total number of proxies are: ", len(proxies))
 
         # TODO: Replace with environment variable
         proxies = [(x["ip"], x["port"]) for x in proxies if x["google_status"] == 200]
