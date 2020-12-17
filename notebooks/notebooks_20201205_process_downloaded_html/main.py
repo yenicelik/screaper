@@ -23,7 +23,7 @@ def load_df():
 
     return df
 
-def sample_htmls():
+def sample_htmls(df):
     row = df.sample()
 
     print("Row is: ")
@@ -43,19 +43,29 @@ def preprocess_html(html):
     """
         Remove any occurrences of style and script from html
     """
-    scraper.process(html)
+    base_url = "https://thomasnet.com"
+    scraper.process(html, base_url)
 
 def extract_organizations(html):
-    nlp = spacy.load("xx_ent_wiki_sm")
 
+    # how to represent graphs in python?
+
+    # Create a tree from the html
+
+    # for each node of the tree, check if any entities are found
+
+    # if no entities are found, delete the graph
+
+    #
+
+    nlp = spacy.load("xx_ent_wiki_sm")
 
 if __name__ == "__main__":
     print("Starting to process the collected data")
     # df = load_df()
-    # sample_markup = sample_htmls()
-    # preprocess_html(sample_markup)
+    # sample_markup = sample_htmls(df)
 
-    with open('/Users/david/screaper/notebooks/notebooks_20201205_process_downloaded_html/sample_12329.html', 'r') as file:
+    with open('/Users/david/screaper/notebooks/notebooks_20201205_process_downloaded_html/sample_21550.html', 'r') as file:
         html = file.read()
 
     preprocess_html(html)

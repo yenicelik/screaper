@@ -4,6 +4,7 @@ import pandas as pd
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, false
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.sql.expression import func, select
 
 from screaper.resources.entities import URLEntity, URLReferralsEntity, URLQueueEntity, RawMarkup
 
@@ -133,6 +134,8 @@ class Database:
             )\
             .limit(1)\
             .one_or_none()
+
+        # Pick a pseudo-randomized order from the top 100 items
 
         url_queue_obj.crawler_processing_sentinel = True
 

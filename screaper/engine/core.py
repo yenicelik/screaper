@@ -1,5 +1,8 @@
 """
-    Run the scrapy web crawler
+    Run the scrapy web crawler.
+
+    Look at how to make the multiprocessing faster:
+    - https://www.cloudcity.io/blog/2019/02/27/things-i-wish-they-told-me-about-multiprocessing-in-python/
 """
 import multiprocessing
 import time
@@ -61,7 +64,7 @@ class Engine:
 
             crawled_sites = resource_database.get_number_of_crawled_sites()
             print("Number of crawled sites are: ", crawled_sites)
-            if crawled_sites > 200:
+            if crawled_sites > 1000:
                 exit(0)
 
             # print("Getting from queue")
@@ -139,7 +142,7 @@ class ThreadedEngine:
 
     def __init__(self):
         self.max_time = 3600
-        self.number_processes = 4  # Number of processes to spawn. Each process will have a different proxy for a long while
+        self.number_processes = 16  # Number of processes to spawn. Each process will have a different proxy for a long while
         self.ping_interval = 120  # Ping threads every 2 minutes to make sure that the threads are not dead yet
 
     def run(self):
@@ -156,7 +159,7 @@ class ThreadedEngine:
                 # Spawn additional processes if there are not enough processes
                 for i in range(self.number_processes - len(processes)):
                     p = Process(target=engine.run)
-                    time.sleep(0.1)
+                    time.sleep(0.3)
                     p.start()
                     start_time = time.time()
                     # a bit disgusting, but that's fine
@@ -189,12 +192,12 @@ class ThreadedEngine:
                         tokill.add(name)
 
                 for proc_name in tokill:
-                    processes[proc_name]['process'].kill()
+                    processes[proc_name]['process'].terminate()
                     del processes[proc_name]
 
         finally:
                 for name, proc_obj in processes.items():
-                        proc_obj['process'].kill()
+                        proc_obj['process'].terminate()
 
 if __name__ == "__main__":
     print("Starting the engine ...")

@@ -7,7 +7,9 @@ def mse(x, y):
     out = np.sum(np.square(x - y)).flatten()
     return out
 
+
 mse = np.vectorize(mse)
+
 
 class KMeans:
 

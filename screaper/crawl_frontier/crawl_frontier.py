@@ -54,6 +54,9 @@ class CrawlFrontier:
             # if link starts with slash, then this is a relative link. We append the domain to the url
             basic_url = get_base_url(referrer_url)  # Returns just the main url
             target_url = basic_url + target_url
+        # if "http" not in target_url:
+        #     return
+
 
         # remove all anchors if existent
         target_url = target_url.split('#')[0]

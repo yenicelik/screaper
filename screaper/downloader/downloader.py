@@ -1,5 +1,8 @@
 """
-    Implements a downloader which retrieves the markup and saves this into the index
+    Implements a downloader which retrieves the markup and saves this into the index.
+
+    Maybe check out this website for random proxies:
+    - http-request-randomizer 1.3.2
 """
 import time
 import json
@@ -7,9 +10,6 @@ import random
 
 import requests
 from urllib.request import urlopen
-
-from bs4 import BeautifulSoup
-from lxml.html.clean import clean_html
 
 from screaper.resources.db import resource_database
 
@@ -25,7 +25,6 @@ class Downloader:
             proxies = json.loads(url.read().decode('utf-8'))
 
         proxies = proxies['proxies']
-        print("Total number of proxies are: ", len(proxies))
 
         # TODO: Replace with environment variable
         proxies = [(x["ip"], x["port"]) for x in proxies if x["google_status"] == 200]
@@ -46,7 +45,7 @@ class Downloader:
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36",  # (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)
             # "From": "contact@theaicompany.com"
         }
-        self.sleeptime = 0.3
+        self.sleeptime = 0.6
 
     def add_to_index(self, url, markup):
         """
@@ -64,6 +63,8 @@ class Downloader:
         """
             retrieve the website markup
         """
+
+        # assert false if the input is not of type HTML! might be malicious otherwise
 
         # print("Sleep... Proxy is: ", proxy)
         time.sleep(self.sleeptime)
