@@ -39,18 +39,18 @@ class CrawlFrontier:
         """
 
         # Very hacky now, which is fine
-
         if target_url is None:
             # TODO: Log a warning that some url is none!
             return
+        target_url = target_url.strip()
         # apply whitelisting
-        if target_url.strip() == "":
+        if target_url. == "":
             # if link is empty, it is probably broken, skip
             return
-        if target_url.strip()[0] == "#":
+        if target_url[0] == "#":
             # if link starts with "#", skip this (because this is just an anchor
             return
-        if target_url.strip()[0] == "/":
+        if target_url[0] == "/":
             # if link starts with slash, then this is a relative link. We append the domain to the url
             basic_url = get_base_url(referrer_url)  # Returns just the main url
             target_url = basic_url + target_url

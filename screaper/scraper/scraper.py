@@ -5,9 +5,11 @@
     - https://python.hotexamples.com/examples/BeautifulSoup/BeautifulSoup/recursiveChildGenerator/python-beautifulsoup-recursivechildgenerator-method-examples.html
 
 """
+import copy
 import re
 
 from bs4 import BeautifulSoup, Comment, Doctype, NavigableString
+
 
 # fout.write(re.sub('\s+', ' ', line))
 
@@ -15,13 +17,8 @@ from bs4 import BeautifulSoup, Comment, Doctype, NavigableString
 
 class Scraper:
 
-    # def _replace_by_paragraph(soup, tag):
-    #     for t in soup.findAll(tag):
-    #         t.name = "p"
-    #         t.attrs = {}
-
     def __init__(self):
-        self.remove_attributes = set([
+        self.attribute_blacklist = {
             'lang', 'language', 'onmouseover', 'onmouseout', 'script', 'style',
             'font', 'dir', 'face', 'size', 'color', 'style', 'class', 'width',
             'height', 'hspace', 'border', 'valign', 'align', 'background', 'bgcolor',
@@ -29,57 +26,45 @@ class Scraper:
             'type'
             # added newly
             'src', 'target'
-        ])
+        }
 
         # Extent whitelist with any additional items that may be useful for future usage!!!
-        self.attribute_whitelist = set([
+        self.attribute_whitelist = {
             "href", "value", "title", "summary", "data-content",
             "cols", "colspan", "rows", "rowspan", "content",
             "data", "datetime", "label", "list", "srcdoc", 'description',
             "name"
-        ])
+        }
 
     def remove_tag(self, soup, tag_name):
         for x in soup.find_all(tag_name):
             x.decompose()
 
     def remove_tags(self, soup):
+        # These tags should not be removed per-se, but just unwrapped.
+        # The underlying items should be pushed up,
+        # the tags should be replaced by "divs", so to speak
+        # Pose this as an optimization problem if we label end-to-end
         tags = [
-            "scripts", "style", "noscript", "footer",
-            "svg", "link", "input", "form", "button",
-            "br", "class",
+            "script",
+            "style",
+            "svg",
+            "link",
+            "br",
+            # "noscript",
+            # "footer",
+            # "form",
+            # "button",
+            # "input"  # This one is needed!
+            # "class",
             # slightly optional
-            "select",
-
+            # "select",
+            # "header"
         ]
         for x in soup.find_all(tags):
             x.decompose()
 
-        # self.remove_tag(soup, isinstance(text, Comment))
-        # can probably also remove input tags
-        # can probably also remove form tags
-
     def remove_attributes(self, soup):
-        pass
-
-    def process(self, html, base_url):
-        soup = BeautifulSoup(str(html), 'lxml')
-
-        # TODO: There is probably a much more efficient implementation for all the require ops
-        self.remove_tags(soup)
-
-        # img can include href tags.
-        # if img does not includes href tag, remove this
-
-        # slightly optional
-        for element in soup(text=lambda it: isinstance(it, Comment)):
-            element.extract()
-
-        for x in soup.find_all(attrs={"name": "google-site-verification"}):
-            x.decompose()
-
-        # Apply whitelist of attributes
-        # Check if whitelist misses anything super-important!
         whitelist = True
         if whitelist:
             print("Whitelisting attributes")
@@ -100,18 +85,13 @@ class Scraper:
                 del_attr = set()
                 for attr in s.attrs:
                     print("Attr is: ", attr)
-                    if attr in self.remove_attributes:
+                    if attr in self.attribute_blacklist:
                         print("Popping: ", attr)
                         del_attr.add(attr)
                 for x in del_attr:
                     s.attrs.pop(x)
 
-        for item in soup.contents:
-            print("Iterating through contents: ", item)
-            if isinstance(item, Doctype):
-                print("Yes!")
-                item.extract()
-
+    def improve_links(self, soup, base_url):
         for link in soup.find_all('a'):
 
             if 'href' not in link.attrs:
@@ -133,53 +113,9 @@ class Scraper:
             if url[0] == "/":
                 # if link starts with slash, then this is a relative link. We append the domain to the url
                 link.attrs['href'] = base_url + url
+                # TODO: Does this destroy the inner contents???
 
-            # print("Link is: ", link.attrs['href'])
-
-        # TODO: Pop nodes that have only a single child and parent, and not content or attributes
-
-
-        # Iteratively remove all tags that have no content (empty tags)
-
-        # Recursively pass the tree, and delete all leaf nodes that are empty
-        # in-order-traversal
-
-        # apply NER; and discard all nodes that do not include a NER component
-        # Generator should be run in reverse (in-order-traversal)
-        remove_redundant = True
-        # if remove_redundant:
-        #     for node in soup.recursiveChildGenerator():
-        #         print("Node is: ", node)
-        #
-        #         if isinstance(node, NavigableString):
-        #
-        #             if not node.strip():
-        #                 # Remove this from the parse tree if this is an empty text
-        #                 node.extract()
-        #
-        #             continue
-        #
-        #         # Get all children of the node
-        #         if len(node.find_all()) == 0:
-        #             print("No children found, can delete this node unwrap: ", node)
-        #
-        #             if not node.get_text():
-        #                 print("No text found (1) , can unwrap: ", node)
-        #                 node.decompose()
-        #             if node.get_text() and node.get_text().strip() == "":
-        #                 print("No text found (2), can unwrap: ", node)
-        #                 node.decompose()
-        #
-        #         elif len(node.find_all()) == 1:
-        #             print("Only one child found. Can safely unwrap this tag")
-        #             if not node.get_text():
-        #                 node.unwrap()
-        #             if node.get_text() and node.get_text().strip() == "":
-        #                 node.unwrap()
-        #
-        #         else:
-        #             print("Node cannot be safely deleted")
-
+    def remove_empty_nodes(self, soup):
         remove_redundant = True
         if remove_redundant:
             # Iterate each line
@@ -187,8 +123,8 @@ class Scraper:
 
                 # fetching text from tag and remove whitespaces
                 # Empty attributes!
-                print("x is: ", x.get_text().replace("\n", " ").strip())
-                print("x is: ", len(x.get_text().replace("\n", " ").strip()))
+                # print("x is: ", x.get_text().replace("\n", " ").strip())
+                # print("x is: ", len(x.get_text().replace("\n", " ").strip()))
 
                 # Also check if there's any children (unless we do in-order node traversal
                 # Actually, this should be correct, bcs get text gets the text collectively
@@ -196,6 +132,7 @@ class Scraper:
                 # TODO: But then we must check if any child nodes have any attributes!!
                 # We can
 
+                # TODO: Does this include text for all childs as well?
                 if len(x.get_text().replace("\n", " ").strip()) == 0:
                     if x.attrs is None:
                         print("Deleting: ", x, x.get_text, x.attrs)
@@ -204,44 +141,79 @@ class Scraper:
                         # Remove empty tag
                         print("Deleting: ", x, x.get_text, x.attrs)
                         x.decompose()
+
                 print("x attrs: ", x.attrs)
 
                 if x.attrs is not None:
                     print("x attrs: ", len(x.attrs))
 
-        print("Soup before prettify: ")
-        print(soup)
+    def unwrap_span(self, soup):
+        # Unwrap all style tags
+        for x in soup.find_all("span"):
+            x.unwrap()
+
+        # TODO: Add unittests
+
+        # Replace all redundant newlines and whitespaces with a single newline or whitespace
+        for x in soup():
+            if x.string:
+                bfr = x.string
+                x.string = x.string.replace("\n", " ").strip()
+                x.string = re.sub(' +', ' ', x.string)
+                print("{} x string is: (befor)".format("-->" if bfr != x.string else ""), bfr)
+                print("{} x string is: (after)".format("-->" if bfr != x.string else ""), x.string)
+
+        # TODO: Need to fix encoding issues
+        # Designer and fabricator of medical devices, including ventilators for use during the COVID-19 crisis. Selected by NASAâs Jet Propulsion Lab (JPL) to manufacture a new ventilator designed specially for COVID-19 response. Also manufactures other devices, implantables and software products. ISO 13485 Certified.
+        # Weâve curated a list of mission-critical resources &	 real-time information for manufacturers &	 distributors.
+
+    def process(self, html, base_url):
+        soup = BeautifulSoup(str(html), 'lxml')
+
+        # TODO: The items inside <a> s are ignored?
+        # <h2 class="profile-card__title"><a href="/branchloc.html?act=S&amp;cert=29&amp;cid=10083421&amp;cov=NA&amp;goto=%2Fprofile%2F10083421%2Feconopak.html&amp;heading=97010359&amp;navsource=gnb&amp;searchpos=1" rel="nofollow">Econo-Pak</a></h2><span class="supplier-badge--mobile-icon supplier-badge supplier-badge--verified" data-placement="bottom" data-toggle="tooltip" title="This supplierâs location, business information, and complete products/services have been validated.">
+        # TODO: Divide and conquer by commenting out some of the below functions
+
+        # TODO: There is probably a much more efficient implementation for all the require ops
+        self.remove_tags(soup)
+
+        # img can include href tags.
+        # if img does not includes href tag, remove this
+
+        # slightly optional
+        for element in soup(text=lambda it: isinstance(it, Comment)):
+            element.extract()
+
+        # for x in soup.find_all(attrs={"name": "google-site-verification"}):
+        #     x.decompose()
+
+        # Apply whitelist of attributes
+        # Check if whitelist misses anything super-important!
+        self.remove_attributes(soup)
+
+        for item in soup.contents:
+            print("Iterating through contents: ", item)
+            if isinstance(item, Doctype):
+                print("Yes!")
+                item.extract()
+
+        # TODO: Pop nodes that have only a single child and parent, and not content or attributes
+        self.improve_links(soup, base_url)
+
+        # Iteratively remove all tags that have no content (empty tags)
+
+        # Recursively pass the tree, and delete all leaf nodes that are empty
+        # in-order-traversal
+
+        # apply NER; and discard all nodes that do not include a NER component
+        # Generator should be run in reverse (in-order-traversal)
+
+        self.remove_empty_nodes(soup)
+        self.unwrap_span(soup)
+
+        print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nSoup before prettify: \n\n\n\n\n\n\n\n\n\n")
+        print(soup.prettify())
 
         soup = soup.prettify()
 
-        # if not s.contents or s.contents.strip() in [" ", ""]:
-        #     print("Tag is empty!", s)
-        #     s.unwrap()
-
-
-        print("\n\n\n\n\n\n\n\n\n\n\n\nEXTRACTED\n\n\n\n\n\n\n\n\n\n\n\n")
-
-
-        # Finally, unwrap until nothing is there to unwrap anymore
-        # soup = soup.unwrap
-
-
-        # Remove all links that have href="#" (broken link, or javascript link, so useless...)
-
-        # turn all links into global links
-        # base_url
-
-        # map(lambda x: x.decompose(), soup.findAll("embed"))
-
-        # TODO: Replace all links by global links
-
-        # map(lambda x: x.decompose(), soup.findAll("navbar"))  # includes proximity informtaion, so keep this
-        # map(lambda x: x.decompose(), soup.findAll("nav"))  # includes proximity informtaion, so keep this
-
-        print("Soup after extract")
-        print(soup)
-
-        # text = soup.get_text()
-        # text = "\n".join(line.strip() for line in text.split("\n") if line.strip() != "")
-
-        # return text
+        return soup
