@@ -164,14 +164,17 @@ class Scraper:
 
             if x.string:
                 bfr = x.string
-                x.string = x.string.replace("\n", " ").strip()
-                x.string = re.sub(' +', ' ', x.string)
+                x.string = x.string.replace("\n", " ")
+                x.string = re.sub(' +', ' ', x.string).strip()
                 print("{} x string is: (befor)".format("-->" if bfr != x.string else ""), bfr)
                 print("{} x string is: (after)".format("-->" if bfr != x.string else ""), x.string)
 
             # If no other attributes are present,
             # then add the attributes here
-            if not x.string and not x.attrs and len(x.find_all(recursive=False)) <= 1:
+        for x in reversed(soup()):
+            print("At tag: ", x, x.string, x.attrs, x.findChildren(recursive=False))
+            if not x.string and not x.attrs and len(x.findChildren(recursive=False)) <= 1:
+                print("Unwrapping!")
                 x.unwrap()
 
             #Remove all tags that can be merged
