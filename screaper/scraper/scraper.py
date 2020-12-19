@@ -116,6 +116,11 @@ class Scraper:
                 # TODO: Does this destroy the inner contents???
 
     def remove_empty_nodes(self, soup):
+        """
+            CURRENTLY NOT USED!!!
+        :param soup:
+        :return:
+        """
         remove_redundant = True
         if remove_redundant:
             # Iterate each line
@@ -156,6 +161,7 @@ class Scraper:
 
         # Replace all redundant newlines and whitespaces with a single newline or whitespace
         for x in soup():
+
             if x.string:
                 bfr = x.string
                 x.string = x.string.replace("\n", " ").strip()
@@ -163,9 +169,40 @@ class Scraper:
                 print("{} x string is: (befor)".format("-->" if bfr != x.string else ""), bfr)
                 print("{} x string is: (after)".format("-->" if bfr != x.string else ""), x.string)
 
+            # If no other attributes are present,
+            # then add the attributes here
+            if not x.string and not x.attrs and len(x.find_all(recursive=False)) <= 1:
+                x.unwrap()
+
+            #Remove all tags that can be merged
+
         # TODO: Need to fix encoding issues
         # Designer and fabricator of medical devices, including ventilators for use during the COVID-19 crisis. Selected by NASAâs Jet Propulsion Lab (JPL) to manufacture a new ventilator designed specially for COVID-19 response. Also manufactures other devices, implantables and software products. ISO 13485 Certified.
         # Weâve curated a list of mission-critical resources &	 real-time information for manufacturers &	 distributors.
+
+    def turn_soup_to_tree(self):
+        """
+            Given a set of html tags,
+            turns them into general purpose tags,
+            ready to be processed by a graphics
+        :return:
+        """
+
+        pass
+
+    def rename_normalize_tags(self, soup):
+        """
+            Rename all tags to some common ones,
+            decide on a few tags to keep
+            (lists, buttons)
+        :param soup:
+        :return:
+        """
+        # Rename all to div for now
+        tags = soup.find('body').findChildren(recursive=False)
+        for tag in tags:
+            if tag.name != "html" and tag.name != "body" and tag.name != "head":
+                tag.name = 'div'
 
     def process(self, html, base_url):
         soup = BeautifulSoup(str(html), 'lxml')
@@ -184,8 +221,8 @@ class Scraper:
         for element in soup(text=lambda it: isinstance(it, Comment)):
             element.extract()
 
-        # for x in soup.find_all(attrs={"name": "google-site-verification"}):
-        #     x.decompose()
+        for x in soup.find_all(attrs={"name": "google-site-verification"}):
+            x.decompose()
 
         # Apply whitelist of attributes
         # Check if whitelist misses anything super-important!
@@ -208,8 +245,11 @@ class Scraper:
         # apply NER; and discard all nodes that do not include a NER component
         # Generator should be run in reverse (in-order-traversal)
 
-        self.remove_empty_nodes(soup)
+        # self.remove_empty_nodes(soup)  # not quite the right approach to things
         self.unwrap_span(soup)
+
+        # rename all the tags into the name "div"
+        # self.rename_normalize_tags(soup)
 
         print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nSoup before prettify: \n\n\n\n\n\n\n\n\n\n")
         print(soup.prettify())
