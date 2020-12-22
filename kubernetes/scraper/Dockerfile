@@ -9,7 +9,7 @@ RUN apt-get install libpq-dev -y
 # Copy all files into the docker dir
 # Copy all core files into docker dir
 COPY ./screaper /app/screaper
-COPY ./requirements.txt /app/requirements.txt
+COPY ./kubernetes/scraper/requirements.txt /app/requirements.txt
 
 # COPY . /app
 ENV HOME=/app

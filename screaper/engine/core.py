@@ -199,6 +199,8 @@ class ThreadedEngine:
                 for name, proc_obj in processes.items():
                         proc_obj['process'].terminate()
 
+engine = ThreadedEngine()
+
 if __name__ == "__main__":
     print("Starting the engine ...")
     # engine = Engine()

@@ -5,10 +5,10 @@
     - https://python.hotexamples.com/examples/BeautifulSoup/BeautifulSoup/recursiveChildGenerator/python-beautifulsoup-recursivechildgenerator-method-examples.html
 
 """
-import copy
 import re
 
-from bs4 import BeautifulSoup, Comment, Doctype, NavigableString
+import spacy
+from bs4 import BeautifulSoup, Comment, Doctype
 
 
 # fout.write(re.sub('\s+', ' ', line))
@@ -36,6 +36,8 @@ class Scraper:
             "name"
         }
 
+        self.nlp = spacy.load("xx_ent_wiki_sm")
+
     def remove_tag(self, soup, tag_name):
         for x in soup.find_all(tag_name):
             x.decompose()
@@ -50,7 +52,7 @@ class Scraper:
             "style",
             "svg",
             "link",
-            "br",
+            "br"
             # "noscript",
             # "footer",
             # "form",
@@ -172,9 +174,9 @@ class Scraper:
             # If no other attributes are present,
             # then add the attributes here
         for x in reversed(soup()):
-            print("At tag: ", x, x.string, x.attrs, x.findChildren(recursive=False))
+            # print("At tag: ", x, x.string, x.attrs, x.findChildren(recursive=False))
             if not x.string and not x.attrs and len(x.findChildren(recursive=False)) <= 1:
-                print("Unwrapping!")
+                # print("Unwrapping!")
                 x.unwrap()
 
             #Remove all tags that can be merged
@@ -206,6 +208,27 @@ class Scraper:
         for tag in tags:
             if tag.name != "html" and tag.name != "body" and tag.name != "head":
                 tag.name = 'div'
+
+    def tag_entities(self, soup):
+        """
+            Marks entities as found.
+            These can be:
+            - Apply named entity recognition, and filter for
+            - (1) part-names
+            - (2) company names
+            - (3) locations
+            - (4) (times?)
+            - (5) links
+        :return:
+        """
+        for tag in soup():
+            if tag.string:
+                # Find entities in string
+                doc = self.nlp(str(tag.string))
+                print("Document is: ", str(tag.string))
+                for ent in doc.ents:
+                    print("Found entities!")
+                    print(ent.text, ent.start_char, ent.end_char, ent.label_)
 
     def process(self, html, base_url):
         soup = BeautifulSoup(str(html), 'lxml')
@@ -254,9 +277,21 @@ class Scraper:
         # rename all the tags into the name "div"
         # self.rename_normalize_tags(soup)
 
+        self.tag_entities(soup)
+
         print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nSoup before prettify: \n\n\n\n\n\n\n\n\n\n")
         print(soup.prettify())
 
         soup = soup.prettify()
+
+        # Apply named entity recognition, and filter for
+        # (1) partnames
+        # (2) company names
+        # (3) locations
+        # (4) (times?)
+        # (5) links
+
+        # bonus items are (more difficult to extract)
+        # (1) (company descriptions)
 
         return soup
