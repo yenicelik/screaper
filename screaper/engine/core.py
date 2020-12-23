@@ -4,7 +4,6 @@
     Look at how to make the multiprocessing faster:
     - https://www.cloudcity.io/blog/2019/02/27/things-i-wish-they-told-me-about-multiprocessing-in-python/
 """
-import multiprocessing
 import time
 from multiprocessing import Process
 
@@ -12,17 +11,19 @@ import requests
 from requests import ConnectTimeout
 from requests.exceptions import ProxyError
 
-from screaper.crawl_frontier.crawl_frontier import crawl_frontier
-from screaper.downloader.downloader import downloader
+from screaper.crawl_frontier.crawl_frontier import CrawlFrontier
+from screaper.downloader.downloader import Downloader
 from screaper.engine.markup_processor import markup_processor
-from screaper.resources.db import resource_database
+from screaper.resources.db import Database
 
 
 class Engine:
 
-    @staticmethod
-    def __init__():
+    def __init__(self, resource_database, crawl_frontier, downloader):
         # establish a database connection
+        self.resource_database = resource_database  # Database()
+        self.crawl_frontier = crawl_frontier  # CrawlFrontier(resource_database=self.resource_database)
+        self.downloader = downloader  # Downloader(resource_database=self.resource_database)
 
         seed_urls = [
             # "https://www.thomasnet.com/browse/",  # entire database
@@ -34,11 +35,13 @@ class Engine:
             # "https://www.bdiexpress.com/us/en/",  # example distributor website
         ]
 
-        add_seed_urls = False or (resource_database.get_number_of_crawled_sites() == 0)
+        add_seed_urls = True or (self.resource_database.get_number_of_queued_urls() == 0)
+        print("Number of sites: ", self.resource_database.get_number_of_queued_urls(), add_seed_urls)
 
         # Delete all in URL and other tables
 
         if add_seed_urls:
+            print("Adding seed urls: ")
 
             # resource_database.session.query(URLQueueEntity).delete()
             # resource_database.session.query(URLReferralsEntity).delete()
@@ -47,13 +50,12 @@ class Engine:
 
             for x in seed_urls:
                 print("Adding: ", x)
-                resource_database.create_url_entity(url="")
-                crawl_frontier.add(target_url=x, referrer_url="")
+                self.resource_database.create_url_entity(url="")
+                self.crawl_frontier.add(target_url=x, referrer_url="")
 
-            resource_database.commit()
+            self.resource_database.commit()
 
-    @staticmethod
-    def run():
+    def run(self, max_sites=None):
         """
             Run the crawler. This will run for many, many hours (up to 80 days, unless parallalized).
             I will try to setup a single docker container.
@@ -62,10 +64,11 @@ class Engine:
 
         while True:
 
-            crawled_sites = resource_database.get_number_of_crawled_sites()
+            crawled_sites = self.resource_database.get_number_of_crawled_sites()
             print("Number of crawled sites are: ", crawled_sites)
-            if crawled_sites > 1000:
-                exit(0)
+            if max_sites and (crawled_sites > max_sites):
+                print("Exiting")
+                return
 
             # print("Getting from queue")
 
@@ -76,7 +79,7 @@ class Engine:
                 if retries > 5:
                     exit(-1)
                 # print("Pop from queue")
-                queue_obj = crawl_frontier.pop_start()
+                queue_obj = self.crawl_frontier.pop_start()
                 # print("Pop from queue success!")
                 if not queue_obj:
                     retries += 1
@@ -89,34 +92,34 @@ class Engine:
                 # print("skipping: url is None")
                 break
 
-            markup_exists = resource_database.get_markup_exists(queue_obj.url)
+            markup_exists = self.resource_database.get_markup_exists(queue_obj.url)
             if not markup_exists:
 
                 # Ping the contents of the website
                 try:
-                    markup, response_code = downloader.get(queue_obj.url)
+                    markup, response_code = self.downloader.get(queue_obj.url)
                 except ProxyError as e:
                     print("Connection Timeout Exception 1!", e)
-                    downloader.set_proxy()
-                    crawl_frontier.pop_failed(queue_obj.url)
+                    self.downloader.set_proxy()
+                    self.crawl_frontier.pop_failed(queue_obj.url)
                     continue
                 except ConnectTimeout as e:
                     print("Connection Timeout Exception 2!", e)
-                    downloader.set_proxy()
-                    crawl_frontier.pop_failed(queue_obj.url)
+                    self.downloader.set_proxy()
+                    self.crawl_frontier.pop_failed(queue_obj.url)
                     continue
                 except Exception as e:
                     print("Encountered exception: ", e)
-                    crawl_frontier.pop_failed(queue_obj.url)
+                    self.crawl_frontier.pop_failed(queue_obj.url)
                     continue
 
                 # If response code is not a 200, put it back into the queue and process it at a later stage again
                 if not (response_code == requests.codes.ok):
-                    crawl_frontier.pop_failed(queue_obj.url)
+                    self.crawl_frontier.pop_failed(queue_obj.url)
 
                 # Add scraped items to the mongodb database:
                 # print("Adding to database")
-                downloader.add_to_index(queue_obj.url, markup)
+                self.downloader.add_to_index(queue_obj.url, markup)
 
                 # parse all links from the markup
                 # print("Getting urls from markup")
@@ -127,13 +130,22 @@ class Engine:
                 for target_url in target_urls:
                     # print("Adding target url: ", target_url)
                     # print("Adding reference url: ", url)
-                    crawl_frontier.add(target_url=target_url, referrer_url=queue_obj.url)
+                    self.crawl_frontier.add(target_url=target_url, referrer_url=queue_obj.url)
                     # print("Added target url: ", target_url)
                     # print("Adding reference url: ", url)
             else:
                 print("Markup already exists!", queue_obj.url)
 
-            crawl_frontier.pop_verify(queue_obj.url)
+            self.crawl_frontier.pop_verify(queue_obj.url)
+
+def run_engine(max_sites=None):
+
+    resource_database = Database()
+    crawl_frontier = CrawlFrontier(resource_database=resource_database)
+    downloader = Downloader(resource_database=resource_database)
+
+    engine = Engine(resource_database, crawl_frontier, downloader)
+    engine.run(max_sites=max_sites)
 
 class ThreadedEngine:
     """
@@ -142,15 +154,18 @@ class ThreadedEngine:
 
     def __init__(self):
         self.max_time = 3600
-        self.number_processes = 16  # Number of processes to spawn. Each process will have a different proxy for a long while
+        self.number_processes = 48  # Number of processes to spawn. Each process will have a different proxy for a long while
         self.ping_interval = 120  # Ping threads every 2 minutes to make sure that the threads are not dead yet
 
     def run(self):
 
-        engine = Engine()
-
         # Now do this in a for-loop
         processes = dict()
+
+        # Create one engine to populate the database
+        print("Create one engine to populate the database")
+        # TODO: The start is buggy
+        run_engine(max_sites=1)
 
         try:
 
@@ -158,7 +173,7 @@ class ThreadedEngine:
 
                 # Spawn additional processes if there are not enough processes
                 for i in range(self.number_processes - len(processes)):
-                    p = Process(target=engine.run)
+                    p = Process(target=run_engine)
                     time.sleep(0.3)
                     p.start()
                     start_time = time.time()
@@ -182,7 +197,8 @@ class ThreadedEngine:
                     # Try to join with a timeout
                     # proc.join(timeout=0)
                     if (time.time() - proc_time) > self.max_time:
-                        print("Time is: ", (time.time() - proc_time), self.max_time, (time.time() - proc_time) > self.max_time)
+                        print("Time is: ", (time.time() - proc_time), self.max_time,
+                              (time.time() - proc_time) > self.max_time)
                         print("Process {} will now be terminated".format(name))
                         tokill.add(name)
                     elif proc.is_alive():
@@ -196,8 +212,9 @@ class ThreadedEngine:
                     del processes[proc_name]
 
         finally:
-                for name, proc_obj in processes.items():
-                        proc_obj['process'].terminate()
+            for name, proc_obj in processes.items():
+                proc_obj['process'].terminate()
+
 
 engine = ThreadedEngine()
 

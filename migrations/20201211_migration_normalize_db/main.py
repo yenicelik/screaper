@@ -2,7 +2,6 @@
     Exports the tables to CSVs s.t. we can normalize the data
 """
 import pandas as pd
-from bs4 import BeautifulSoup
 
 from screaper.resources.db import resource_database
 from screaper.resources.entities import URLEntity, RawMarkup, URLReferralsEntity, URLQueueEntity

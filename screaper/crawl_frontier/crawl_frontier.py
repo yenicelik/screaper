@@ -3,12 +3,11 @@
 """
 from url_parser import get_base_url
 
-from screaper.resources.db import resource_database
-
 
 class CrawlFrontier:
 
-    def __init__(self):
+    def __init__(self, resource_database):
+        self.resource_database = resource_database
         self.blacklist = []
         self.whitelist = [
             "https://www.thomasnet.com",
@@ -21,17 +20,17 @@ class CrawlFrontier:
         self.outdate_timedelta = None
 
     def pop_start(self):
-        obj = resource_database.get_url_task_queue_record_start()
-        resource_database.commit()
+        obj = self.resource_database.get_url_task_queue_record_start()
+        self.resource_database.commit()
         return obj
 
     def pop_verify(self, url):
-        resource_database.get_url_task_queue_record_completed(url=url)
-        resource_database.commit()
+        self.resource_database.get_url_task_queue_record_completed(url=url)
+        self.resource_database.commit()
 
     def pop_failed(self, url):
-        resource_database.get_url_task_queue_record_failed(url=url)
-        resource_database.commit()
+        self.resource_database.get_url_task_queue_record_failed(url=url)
+        self.resource_database.commit()
 
     def add(self, target_url, referrer_url):
         """
@@ -63,7 +62,7 @@ class CrawlFrontier:
 
         # Other ways to check if link is valid?
         # TODO: Implement contents to also be exported
-        if resource_database.get_markup_exists(url=target_url):
+        if self.resource_database.get_markup_exists(url=target_url):
             # If the url's markup was already crawled, do not ping this again
             return
 
@@ -77,21 +76,19 @@ class CrawlFrontier:
             skip = True
 
         # Create URL entity
-        url_obj = resource_database.create_url_entity(url=target_url)
+        url_obj = self.resource_database.create_url_entity(url=target_url)
 
         # Add to queue
-        url_queue_obj = resource_database.create_url_queue_entity(url_entity_obj=url_obj, skip=skip)
+        url_queue_obj = self.resource_database.create_url_queue_entity(url_entity_obj=url_obj, skip=skip)
 
         # Add to graph
-        url_referral_obj = resource_database.create_referral_entity(url_entity=url_obj, referrer_url=referrer_url)
+        url_referral_obj = self.resource_database.create_referral_entity(url_entity=url_obj, referrer_url=referrer_url)
 
         # Commit database
-        resource_database.commit()
+        self.resource_database.commit()
 
     # TODO: When getting, always prioritize the thomasnet pages before spanning out!
 
-
-crawl_frontier = CrawlFrontier()
 
 if __name__ == "__main__":
     print("Check the crawl frontier")

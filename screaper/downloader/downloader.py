@@ -11,8 +11,6 @@ import random
 import requests
 from urllib.request import urlopen
 
-from screaper.resources.db import resource_database
-
 # Limit content - length?
 # Implement proxies with threadpools, not earlier
 
@@ -38,7 +36,8 @@ class Downloader:
         self.proxy = random.choice(self.proxies)
         print("Proxy is now: ", self.proxy)
 
-    def __init__(self):
+    def __init__(self, resource_database):
+        self.resource_database = resource_database
         # Prepare proxies list:
         self.proxies = self.load_proxy_list()
         self.set_proxy()
@@ -55,11 +54,11 @@ class Downloader:
         """
 
         # For now, analyse any kind of markup
-        resource_database.create_markup_record(
+        self.resource_database.create_markup_record(
             url=url,
             markup=markup
         )
-        resource_database.commit()
+        self.resource_database.commit()
 
     def get(self, url):
         """
@@ -102,8 +101,6 @@ class Downloader:
     # the webpages and generate / populate the queue
     # the processing of links should probably best be separate
 
-
-downloader = Downloader()
 
 if __name__ == "__main__":
     print("Starting indexer")

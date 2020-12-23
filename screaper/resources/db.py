@@ -93,11 +93,11 @@ class Database:
 
         # Only for the target_url, check if this is already in the queue
         # The referrer_url should be scraped by definition
-        url_referral_entity_obj = self.session.query(URLReferralsEntity)\
+        url_referral_entity_obj = self.session.query(URLReferralsEntity) \
             .filter(
-                URLReferralsEntity.target_url_id == url_entity.id,
-                URLReferralsEntity.referrer_url_id == referrer_url_entity_obj.id
-            )\
+            URLReferralsEntity.target_url_id == url_entity.id,
+            URLReferralsEntity.referrer_url_id == referrer_url_entity_obj.id
+        ) \
             .one_or_none()
 
         # Add to the graph if not already within the graph
@@ -110,7 +110,6 @@ class Database:
 
         return url_referral_entity_obj
 
-
     def get_url_task_queue_record_start(self):
         """
             implements the pop operation for queue,
@@ -122,17 +121,17 @@ class Database:
         # which is not processing
         # and is not included in the index already
 
-        url_obj, url_queue_obj = self.session.query(URLEntity, URLQueueEntity)\
-            .filter(URLQueueEntity.crawler_processing_sentinel == false())\
-            .filter(URLQueueEntity.crawler_skip == false())\
-            .filter(URLQueueEntity.retries < self.max_retries)\
-            .filter(URLEntity.id == URLQueueEntity.url_id)\
+        url_obj, url_queue_obj = self.session.query(URLEntity, URLQueueEntity) \
+            .filter(URLQueueEntity.crawler_processing_sentinel == false()) \
+            .filter(URLQueueEntity.crawler_skip == false()) \
+            .filter(URLQueueEntity.retries < self.max_retries) \
+            .filter(URLEntity.id == URLQueueEntity.url_id) \
             .join(URLEntity) \
             .order_by(
-                URLQueueEntity.occurrences.asc(),
-                URLQueueEntity.created_at.asc()
-            )\
-            .limit(1)\
+            URLQueueEntity.occurrences.asc(),
+            URLQueueEntity.created_at.asc()
+        ) \
+            .limit(1) \
             .one_or_none()
 
         # Pick a pseudo-randomized order from the top 100 items
@@ -141,15 +140,14 @@ class Database:
 
         return url_obj
 
-
     def get_url_task_queue_record_completed(self, url):
         """
             implements part of the pop operation for queue,
             indicating that a crawler has processed the request successfully
         """
-        obj = self.session.query(URLEntity)\
-            .filter(URLEntity.url == url)\
-            .join(URLQueueEntity)\
+        obj = self.session.query(URLEntity) \
+            .filter(URLEntity.url == url) \
+            .join(URLQueueEntity) \
             .first()
 
         # TODO: Will this update the sub-object in the database? (because join?)
@@ -157,15 +155,14 @@ class Database:
         assert obj.crawler_processed_sentinel, obj.crawler_processed_sentinel
         return obj
 
-
     def get_url_task_queue_record_failed(self, url):
         """
             implements the pop operation for queue
             indicating that a crawler has processed the request successfully
         """
-        obj = self.session.query(URLQueueEntity)\
-            .join(URLEntity)\
-            .filter(URLEntity.url == url)\
+        obj = self.session.query(URLQueueEntity) \
+            .join(URLEntity) \
+            .filter(URLEntity.url == url) \
             .one()
 
         # TODO: Will this update the sub-object in the database? (because join?)
@@ -183,8 +180,8 @@ class Database:
             url,
             markup
     ):
-        url_entity = self.session.query(URLEntity)\
-            .filter(URLEntity.url == url)\
+        url_entity = self.session.query(URLEntity) \
+            .filter(URLEntity.url == url) \
             .one_or_none()
 
         # generate a random 64-bit random string
@@ -199,19 +196,23 @@ class Database:
         self.session.add(obj)
 
     def get_url_exists(self, url):
-        url_entity = self.session.query(URLEntity)\
-            .filter(URLEntity.url == url)\
+        url_entity = self.session.query(URLEntity) \
+            .filter(URLEntity.url == url) \
             .one_or_none()
 
         return url_entity
 
     def get_markup_exists(self, url):
         url_entity = self.session.query(URLEntity) \
-            .filter(URLEntity.url == url)\
-            .join(RawMarkup)\
+            .filter(URLEntity.url == url) \
+            .join(RawMarkup) \
             .one_or_none()
 
         return url_entity
+
+    def get_number_of_queued_urls(self):
+        result = self.session.query(URLQueueEntity).count()
+        return result
 
     def get_number_of_crawled_sites(self):
         result = self.session.query(RawMarkup).count()
@@ -229,7 +230,6 @@ class Database:
         df = pd.DataFrame(query_result, columns=column_names)
         return df
 
-resource_database = Database()
 
 if __name__ == "__main__":
     print("Handle all I/O")
