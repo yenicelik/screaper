@@ -27,6 +27,7 @@ def get_named_entities():
     """
     try:
         req_data = request.get_json(force=True)
+        print("req data is: ", req_data)
     except Exception as e:
         return jsonify({
             "errors": ["Input data not understood", e]

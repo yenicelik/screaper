@@ -104,3 +104,8 @@ Install PostgreSQL and create database
 Instantiate the tables
 
 - `python -m screaper.resources.entities`
+
+
+#### Graph Neural Networks
+
+- https://towardsdatascience.com/overview-of-deep-learning-on-graph-embeddings-4305c10ad4a4
