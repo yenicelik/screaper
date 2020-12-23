@@ -271,6 +271,8 @@ class Scraper:
         # apply NER; and discard all nodes that do not include a NER component
         # Generator should be run in reverse (in-order-traversal)
 
+        # TODO: Only keep NERs
+
         # self.remove_empty_nodes(soup)  # not quite the right approach to things
         self.unwrap_span(soup)
 
