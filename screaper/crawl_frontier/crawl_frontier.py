@@ -44,7 +44,7 @@ class CrawlFrontier:
             return
         target_url = target_url.strip()
         # apply whitelisting
-        if target_url. == "":
+        if target_url.strip() == "":
             # if link is empty, it is probably broken, skip
             return
         if target_url[0] == "#":

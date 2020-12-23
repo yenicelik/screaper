@@ -16,6 +16,8 @@ from screaper.resources.db import resource_database
 # Limit content - length?
 # Implement proxies with threadpools, not earlier
 
+# TODO: Skip html files that are larger than 300kB (mark as skipped)
+
 class Downloader:
 
     def load_proxy_list(self):

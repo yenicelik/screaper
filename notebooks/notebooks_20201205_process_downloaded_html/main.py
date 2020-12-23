@@ -58,7 +58,8 @@ def extract_organizations(html):
 
     #
 
-    nlp = spacy.load("xx_ent_wiki_sm")
+    # nlp = spacy.load("xx_ent_wiki_sm")
+    pass
 
 if __name__ == "__main__":
     print("Starting to process the collected data")

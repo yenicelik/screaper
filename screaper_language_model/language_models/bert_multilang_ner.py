@@ -33,3 +33,8 @@ model_ner = ModelNER()
 
 if __name__ == "__main__":
     print("Using the DeepPavlov Language Model")
+
+    model_ner.predict([
+                "Bob Ross lived in Florida",
+                "I like big cookies and I cannot lie"
+    ])

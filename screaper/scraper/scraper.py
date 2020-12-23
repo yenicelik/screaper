@@ -36,7 +36,7 @@ class Scraper:
             "name"
         }
 
-        self.nlp = spacy.load("xx_ent_wiki_sm")
+        # self.nlp = spacy.load("xx_ent_wiki_sm")
 
     def remove_tag(self, soup, tag_name):
         for x in soup.find_all(tag_name):

@@ -110,3 +110,5 @@ if __name__ == "__main__":
     engine = create_engine(db_url, encoding='utf8')
     # create all tables
     Base.metadata.create_all(engine)
+
+    print("Done creating the tables")
