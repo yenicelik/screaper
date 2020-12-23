@@ -14,6 +14,8 @@ from bs4 import BeautifulSoup, Comment, Doctype
 # fout.write(re.sub('\s+', ' ', line))
 
 # TODO: Return triplets that describe a sparse graph ?
+from screaper.microservices.language_model_ner import MicroserviceNER
+
 
 class Scraper:
 
@@ -37,6 +39,7 @@ class Scraper:
         }
 
         # self.nlp = spacy.load("xx_ent_wiki_sm")
+        self.model_ner = MicroserviceNER()
 
     def remove_tag(self, soup, tag_name):
         for x in soup.find_all(tag_name):
@@ -154,6 +157,45 @@ class Scraper:
                 if x.attrs is not None:
                     print("x attrs: ", len(x.attrs))
 
+    def identify_entities(self, soup):
+
+        for x in soup():
+
+            # TODO: Implement NER
+            query = [x.string.split(".")]
+            named_entities = self.model_ner.predict(query=query)
+
+            # -> TODO: This is going to be very lossy!!!
+            # -> But this is fine
+            # TODO: Also keep if a link is nearby
+
+            # Extract the named entities, and add them as an attribute
+            if all([x == "O" for x in named_entities]):
+                # Replace the string with an empty string
+                x.string = ""
+                # This will now be removed in the next few lines
+            else:
+                # TODO: Add named entities as an attribute
+                # Can process this later?
+                # Maybe also add to the database as a named entity
+                # Or add it at a later stage?
+                # TODO: Continue here
+                raise Exception
+                # Will this be fast enough? I think not... :/
+                # Perhaps use Google instead. But that's gonna be expensive
+                # Merge multiple entities, and create a list of such entities.
+                # You can then save such named entities
+                x.attrs["ner"] = named_entities
+
+        # TODO: Remove unnecessary nodes and unwrap even further
+        # Perhaps just be aggressive and see how it works
+        for x in reversed(soup()):
+            # print("At tag: ", x, x.string, x.attrs, x.findChildren(recursive=False))
+            if not x.string and not x.attrs and len(x.findChildren(recursive=False)) <= 1:
+                # print("Unwrapping!")
+                x.unwrap()
+
+
     def unwrap_span(self, soup):
         # Unwrap all style tags
         for x in soup.find_all("span"):
@@ -171,8 +213,8 @@ class Scraper:
                 print("{} x string is: (befor)".format("-->" if bfr != x.string else ""), bfr)
                 print("{} x string is: (after)".format("-->" if bfr != x.string else ""), x.string)
 
-            # If no other attributes are present,
-            # then add the attributes here
+        # If no other attributes are present,
+        # then add the attributes here
         for x in reversed(soup()):
             # print("At tag: ", x, x.string, x.attrs, x.findChildren(recursive=False))
             if not x.string and not x.attrs and len(x.findChildren(recursive=False)) <= 1:

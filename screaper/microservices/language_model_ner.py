@@ -72,10 +72,7 @@ class MicroserviceNER:
         print("Content is: ", out)
         # Replace all occurences of the non-relevant items with "O"
 
-        return named_entities
-
-
-
+        return sentences, named_entities
 
 
 if __name__ == "__main__":
