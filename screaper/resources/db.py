@@ -1,12 +1,11 @@
 import os
-from random import random
+import random
 
 import pandas as pd
 
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, false
+from sqlalchemy import create_engine, false, func
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.sql.expression import func, select
 
 from screaper.resources.entities import URLEntity, URLReferralsEntity, URLQueueEntity, RawMarkup
 
@@ -123,18 +122,16 @@ class Database:
         # which is not processing
         # and is not included in the index already
 
-        url_obj, url_queue_obj = random.choice(self.session.query(URLEntity, URLQueueEntity) \
-            .filter(URLQueueEntity.crawler_processing_sentinel == false()) \
-            .filter(URLQueueEntity.crawler_skip == false()) \
-            .filter(URLQueueEntity.retries < self.max_retries) \
-            .filter(URLEntity.id == URLQueueEntity.url_id) \
-            .join(URLEntity) \
+        url_obj, url_queue_obj = random.choice(self.session.query(URLEntity, URLQueueEntity)\
+            .filter(URLQueueEntity.crawler_processing_sentinel == false())\
+            .filter(URLQueueEntity.crawler_skip == false())\
+            .filter(URLQueueEntity.retries < self.max_retries)\
+            .filter(URLEntity.id == URLQueueEntity.url_id)\
+            .join(URLEntity)\
             .order_by(
             URLQueueEntity.occurrences.asc(),
             URLQueueEntity.created_at.asc()
-        ) \
-            .limit(1) \
-            .one_or_none())
+        ).limit(512).all())
 
         # Pick a random item from a list of 500 candidates
 

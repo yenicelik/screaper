@@ -15,41 +15,46 @@ from urllib.request import urlopen
 # Implement proxies with threadpools, not earlier
 
 # TODO: Skip html files that are larger than 300kB (mark as skipped)
+from http_request_randomizer.requests.proxy.requestProxy import RequestProxy
+
 
 class Downloader:
 
-    def load_proxy_list(self):
+    # def load_proxy_list(self):
+    #
+    #     # TODO: Download a fuller list
+    #     # json_url = "https://raw.githubusercontent.com/scidam/proxy-list/master/proxy.json"
+    #     # with urlopen(json_url) as url:
+    #     #     proxies = json.loads(url.read().decode('utf-8'))
+    #
+    #     # TODO: Pop from list once the proxy proves itself to be bad
+    #
+    #     proxies = proxies['proxies']
+    #
+    #     # TODO: Replace with environment variable
+    #     proxies = [(x["ip"], x["port"]) for x in proxies if x["google_status"] == 200]
+    #     proxies = [("http://" + str(x[0]) + ":" + str(x[1])) for x in proxies]
+    #
+    #     return proxies
 
-        # TODO: Download a fuller list
-        json_url = "https://raw.githubusercontent.com/scidam/proxy-list/master/proxy.json"
-        with urlopen(json_url) as url:
-            proxies = json.loads(url.read().decode('utf-8'))
-
-        # TODO: Pop from list once the proxy proves itself to be bad
-
-        proxies = proxies['proxies']
-
-        # TODO: Replace with environment variable
-        proxies = [(x["ip"], x["port"]) for x in proxies if x["google_status"] == 200]
-        proxies = [("http://" + str(x[0]) + ":" + str(x[1])) for x in proxies]
-
-        return proxies
-
-    def set_proxy(self):
-        self.proxy = random.choice(self.proxies)
-        print("Proxy is now: ", self.proxy)
+    # def set_proxy(self):
+    #     self.proxy = random.choice(self.proxies)
+    #     print("Proxy is now: ", self.proxy)
 
     def __init__(self, resource_database):
         self.resource_database = resource_database
         # Prepare proxies list:
-        self.proxies = self.load_proxy_list()  # TODO: Move this variable one level up?
-        self.set_proxy()
+        # self.proxies = self.load_proxy_list()  # TODO: Move this variable one level up?
+        # self.set_proxy()
 
-        self.headers = {
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36",  # (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)
-            # "From": "contact@theaicompany.com"
-        }
-        self.sleeptime = 0.6
+        # self.headers = {
+        #     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36",  # (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)
+        #     # "From": "contact@theaicompany.com"
+        # }
+
+        self.request_proxy = RequestProxy()
+        self.headers = self.request_proxy.generate_random_request_headers()
+        self.sleeptime = 0.4
 
     def add_to_index(self, url, markup):
         """
@@ -75,11 +80,14 @@ class Downloader:
         time.sleep(random.random() * self.sleeptime)
 
         # Try again if the proxy is just a bad one
-        response = requests.get(
-            url,
-            headers=self.headers,
-            proxies={"http": self.proxy, "https": self.proxy},
-            timeout=20.
+        # response = requests.get(
+        #     url,
+        #     headers=self.headers,
+        #     proxies={"http": self.proxy, "https": self.proxy},
+        #     timeout=20.
+        # )
+        response = self.request_proxy.generate_proxied_request(
+            url, headers=self.headers, req_timeout=10
         )
         # print("Response is: ", response)
         content = response.text

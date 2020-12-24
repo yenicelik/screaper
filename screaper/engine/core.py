@@ -154,7 +154,7 @@ class ThreadedEngine:
 
     def __init__(self):
         self.max_time = 3600
-        self.number_processes = 48  # Number of processes to spawn. Each process will have a different proxy for a long while
+        self.number_processes = 1  # Number of processes to spawn. Each process will have a different proxy for a long while
         self.ping_interval = 120  # Ping threads every 2 minutes to make sure that the threads are not dead yet
 
     def run(self):
