@@ -20,9 +20,12 @@ class Downloader:
 
     def load_proxy_list(self):
 
+        # TODO: Download a fuller list
         json_url = "https://raw.githubusercontent.com/scidam/proxy-list/master/proxy.json"
         with urlopen(json_url) as url:
             proxies = json.loads(url.read().decode('utf-8'))
+
+        # TODO: Pop from list once the proxy proves itself to be bad
 
         proxies = proxies['proxies']
 
@@ -39,7 +42,7 @@ class Downloader:
     def __init__(self, resource_database):
         self.resource_database = resource_database
         # Prepare proxies list:
-        self.proxies = self.load_proxy_list()
+        self.proxies = self.load_proxy_list()  # TODO: Move this variable one level up?
         self.set_proxy()
 
         self.headers = {

@@ -6,14 +6,15 @@
 
     - https://spacy.io/models/xx
 """
-import pandas as pd
-import spacy as spacy
+import tldextract
 from numpy.random.mtrand import randint
+from url_parser import get_base_url
 
-from screaper.resources.db import resource_database
+from screaper.resources.db import Database
 from screaper.scraper.scraper import Scraper
 
 scraper = Scraper()
+resource_database = Database()
 
 def load_df():
     df = resource_database.get_all_indexed_documents()
@@ -44,6 +45,8 @@ def preprocess_html(html):
         Remove any occurrences of style and script from html
     """
     base_url = "https://thomasnet.com"
+    base_url = tldextract.extract(base_url)
+
     scraper.process(html, base_url)
 
 def extract_organizations(html):

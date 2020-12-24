@@ -109,3 +109,5 @@ Instantiate the tables
 #### Graph Neural Networks
 
 - https://towardsdatascience.com/overview-of-deep-learning-on-graph-embeddings-4305c10ad4a4
+
+-> Perhaps do not include any scripts that are not company pages, or just be more careful which pages to scrape, and which ones to just skip

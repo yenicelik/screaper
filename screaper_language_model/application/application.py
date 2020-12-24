@@ -1,6 +1,7 @@
 """
     Runs the Flask application
 """
+import time
 
 from flask import Flask, jsonify
 from flask import request
@@ -25,6 +26,7 @@ def get_named_entities():
         }
     :return:
     """
+    start_time = time.time()
     try:
         req_data = request.get_json(force=True)
         print("req data is: ", req_data)
@@ -62,6 +64,7 @@ def get_named_entities():
         })
 
     out = model_ner.predict(queries)
+    print("Request took {} seconds", time.time() - start_time)
 
     return jsonify({
         "response": out
