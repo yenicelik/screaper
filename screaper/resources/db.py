@@ -1,12 +1,11 @@
 import os
-from random import random
+import random
 
 import pandas as pd
 
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, false
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.sql.expression import func, select
 
 from screaper.resources.entities import URLEntity, URLReferralsEntity, URLQueueEntity, RawMarkup
 
@@ -133,8 +132,8 @@ class Database:
             URLQueueEntity.occurrences.asc(),
             URLQueueEntity.created_at.asc()
         ) \
-            .limit(1) \
-            .one_or_none())
+            .limit(512) \
+            .all())
 
         # Pick a random item from a list of 500 candidates
 
