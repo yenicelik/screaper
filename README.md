@@ -1,6 +1,26 @@
 # screaper
 Don't fear the scReaper
 
+## Who buys what from Whom?
+
+### Iteration One
+
+Niche market focus: Bearings
+
+### Who?
+
+We identify the list of companies active in this field.
+
+### Buys what?
+
+We will identify the list of products associated with each seller.
+
+### From whom?
+
+We will apply relation extraction, 
+as well as design the platform to ask people where they sell, 
+to make similar recommendations.
+
 ### Further installation steps
 
 Pre-requisite:
