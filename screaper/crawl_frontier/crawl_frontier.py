@@ -11,7 +11,7 @@ class CrawlFrontier:
         self.blacklist = []
         self.whitelist = [
             "https://www.thomasnet.com",
-            "https://www.thomasnet.com",
+            "https://www.go4worldbusiness.com",
             # "https://www.thomasnet.com/products/roller-bearings-4221206",
             # "https://www.thomasnet.com/products/roller-bearings-4221206"
         ]
@@ -59,6 +59,12 @@ class CrawlFrontier:
 
         # remove all anchors if existent
         target_url = target_url.split('#')[0]
+
+        # Bring target URL into unified format
+        if target_url.endswith('/'):
+            target_url = target_url[-1]
+
+        # TODO: Make sure that if https is crawled, then don't recrawl the http (and vica versa)
 
         # Other ways to check if link is valid?
         # TODO: Implement contents to also be exported

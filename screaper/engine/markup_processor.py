@@ -2,6 +2,7 @@
     Implements a markup processor
 """
 from pyquery import PyQuery as pq
+from url_normalize import url_normalize
 from url_parser import get_base_url
 
 
@@ -36,6 +37,9 @@ class MarkupProcessor:
 
             # Other ways to check if link is valid?
             # TODO: Implement contents to also be exported
+            link = url_normalize(link)
+
+            # Normalize URL to common format
 
             out.append(link)
             # print(link)

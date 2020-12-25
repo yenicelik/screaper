@@ -4,7 +4,7 @@ import random
 import pandas as pd
 
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, false
+from sqlalchemy import create_engine, false, func
 from sqlalchemy.orm import sessionmaker
 
 from screaper.resources.entities import URLEntity, URLReferralsEntity, URLQueueEntity, RawMarkup
@@ -131,7 +131,8 @@ class Database:
             .order_by(
             URLQueueEntity.occurrences.asc(),
             URLQueueEntity.created_at.asc()
-        ) \
+                # func.random()
+            ) \
             .limit(512) \
             .all())
 
