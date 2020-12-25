@@ -21,7 +21,7 @@ import time
 from bs4 import BeautifulSoup, Comment, Doctype
 
 from screaper.microservices.language_model_ner import MicroserviceNER
-from screaper_entity_extraction.algorithms.entity_extraction import extract_entities
+from screaper_entity_extraction.scraper.functional.entity_extraction import extract_entities
 from screaper_entity_extraction.scraper.functional.flatten_tree import unwrap_span
 from screaper_entity_extraction.scraper.functional.improve_links import improve_links
 from screaper_entity_extraction.scraper.functional.remove_attributes import remove_attributes

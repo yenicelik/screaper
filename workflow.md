@@ -16,7 +16,7 @@ Bearings will be grown by the secular demand of urbanization and automation.
     
 3. Extract companies and products:
     - Using the raw-html, extract companies and products using NER. 
-    - Dump the found referrer_url, found string, position in html, related attributes and NER type into a postgres table (this is a minimal example).
+    - Dump the found referrer_url, found string, position in html, NER type into a postgres table (this is a minimal example).
     - Apply clustering algorithm to find a representative centroid for each of these items.
     
 TODOs:

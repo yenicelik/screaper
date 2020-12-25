@@ -6,7 +6,6 @@ def extract_entities(soup, model_ner):
 
     for x in soup():
 
-        # TODO: Implement NER
         if x.string is None:
             continue
 

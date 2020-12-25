@@ -46,21 +46,14 @@ def preprocess_html(html):
     base_url = "https://thomasnet.com"
     base_url = tldextract.extract(base_url)
 
-    scraper.process(html, base_url)
+    processed_html = scraper.process(html, base_url)
 
-def extract_organizations(html):
+    populate_index(processed_html=processed_html)
 
-    # how to represent graphs in python?
+def populate_index(processed_html):
 
-    # Create a tree from the html
-
-    # for each node of the tree, check if any entities are found
-
-    # if no entities are found, delete the graph
-
-    #
-
-    # nlp = spacy.load("xx_ent_wiki_sm")
+    # Iterate through processed html, collect all NERs,
+    # Save all NERs into the database
     pass
 
 if __name__ == "__main__":
