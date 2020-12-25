@@ -8,10 +8,9 @@
 """
 import tldextract
 from numpy.random.mtrand import randint
-from url_parser import get_base_url
 
 from screaper.resources.db import Database
-from screaper.scraper.scraper import Scraper
+from screaper_entity_extraction.scraper.scraper import Scraper
 
 scraper = Scraper()
 resource_database = Database()
