@@ -17,8 +17,13 @@ Bearings will be grown by the secular demand of urbanization and automation.
 3. Extract companies and products:
     - Using the raw-html, extract companies and products using NER. 
     - Dump the found referrer_url, found string, position in html, NER type into a postgres table (this is a minimal example).
+
+4. Create common knowledge-representation
+    - Use [LaBSE]()https://huggingface.co/sentence-transformers/LaBSE) to create shared knowledge representations for each extracted named entity.
+    - Create a common vector to create topic embeddings by
     - Apply clustering algorithm to find a representative centroid for each of these items.
-    
+  
+  
 TODOs:
 
 - Implement priority queue based on text contents (i.e. contains bearing)

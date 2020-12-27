@@ -9,14 +9,14 @@
 import tldextract
 from numpy.random.mtrand import randint
 
-from screaper.resources.db import Database
+from screaper_resources.resources.db import Database
 from screaper_entity_extraction.scraper.scraper import Scraper
 
 scraper = Scraper()
 resource_database = Database()
 
 def load_df():
-    df = resource_database.get_all_indexed_documents()
+    df = resource_database.get_all_indexed_markups()
     print("df head is: ", len(df))
     print(df.head())
     print("Df memory usage is: ", df.info())

@@ -20,7 +20,7 @@ import time
 
 from bs4 import BeautifulSoup, Comment, Doctype
 
-from screaper.microservices.language_model_ner import MicroserviceNER
+from screaper_resources.microservices.language_model_ner import MicroserviceNER
 from screaper_entity_extraction.scraper.functional.entity_extraction import extract_entities
 from screaper_entity_extraction.scraper.functional.flatten_tree import unwrap_span
 from screaper_entity_extraction.scraper.functional.improve_links import improve_links
@@ -167,7 +167,7 @@ class Scraper:
         print(soup.prettify())
         print("Time 8: ", time.time() - time1)
 
-        soup = soup.prettify()
+        # soup = soup.prettify()
 
         # Apply named entity recognition, and filter for
         # (1) partnames

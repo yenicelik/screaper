@@ -14,7 +14,7 @@ from requests.exceptions import ProxyError
 from screaper.crawl_frontier.crawl_frontier import CrawlFrontier
 from screaper.downloader.downloader import Downloader
 from screaper.engine.markup_processor import markup_processor
-from screaper.resources.db import Database
+from screaper_resources.resources.db import Database
 
 
 class Engine:

@@ -34,6 +34,7 @@ class MicroserviceNER:
         self.microservice_url = "http://127.0.0.1:5000/get-named-entities"
 
     def predict(self, query):
+        query = [x.strip() for x in query if x.strip() != ""]
         data = json.dumps(dict(**{
             "documents": query
         }))

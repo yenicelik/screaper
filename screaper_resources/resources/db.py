@@ -4,10 +4,11 @@ import random
 import pandas as pd
 
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, false, func
+from sqlalchemy import create_engine, false
 from sqlalchemy.orm import sessionmaker
 
-from screaper.resources.entities import URLEntity, URLReferralsEntity, URLQueueEntity, RawMarkup
+from screaper_resources.resources.entities import URLQueueEntity, URLEntity, URLReferralsEntity, RawMarkup, \
+    NamedEntities
 
 load_dotenv()
 
@@ -129,8 +130,8 @@ class Database:
             .filter(URLEntity.id == URLQueueEntity.url_id) \
             .join(URLEntity) \
             .order_by(
-            URLQueueEntity.occurrences.asc(),
-            URLQueueEntity.created_at.asc()
+            URLQueueEntity.occurrences.desc()
+            # URLQueueEntity.created_at.asc()
                 # func.random()
             ) \
             .limit(512) \
@@ -222,9 +223,9 @@ class Database:
         result = self.session.query(RawMarkup).count()
         return result
 
-    def get_all_indexed_documents(self):
+    def get_all_indexed_markups(self, dev=False):
         with self.engine.connect() as connection:
-            query_result = connection.execute("SELECT * FROM raw_markup;")
+            query_result = connection.execute("SELECT url, markup, raw_markup.id AS markup_id FROM url, raw_markup WHERE url.id = raw_markup.url_id {};".format("ORDER BY RANDOM() LIMIT 16" if dev else ""))
             column_names = query_result.keys()
             query_result = query_result.fetchall()
 
@@ -234,6 +235,11 @@ class Database:
         df = pd.DataFrame(query_result, columns=column_names)
         return df
 
+    def add_named_entity_candidate(self, objs):
+        for obj in objs:
+            print("Inserting: ", obj)
+            named_entity_obj = NamedEntities(**obj)
+            self.session.add(named_entity_obj)
 
 if __name__ == "__main__":
     print("Handle all I/O")
