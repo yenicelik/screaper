@@ -30,7 +30,7 @@ from screaper_entity_extraction.scraper.functional.remove_tags import remove_tag
 
 class Scraper:
 
-    def __init__(self):
+    def __init__(self, apply_named_entity_recognition=True):
         self.attribute_blacklist = {
             'lang', 'language', 'onmouseover', 'onmouseout', 'script', 'style',
             'font', 'dir', 'face', 'size', 'color', 'style', 'class', 'width',
@@ -54,6 +54,7 @@ class Scraper:
 
         # self.nlp = spacy.load("xx_ent_wiki_sm")
         self.model_ner = MicroserviceNER()
+        self.apply_named_entity_recognition = apply_named_entity_recognition
 
     # def rename_normalize_tags(self, soup):
     #     """
@@ -159,7 +160,8 @@ class Scraper:
         # print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nSoup before prettify: \n\n\n\n\n\n\n\n\n\n")
         # print(soup.prettify())
 
-        extract_entities(soup, model_ner=self.model_ner)
+        if self.apply_named_entity_recognition:
+            extract_entities(soup, model_ner=self.model_ner)
         print("Time 7: ", time.time() - time1)
 
 

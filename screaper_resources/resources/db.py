@@ -1,5 +1,6 @@
 import os
 import random
+import sqlalchemy
 
 import pandas as pd
 
@@ -123,11 +124,17 @@ class Database:
         # which is not processing
         # and is not included in the index already
 
+        # TODO: Implement priority logic into this function.
+        # Doesnt make much sense to retrieve and set a sentinel for this, I think
         url_obj, url_queue_obj = random.choice(self.session.query(URLEntity, URLQueueEntity) \
             .filter(URLQueueEntity.crawler_processing_sentinel == false()) \
-            .filter(URLQueueEntity.crawler_skip == false()) \
+            # .filter(URLQueueEntity.crawler_skip == false()) \
             .filter(URLQueueEntity.retries < self.max_retries) \
             .filter(URLEntity.id == URLQueueEntity.url_id) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('tel://'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('javascript'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('thomasnet.com'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('go4worldbusiness.com'))) \
             .join(URLEntity) \
             .order_by(
             URLQueueEntity.occurrences.desc()

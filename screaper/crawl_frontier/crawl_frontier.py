@@ -10,8 +10,8 @@ class CrawlFrontier:
         self.resource_database = resource_database
         self.blacklist = []
         self.whitelist = [
-            "https://www.thomasnet.com",
-            "https://www.go4worldbusiness.com",
+            # "https://www.thomasnet.com",
+            # "https://www.go4worldbusiness.com",
             # "https://www.thomasnet.com/products/roller-bearings-4221206",
             # "https://www.thomasnet.com/products/roller-bearings-4221206"
         ]
@@ -77,9 +77,9 @@ class CrawlFrontier:
         # print("Skipping any: ", [x not in target_url for x in self.whitelist])
         # print("Skipping any: ", any([x not in target_url for x in self.whitelist]))
         # print("Skipping any: ", all([x not in target_url for x in self.whitelist]))
-        if all([x not in target_url for x in self.whitelist]):
-            # if the link is not whitelisted, do not look for this further
-            skip = True
+        # if all([x not in target_url for x in self.whitelist]):
+        #     # if the link is not whitelisted, do not look for this further
+        #     skip = True
 
         # Create URL entity
         url_obj = self.resource_database.create_url_entity(url=target_url)
