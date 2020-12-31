@@ -3,8 +3,8 @@
 """
 import pandas as pd
 
-from screaper.resources.db import resource_database
-from screaper.resources.entities import URLEntity, RawMarkup, URLReferralsEntity, URLQueueEntity
+from screaper_resources.resources.db import resource_database
+from screaper_resources.resources import URLEntity, RawMarkup, URLReferralsEntity, URLQueueEntity
 
 datadir = "/Users/david/screaper/migrations/20201211_migration_normalize_db/"
 

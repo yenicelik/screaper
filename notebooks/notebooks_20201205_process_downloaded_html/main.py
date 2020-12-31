@@ -8,16 +8,15 @@
 """
 import tldextract
 from numpy.random.mtrand import randint
-from url_parser import get_base_url
 
-from screaper.resources.db import Database
-from screaper.scraper.scraper import Scraper
+from screaper_resources.resources.db import Database
+from screaper_entity_extraction.scraper.scraper import Scraper
 
 scraper = Scraper()
 resource_database = Database()
 
 def load_df():
-    df = resource_database.get_all_indexed_documents()
+    df = resource_database.get_all_indexed_markups()
     print("df head is: ", len(df))
     print(df.head())
     print("Df memory usage is: ", df.info())
@@ -47,21 +46,14 @@ def preprocess_html(html):
     base_url = "https://thomasnet.com"
     base_url = tldextract.extract(base_url)
 
-    scraper.process(html, base_url)
+    processed_html = scraper.process(html, base_url)
 
-def extract_organizations(html):
+    populate_index(processed_html=processed_html)
 
-    # how to represent graphs in python?
+def populate_index(processed_html):
 
-    # Create a tree from the html
-
-    # for each node of the tree, check if any entities are found
-
-    # if no entities are found, delete the graph
-
-    #
-
-    # nlp = spacy.load("xx_ent_wiki_sm")
+    # Iterate through processed html, collect all NERs,
+    # Save all NERs into the database
     pass
 
 if __name__ == "__main__":

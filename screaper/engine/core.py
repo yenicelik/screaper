@@ -14,7 +14,7 @@ from requests.exceptions import ProxyError
 from screaper.crawl_frontier.crawl_frontier import CrawlFrontier
 from screaper.downloader.downloader import Downloader
 from screaper.engine.markup_processor import markup_processor
-from screaper.resources.db import Database
+from screaper_resources.resources.db import Database
 
 
 class Engine:
@@ -151,7 +151,7 @@ class ThreadedEngine:
 
     def __init__(self):
         self.max_time = 3600
-        self.number_processes = 32  # 32  # Number of processes to spawn. Each process will have a different proxy for a long while
+        self.number_processes = 32  # 32  # 32  # Number of processes to spawn. Each process will have a different proxy for a long while
         self.ping_interval = 120  # Ping threads every 2 minutes to make sure that the threads are not dead yet
 
     def run(self):

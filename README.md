@@ -29,6 +29,13 @@ Pre-requisite:
 python -m deeppavlov install ner_ontonotes_bert_mult
 ```
 
+### Resources:
+
+- Record all contacts and companies that could be useful on [HubSpot](https://app.hubspot.com/contacts/8785787/contacts/list/view/all/)
+- Record all TODOs on this [Google Sheet](https://docs.google.com/spreadsheets/d/1li-v-0ilx5eAwvKL_c9rq0KBxRftTe_ss5y03LgVPT8/edit#gid=0)
+
+
+
 ### Ideas
 
 - Treat this as an ontology learning problem
@@ -97,7 +104,6 @@ python -m deeppavlov install ner_ontonotes_bert_mult
 -> start scraping the website already? (on bob)
     
 - 700M documents per day ; 120 articles/s 
-
 
 
 #### Quick Start

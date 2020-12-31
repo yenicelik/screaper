@@ -1,14 +1,16 @@
 import os
 import random
 import sqlalchemy
+import yaml
 
 import pandas as pd
 
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, false, func
+from sqlalchemy import create_engine, false
 from sqlalchemy.orm import sessionmaker
 
-from screaper.resources.entities import URLEntity, URLReferralsEntity, URLQueueEntity, RawMarkup
+from screaper_resources.resources.entities import URLQueueEntity, URLEntity, URLReferralsEntity, RawMarkup, \
+    NamedEntities
 
 load_dotenv()
 
@@ -123,25 +125,39 @@ class Database:
         # which is not processing
         # and is not included in the index already
 
+        # .filter(URLQueueEntity.crawler_skip == false()) \
+
+        # TODO: Prebuild queries ?
+
         # TODO: Implement priority logic into this function.
         # Doesnt make much sense to retrieve and set a sentinel for this, I think
         url_obj, url_queue_obj = random.choice(self.session.query(URLEntity, URLQueueEntity) \
             .filter(URLQueueEntity.crawler_processing_sentinel == false()) \
-            # .filter(URLQueueEntity.crawler_skip == false()) \
             .filter(URLQueueEntity.retries < self.max_retries) \
             .filter(URLEntity.id == URLQueueEntity.url_id) \
             .filter(sqlalchemy.not_(URLEntity.url.contains('tel://'))) \
             .filter(sqlalchemy.not_(URLEntity.url.contains('javascript'))) \
-            .filter(sqlalchemy.not_(URLEntity.url.contains('thomasnet.com'))) \
-            .filter(sqlalchemy.not_(URLEntity.url.contains('go4worldbusiness.com'))) \
-            .join(URLEntity) \
-            .order_by(
-            URLQueueEntity.occurrences.desc(),
-            # URLQueueEntity.created_at.asc()
+            # .filter(sqlalchemy.not_(URLEntity.url.contains('thomasnet.com'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('doi.org'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('wikimedia.org'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('news'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('microsoft'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('wiki'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('ftp:'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('help'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('media'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('.hp.com'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('google'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('archive'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('.se.com'))) \
+            # filter out any sites which are over-proportionally visited
+            .filter(sqlalchemy.not_(URLEntity.url.contains('go4worldbusiness.com')))
+            # .filter(sqlalchemy.and_(*self.popular_websites_filter_query))
+            .join(URLEntity).order_by(
+                URLQueueEntity.occurrences.desc(),
+                URLQueueEntity.created_at.asc()
                 # func.random()
-            ) \
-            .limit(512) \
-            .all())
+            ).limit(512).all())
 
         # Pick a random item from a list of 500 candidates
 
@@ -229,9 +245,9 @@ class Database:
         result = self.session.query(RawMarkup).count()
         return result
 
-    def get_all_indexed_documents(self):
+    def get_all_indexed_markups(self, dev=False):
         with self.engine.connect() as connection:
-            query_result = connection.execute("SELECT * FROM raw_markup;")
+            query_result = connection.execute("SELECT url, markup, raw_markup.id AS markup_id FROM url, raw_markup WHERE url.id = raw_markup.url_id {};".format("ORDER BY RANDOM() LIMIT 16" if dev else ""))
             column_names = query_result.keys()
             query_result = query_result.fetchall()
 
@@ -241,6 +257,11 @@ class Database:
         df = pd.DataFrame(query_result, columns=column_names)
         return df
 
+    def add_named_entity_candidate(self, objs):
+        for obj in objs:
+            print("Inserting: ", obj)
+            named_entity_obj = NamedEntities(**obj)
+            self.session.add(named_entity_obj)
 
 if __name__ == "__main__":
     print("Handle all I/O")

@@ -1,7 +1,15 @@
 """
     Implements a crawl frontier
 """
+import os
+from re import search
+
+import yaml
+
+from dotenv import load_dotenv
 from url_parser import get_base_url
+
+load_dotenv()
 
 
 class CrawlFrontier:
@@ -15,6 +23,12 @@ class CrawlFrontier:
             # "https://www.thomasnet.com/products/roller-bearings-4221206",
             # "https://www.thomasnet.com/products/roller-bearings-4221206"
         ]
+
+        self.popular_websites = []
+        with open(os.getenv("PopularWebsitesYaml"), 'r') as file:
+            self.popular_websites = yaml.load(file)["websites"]
+            # print("Popular websites are: ", self.popular_websites)
+        # self.popular_websites_filter_query = [sqlalchemy.not_(URLEntity.url.contains(popular_website)) for popular_website in self.popular_websites]
 
         # Later on implement when a website is considered outdated
         self.outdate_timedelta = None
@@ -80,6 +94,8 @@ class CrawlFrontier:
         # if all([x not in target_url for x in self.whitelist]):
         #     # if the link is not whitelisted, do not look for this further
         #     skip = True
+        if any([search(x, target_url) for x in self.popular_websites]):
+            skip = True
 
         # Create URL entity
         url_obj = self.resource_database.create_url_entity(url=target_url)

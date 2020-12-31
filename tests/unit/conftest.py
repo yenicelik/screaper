@@ -1,7 +1,5 @@
 import pytest
 
-from screaper.resources.entities import Markup, UrlTaskQueue
-
 
 @pytest.fixture
 def mock_url_task_queue_object():
