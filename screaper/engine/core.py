@@ -5,6 +5,10 @@
     - https://www.cloudcity.io/blog/2019/02/27/things-i-wish-they-told-me-about-multiprocessing-in-python/
 """
 import time
+from concurrent.futures.thread import ThreadPoolExecutor
+from gc import garbage
+from multiprocessing.pool import Pool
+from threading import Thread
 from multiprocessing import Process
 
 import requests
@@ -59,12 +63,16 @@ class Engine:
         :return:
         """
 
+        c = 0
+
         while True:
+
+            c += 1
 
             crawled_sites = self.resource_database.get_number_of_crawled_sites()
             print("Number of crawled sites are: ", crawled_sites)
-            if max_sites and (crawled_sites > max_sites):
-                print("Exiting")
+            if isinstance(max_sites, int) and c > max_sites:
+                print("Number of maximum crawled sites through this thread done", c, max_sites)
                 return
 
             # print("Getting from queue")
@@ -135,26 +143,104 @@ class Engine:
 
             self.crawl_frontier.pop_verify(queue_obj.url)
 
-def run_engine(max_sites=None):
+            # TODO: Put a signal when some time has passed?
 
-    resource_database = Database()
-    crawl_frontier = CrawlFrontier(resource_database=resource_database)
-    downloader = Downloader(resource_database=resource_database)
+class ThreadedEngine(Thread):
 
-    engine = Engine(resource_database, crawl_frontier, downloader)
-    engine.run(max_sites=max_sites)
+    def __init__(self):
+        Thread.__init__(self)
 
-class ThreadedEngine:
+    def run(self, max_sites=None):
+
+        resource_database = Database()
+        crawl_frontier = CrawlFrontier(resource_database=resource_database)
+        downloader = Downloader(resource_database=resource_database)
+
+        engine = Engine(resource_database, crawl_frontier, downloader)
+
+        # Big try-catch around this?
+        # It won't help, really
+        engine.run(max_sites=max_sites)
+
+# TODO: Implement some sort of multithreading inside a pool?
+# Each process could have a threadpool
+
+# Spawn a threadpool
+def spawn_threadpool(max_number_threads=8, max_time=3600):
+
+    threads = dict()
+
+    # Spawn additional processes if there are not enough processes
+    # Just create a Threadpool and let them run within the ThreadPool
+
+    # with ThreadPoolExecutor(max_workers=max_number_threads) as executor:
+    #     future = executor.submit(ThreadedEngine().run, 323, 1235)
+    #     print(future.result())
+
+    print("Length is: ", max_number_threads - len(threads))
+    for i in range(max_number_threads - len(threads)):
+
+        t = ThreadedEngine()
+        t.daemon = True
+        time.sleep(0.3)
+        t.start()
+        start_time = time.time()
+        name = str(t.name)  # + str(t.get_ident())
+        print("Spawning thread nr: {} name: {} len: {} at: {}".format(i, name, len(threads), start_time))
+
+        # threads[name] = {
+        #     "thread": t,
+        #     "time": start_time
+        # }
+
+    print("Sleeping..")
+
+    time.sleep(max_time)
+
+
+class Runner:
     """
         Threaded Wrapper around the engine
     """
 
     def __init__(self):
-        self.max_time = 3600
-        self.number_processes = 32  # 32  # 32  # Number of processes to spawn. Each process will have a different proxy for a long while
-        self.ping_interval = 120  # Ping threads every 2 minutes to make sure that the threads are not dead yet
+        self.max_time = 60  # 3600
+        self.number_processes = 3  # 32  # 32  # Number of processes to spawn. Each process will have a different proxy for a long while
+        self.ping_interval = 5  # Ping threads every 2 minutes to make sure that the threads are not dead yet
+        self.threads_per_pool = 7
 
     def run(self):
+
+        # Now do this in a for-loop
+        # Create one engine to populate the database
+        print("Create one engine to populate the database")
+        # close the pool every few hours
+        # try:
+        #
+        #     p = None
+        #     start_time = time.time()
+        #
+        #     while True:
+        #
+        #         if p is None:
+        #             start_time = time.time()
+        #             # Create a multiprocessing pool,
+        #             p = Pool(self.number_processes)
+        #             pool_output = p.apply_async(spawn_threadpool, [self.threads_per_pool,]*(self.number_processes) )
+        #             print("Pool output is: ", pool_output)
+        #         elif self.max_time < int(time.time() - start_time):
+        #             print("Time to live for pools is exceeded! Terminating pool!", self.max_time, int(time.time() - start_time))
+        #             p.terminate()
+        #             p = None
+        #             # Call garbage collect
+        #             garbage.collect()
+        #
+        #         print("Sleep unitl next ping...")
+        #         time.sleep(self.ping_interval)
+        #
+        # finally:
+        #     p.terminate()
+        #     del p
 
         # Now do this in a for-loop
         processes = dict()
@@ -162,7 +248,7 @@ class ThreadedEngine:
         # Create one engine to populate the database
         print("Create one engine to populate the database")
         # TODO: The start is buggy
-        run_engine(max_sites=1)
+        ThreadedEngine().run(max_sites=1)
 
         try:
 
@@ -170,18 +256,19 @@ class ThreadedEngine:
 
                 # Spawn additional processes if there are not enough processes
                 for i in range(self.number_processes - len(processes)):
-                    p = Process(target=run_engine)
+                    p = Process(target=spawn_threadpool, args=(self.threads_per_pool, self.max_time))
                     time.sleep(0.3)
                     p.start()
                     start_time = time.time()
                     # a bit disgusting, but that's fine
                     name = str(p.name) + str(p._identity)
-                    print("Spawning process nr: {} name: {} len: {}".format(i, name, len(processes)))
+                    print("Spawning process pool nr: {} name: {} len: {}".format(i, name, len(processes)))
                     processes[name] = {
                         "process": p,
                         "time": start_time
                     }
 
+                print("Sleep until next Ping...")
                 time.sleep(self.ping_interval)
 
                 # Kill any process that has been alive for too long
@@ -194,8 +281,7 @@ class ThreadedEngine:
                     # Try to join with a timeout
                     # proc.join(timeout=0)
                     if (time.time() - proc_time) > self.max_time:
-                        print("Time is: ", (time.time() - proc_time), self.max_time,
-                              (time.time() - proc_time) > self.max_time)
+                        print("Time is: ", (time.time() - proc_time), self.max_time, (time.time() - proc_time) > self.max_time)
                         print("Process {} will now be terminated".format(name))
                         tokill.add(name)
                     elif proc.is_alive():
@@ -213,12 +299,12 @@ class ThreadedEngine:
                 proc_obj['process'].terminate()
 
 
-engine = ThreadedEngine()
+engine = Runner()
 
 if __name__ == "__main__":
     print("Starting the engine ...")
     # engine = Engine()
     # engine.run()
 
-    engine_wrapper = ThreadedEngine()
+    engine_wrapper = Runner()
     engine_wrapper.run()
