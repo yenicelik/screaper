@@ -1,7 +1,7 @@
 import asyncio
 import random
 
-import grequests
+from aiohttp_requests import requests
 from requests.exceptions import ProxyError, ConnectTimeout
 
 from screaper.engine.markup_processor import markup_processor
@@ -25,7 +25,8 @@ class CrawlAsyncTask:
         self.sleeptime = 0.35  # 0.35
 
     async def fetch(self):
-        proxy = random.choice(self.proxy_list)
+        proxy = random.choice(self.proxy_list.proxies)
+        proxy = None
 
         print("Proxy is now: ", proxy)
 
@@ -41,29 +42,29 @@ class CrawlAsyncTask:
         try:
 
             # Make the asyncio request
-            response = await grequests.get(
+            response = await requests.get(
                 self.queue_obj.url,
                 headers=self.headers,
-                proxies={"http": proxy, "https": proxy},
+                proxy=proxy,
                 timeout=20.
             )
-            markup = response.text
-            status_code = response.status_code
+            markup = await response.text()
+            status_code = response.status
             target_urls = markup_processor.get_links(self.queue_obj.url, markup)
 
         except ProxyError as e:
             print("Connection Timeout Exception 1!", e)
             self.proxy_list.warn_proxy(proxy)
-            return None, e
+            return None, e, []
 
         except ConnectTimeout as e:
             print("Connection Timeout Exception 2!", e)
             self.proxy_list.warn_proxy(proxy)
-            return None, e
+            return None, e, []
 
         except Exception as e:
             print("Encountered exception: ", e)
-            return None, e
+            return None, e, []
 
         return status_code, markup, target_urls
 
@@ -80,4 +81,5 @@ if __name__ == "__main__":
 
     print("Queue obj is: ", queue_obj)
 
-    CrawlAsyncTask(proxy_list, queue_obj=queue_obj)
+    single_execution = CrawlAsyncTask(proxy_list, queue_obj=queue_obj)
+    print(asyncio.run(single_execution.fetch()))

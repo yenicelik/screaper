@@ -8,6 +8,8 @@ import requests
 
 from screaper.crawl_frontier.crawl_frontier import CrawlFrontier
 from screaper.downloader.downloader import Downloader
+
+from screaper.downloader.async_crawl_task import CrawlAsyncTask
 from screaper_resources.resources.db import Database
 from screaper_resources.resources.resouces_proxylist import ProxyList
 
@@ -52,14 +54,17 @@ class Main:
                 # TODO: Make this
                 # Do multiple retries of this, and fail gracefully.
                 # Nevermind, there will be multiple retries anyways
-                addition_crawl_tasks = self.crawl_frontier.pop_start_list()
-                for crawl_task in addition_crawl_tasks:
+                queue_objs_to_crawl = self.crawl_frontier.pop_start_list()
+                for queue_obj in queue_objs_to_crawl:
                     # TODO: Gotta spawn a coroutine from this here
-                    markup_exists = self.resource_database.get_markup_exists(addition_crawl_tasks.queue_obj.url)  # TODO make async
-                    if not markup_exists and crawl_task.queue_obj.url:
+                    markup_exists = self.resource_database.get_markup_exists(queue_obj.url)  # TODO make async
+                    if not markup_exists and queue_obj.url:
+                        crawl_task = CrawlAsyncTask(self.proxy_list, queue_obj)
                         crawl_task_queue.put(crawl_task)
                     else:
-                        print("Markup already exists", crawl_task.queue_obj.url)
+                        print("Markup already exists", queue_obj.url)
+                        # Mark this as processed
+                        self.crawl_frontier.pop_verify(queue_obj.url)
 
             # Spawn a bunch of async tasks
             for i in range(active_workers_count):

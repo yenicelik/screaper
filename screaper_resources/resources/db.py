@@ -61,6 +61,9 @@ class Database:
             .filter(URLEntity.url == url) \
             .one_or_none()
 
+        # TODO: Make it mixed,
+        # such that there is a limit of how many urls from one domain can be picked
+
         # Add the URL Into the Queue
         if url_entity_obj is None:
             # Create a URL Object
