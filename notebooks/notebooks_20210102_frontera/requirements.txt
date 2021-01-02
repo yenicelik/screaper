@@ -1,0 +1,7 @@
+scrapy==2.4.1
+frontera[sql,logging,tldextract,strategies]==0.8.1
+
+
+# Use this to ignore duplicate URLs https://github.com/scrapy-plugins/scrapy-querycleaner
+# Rotating proxies: https://github.com/mizhgun/scrapy-proxymesh , https://github.com/aivarsk/scrapy-proxies
+# Example code: https://github.com/scrapinghub/portia/tree/master/slybot/slybot

@@ -1,0 +1,1 @@
+frontera[distributed,zeromq,sql]==0.8.0

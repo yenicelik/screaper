@@ -20,6 +20,8 @@ class Downloader:
 
     def load_proxy_list(self):
 
+        # TODO: Push proxy list to global
+
         # TODO: Download a fuller list
         json_url = "https://raw.githubusercontent.com/scidam/proxy-list/master/proxy.json"
         with urlopen(json_url) as url:
@@ -74,6 +76,7 @@ class Downloader:
         time.sleep(random.random() * self.sleeptime)
 
         # Try again if the proxy is just a bad one
+        # TODO change this to an async function
         response = requests.get(
             url,
             headers=self.headers,
