@@ -33,11 +33,6 @@ class CrawlFrontier:
         # Later on implement when a website is considered outdated
         self.outdate_timedelta = None
 
-    def pop_start(self):
-        obj = self.resource_database.get_url_task_queue_record_start()
-        self.resource_database.commit()
-        return obj
-
     def pop_start_list(self):
         objs = self.resource_database.get_url_task_queue_record_start_list()
         self.resource_database.commit()
@@ -74,7 +69,6 @@ class CrawlFrontier:
             target_url = basic_url + target_url
         # if "http" not in target_url:
         #     return
-
 
         # remove all anchors if existent
         target_url = target_url.split('#')[0]
