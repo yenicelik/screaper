@@ -5,11 +5,9 @@
     - http-request-randomizer 1.3.2
 """
 import time
-import json
 import random
 
 import requests
-from urllib.request import urlopen
 
 # Limit content - length?
 # Implement proxies with threadpools, not earlier
@@ -18,49 +16,14 @@ from urllib.request import urlopen
 
 class Downloader:
 
-    def load_proxy_list(self):
-
-        # TODO: Download a fuller list
-        json_url = "https://raw.githubusercontent.com/scidam/proxy-list/master/proxy.json"
-        with urlopen(json_url) as url:
-            proxies = json.loads(url.read().decode('utf-8'))
-
-        # TODO: Pop from list once the proxy proves itself to be bad
-
-        proxies = proxies['proxies']
-
-        # TODO: Replace with environment variable
-        proxies = [(x["ip"], x["port"]) for x in proxies if x["google_status"] == 200]
-        proxies = [("http://" + str(x[0]) + ":" + str(x[1])) for x in proxies]
-
-        return proxies
-
     def set_proxy(self):
-        self.proxy = random.choice(self.proxies)
-        print("Proxy is now: ", self.proxy)
 
-    def __init__(self, resource_database):
-        self.resource_database = resource_database
+
+    def __init__(self, proxy_list):
         # Prepare proxies list:
-        self.proxies = self.load_proxy_list()  # TODO: Move this variable one level up?
+        self.proxy_list = proxy_list
         self.set_proxy()
 
-        self.headers = {
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36",  # (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)
-        }
-        self.sleeptime = 0.35  # 0.35
-
-    def add_to_index(self, url, markup):
-        """
-            Adds a downloaded item to the markup
-        """
-
-        # For now, analyse any kind of markup
-        self.resource_database.create_markup_record(
-            url=url,
-            markup=markup
-        )
-        self.resource_database.commit()
 
     def get(self, url):
         """
@@ -74,6 +37,7 @@ class Downloader:
         time.sleep(random.random() * self.sleeptime)
 
         # Try again if the proxy is just a bad one
+        # Check if the proxy list is errorous
         response = requests.get(
             url,
             headers=self.headers,
@@ -83,6 +47,8 @@ class Downloader:
         # print("Response is: ", response)
         content = response.text
         # print("content is: ", content)
+
+        # TODO: if proxy created an error, kick it out from the dictionary
 
         # Do some basic sanitizing
         # content = bleach.clean(content)
@@ -106,3 +72,6 @@ class Downloader:
 
 if __name__ == "__main__":
     print("Starting indexer")
+
+    # Testing a single download
+

@@ -41,6 +41,18 @@ class Database:
     def commit(self):
         self.session.commit()
 
+    def add_to_index(self, url, markup):
+        """
+            Adds a downloaded item to the markup
+        """
+
+        # For now, analyse any kind of markup
+        self.create_markup_record(
+            url=url,
+            markup=markup
+        )
+        self.commit()
+
     def create_url_entity(
             self,
             url
@@ -113,6 +125,64 @@ class Database:
             self.session.add(url_referral_entity_obj)
 
         return url_referral_entity_obj
+
+    def get_url_task_queue_record_start_list(self):
+        """
+            Retrieve a list of URL sites to retrieve
+        :return:
+        """
+        # Get the one inserted most recently,
+        # which is not processing
+        # and is not included in the index already
+
+        # .filter(URLQueueEntity.crawler_skip == false()) \
+
+        # TODO: Prebuild queries ?
+
+        # .filter(sqlalchemy.not_(URLEntity.url.contains('thomasnet.com'))) \
+        # filter out any sites which are over-proportionally visited
+        # .filter(sqlalchemy.and_(*self.popular_websites_filter_query))
+
+        # TODO: Implement priority logic into this function.
+        # Doesnt make much sense to retrieve and set a sentinel for this, I think
+        query_list = self.session.query(URLEntity, URLQueueEntity) \
+            .filter(URLQueueEntity.crawler_processing_sentinel == false()) \
+            .filter(URLQueueEntity.retries < self.max_retries) \
+            .filter(URLEntity.id == URLQueueEntity.url_id) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('tel://'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('javascript'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('doi.org'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('wikimedia.org'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('news'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('microsoft'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('wiki'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('ftp:'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('help'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('media'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('.hp.com'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('google'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('archive'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('.se.com'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('go4worldbusiness.com'))) \
+            .join(URLEntity).order_by(
+                URLQueueEntity.occurrences.desc(),
+                # URLQueueEntity.created_at.asc()
+                # func.random()
+        ).limit(512).all()
+
+        # TODO: make this a global variable on how many item to return to the queue?
+
+        jobs = []
+        for x in query_list:
+            url_obj, url_queue_obj = x
+
+            # Pick a random item from a list of 500 candidates
+            jobs.append(url_obj)
+
+            # Pick a pseudo-randomized order from the top 100 items
+            url_queue_obj.crawler_processing_sentinel = True
+
+        return jobs
 
     def get_url_task_queue_record_start(self):
         """

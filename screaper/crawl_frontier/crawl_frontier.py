@@ -38,6 +38,11 @@ class CrawlFrontier:
         self.resource_database.commit()
         return obj
 
+    def pop_start_list(self):
+        objs = self.resource_database.get_url_task_queue_record_start_list()
+        self.resource_database.commit()
+        return objs
+
     def pop_verify(self, url):
         self.resource_database.get_url_task_queue_record_completed(url=url)
         self.resource_database.commit()
