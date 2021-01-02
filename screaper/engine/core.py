@@ -150,17 +150,21 @@ class ThreadedEngine(Thread):
     def __init__(self):
         Thread.__init__(self)
 
+        self.resource_database = Database()
+        self.crawl_frontier = CrawlFrontier(resource_database=self.resource_database)
+        self.downloader = Downloader(resource_database=self.resource_database)
+
+        self.engine = Engine(self.resource_database, self.crawl_frontier, self.downloader)
+
     def run(self, max_sites=None):
-
-        resource_database = Database()
-        crawl_frontier = CrawlFrontier(resource_database=resource_database)
-        downloader = Downloader(resource_database=resource_database)
-
-        engine = Engine(resource_database, crawl_frontier, downloader)
 
         # Big try-catch around this?
         # It won't help, really
-        engine.run(max_sites=max_sites)
+        try:
+            self.engine.run(max_sites=max_sites)
+        finally:
+            # TODO: Disconnect from database
+            self.resource_database.session.close()
 
 # TODO: Implement some sort of multithreading inside a pool?
 # Each process could have a threadpool
@@ -177,11 +181,12 @@ def spawn_threadpool(max_number_threads=8, max_time=3600):
     #     future = executor.submit(ThreadedEngine().run, 323, 1235)
     #     print(future.result())
 
+    print("Threads in pool are: ", max_number_threads)
     print("Length is: ", max_number_threads - len(threads))
     for i in range(max_number_threads - len(threads)):
 
         t = ThreadedEngine()
-        t.daemon = True
+        t.daemon = False
         time.sleep(0.3)
         t.start()
         start_time = time.time()
@@ -196,6 +201,7 @@ def spawn_threadpool(max_number_threads=8, max_time=3600):
     print("Sleeping..")
 
     time.sleep(max_time)
+    t.resource_database.close()
 
 
 class Runner:
@@ -204,10 +210,10 @@ class Runner:
     """
 
     def __init__(self):
-        self.max_time = 60  # 3600
-        self.number_processes = 3  # 32  # 32  # Number of processes to spawn. Each process will have a different proxy for a long while
-        self.ping_interval = 5  # Ping threads every 2 minutes to make sure that the threads are not dead yet
-        self.threads_per_pool = 7
+        self.max_time = 3600 # 3600
+        self.number_processes = 4  # 32  # 32  # Number of processes to spawn. Each process will have a different proxy for a long while
+        self.ping_interval = 120  # Ping threads every 2 minutes to make sure that the threads are not dead yet
+        self.threads_per_pool = 2
 
     def run(self):
 

@@ -155,7 +155,7 @@ class Database:
             # .filter(sqlalchemy.and_(*self.popular_websites_filter_query))
             .join(URLEntity).order_by(
                 URLQueueEntity.occurrences.desc(),
-                URLQueueEntity.created_at.asc()
+                # URLQueueEntity.created_at.asc()
                 # func.random()
             ).limit(512).all())
 
