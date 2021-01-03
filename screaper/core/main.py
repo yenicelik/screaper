@@ -62,11 +62,11 @@ class Main:
 
         while True:
 
+            crawled_sites = self.resource_database.get_number_of_crawled_sites()
+            queued_sites = self.resource_database.get_number_of_queued_urls()
+            sites_per_hour = self.calculate_sites_per_hour(crawled_sites)
+            print("Sites per hour: {} -- Crawled sites: {} -- Queue sites in DB: {} -- Sites in local queue: {}".format(sites_per_hour, crawled_sites, queued_sites, crawl_task_queue.qsize()))
             if crawl_task_queue.qsize() > (crawl_task_queue.maxsize // 2):
-                crawled_sites = self.resource_database.get_number_of_crawled_sites()
-                queued_sites = self.resource_database.get_number_of_queued_urls()
-                sites_per_hour = self.calculate_sites_per_hour(crawled_sites)
-                print("Sites per hour: {} -- Crawled sites: {} -- Queue sites in DB: {} -- Sites in local queue: {}".format(sites_per_hour, crawled_sites, queued_sites, crawl_task_queue.qsize()))
                 await asyncio.sleep(5)
                 continue
 
@@ -140,7 +140,7 @@ class Main:
 
         crawl_task_queue = asyncio.Queue(maxsize=513)
 
-        number_consumers = 2
+        number_consumers = 10
 
         # 1395
 
