@@ -68,7 +68,6 @@ class CrawlAsyncTask:
             self.proxy_list.warn_proxy(proxy, harsh=True)
             return None, e, []
 
-
         except Exception as e:
             print("Encountered exception: ", e)
             return None, e, []
