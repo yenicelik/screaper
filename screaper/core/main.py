@@ -2,6 +2,7 @@
     Includes the main application loop
 """
 import asyncio
+import time
 
 import requests
 
@@ -27,125 +28,132 @@ class Main:
 
         self.ping_interval = 5  # How many seconds to run the ping interval for
 
-        self.crawl_task_queue = asyncio.Queue(maxsize=513)
         self.active_workers_count = 0
 
-    def execute_single_task_from_queue(self, max_sites=None):
+        self.timestamps = []
 
-        # Fetch from queue
+    def calculate_sites_per_hour(self, crawled_sites):
+        """
+            Calculates how many sites we can crawl per hour
+        :param crawled_sites:
+        :return:
+        """
+        self.timestamps.insert(0, (time.time(), crawled_sites))
 
-        ##############
-        # If queue is shallow or empty, populate queue
-        ##############
+        if len(self.timestamps) > (86500 // 5):
+            self.timestamps = self.timestamps[:(86500 // 5)]
 
-        # Else, run worker
-        pass
+        sites_per_second = (self.timestamps[0][1] - self.timestamps[-1][1])
+        sites_per_second /= (self.timestamps[0][0] - self.timestamps[-1][0]) + 1
 
-    async def run_main_loop(self):
+        sites_per_hour = sites_per_second * 60 * 60
 
-        c = 0
+        return sites_per_hour
+
+    async def producer(self, crawl_task_queue):
+        """
+            Populates the queue with CrawlAsyncTask objects,
+            which the consumer can take and then scrape
+        :return:
+        """
+
+        # Do not produce more items into the queue
+        # Single while loop which populates the queue
 
         while True:
 
-            # if isinstance(max_sites, int) and c > max_sites:
-            #     print("Number of maximum crawled sites through this thread done", c, max_sites)
-            #     return
+            if crawl_task_queue.qsize() > (crawl_task_queue.maxsize // 2):
+                crawled_sites = self.resource_database.get_number_of_crawled_sites()
+                queued_sites = self.resource_database.get_number_of_queued_urls()
+                sites_per_hour = self.calculate_sites_per_hour(crawled_sites)
+                print("Sites per hour: {} -- Crawled sites: {} -- Queue sites in DB: {} -- Sites in local queue: {}".format(sites_per_hour, crawled_sites, queued_sites, crawl_task_queue.qsize()))
+                await asyncio.sleep(5)
+                continue
 
-            # Run multiple of the self.execute_single_task_from_queue instances.
-            # This will act as if many threads are simultenously running
+            print("Populating queue")
+            # Populate crawl tasks queue
+            queue_objs_to_crawl = self.crawl_frontier.pop_start_list()
 
-            # Fetch more items into the queue
-            if not crawl_task_queue.full():
-                # Fetch from database
-                # TODO: Make this
-                # Do multiple retries of this, and fail gracefully.
-                # Nevermind, there will be multiple retries anyways
-                queue_objs_to_crawl = self.crawl_frontier.pop_start_list()
-                tasks_to_await = []
-                for queue_obj in queue_objs_to_crawl:
-                    # TODO: Gotta spawn a coroutine from this here
-                    markup_exists = self.resource_database.get_markup_exists(queue_obj.url)  # TODO make async
-                    if not markup_exists and queue_obj.url:
-                        crawl_task = CrawlAsyncTask(self.proxy_list, queue_obj)
-                        # TODO why await
-                        crawl_task_queue_put_task = crawl_task_queue.put(crawl_task)
-                        tasks_to_await.append(crawl_task_queue_put_task)
-                    else:
-                        print("Markup already exists", queue_obj.url)
-                        # Mark this as processed
-                        self.resource_database.get_url_task_queue_record_completed(url=queue_obj.url)
-                self.resource_database.commit()
+            for queue_obj in queue_objs_to_crawl:
+                # Spawn a AsyncCrawlTask object
 
-                # Similar to blocking really, but allows for parallellism
-                for crawl_task_queue_put_task in tasks_to_await:
-                    await crawl_task_queue_put_task
+                # If the markup does not exist yet, spawn a crawl async task
+                markup_exists = self.resource_database.get_markup_exists(queue_obj.url)  # TODO make async
+                if markup_exists:
+                    print("Markup exists", queue_obj.url)
+                    self.resource_database.get_url_task_queue_record_completed(url=queue_obj.url)
+                    self.resource_database.commit()
+                if not queue_obj.url:
+                    print("URL is None", queue_obj.url)
+                    self.resource_database.get_url_task_queue_record_completed(url=queue_obj.url)
+                    self.resource_database.commit()
+                crawl_async_task = CrawlAsyncTask(self.proxy_list, queue_obj)
+                await crawl_task_queue.put(crawl_async_task)
 
-                print("Queue is: ", len(queue_objs_to_crawl), queue_objs_to_crawl)
+    async def consumer(self, max_sites, crawl_task_queue):
+        """
+            Consumes the CrawlAsyncTasks produced into the queue above
+        :return:
+        """
 
-            tasks_to_await = []
-            # Spawn a bunch of async tasks
-            for i in range(active_workers_count):
-                get_crawl_task = crawl_task_queue.get()
-                tasks_to_await.append(get_crawl_task)
+        # Just spawn new threads while the queue is not empty
+        c = 0
+        while True:
 
-            # TODO: Put this in another section where you have to await the entire pipeline?
-            for get_crawl_task in tasks_to_await:
-                await get_crawl_task
-                print("Get crawl task is: ", get_crawl_task)
+            if isinstance(max_sites, int) and c > max_sites:
+                print("Number of maximum crawled sites through this thread done", c, max_sites)
+                return
 
+            # Get from queue
+            # Consume half the queue
+            async_crawl_task = await crawl_task_queue.get()  # This will wait until there is something in the queue anyways!
+            status_code, markup, target_urls = await async_crawl_task.fetch()
 
-                # TODO: Does this make sure it gets run like a thread, i.e. in parallel?
-                executed_crawl_task = asyncio.run(crawl_task)
+            # If an error is returned, just skip it:
+            if status_code is None:
+                print("Some error happened!")
+                self.crawl_frontier.pop_failed(async_crawl_task.queue_obj.url)
+                continue
+            else:
+                print("Made request to web server and got response", status_code, len(markup), len(target_urls))
 
-                # Put them into the next queue, if they don't return None
+            # Push them into the database
+            if not (status_code == requests.codes.ok):
+                print("Not an ok status code!")
+                self.crawl_frontier.pop_failed(async_crawl_task.queue_obj.url)
+            else:
+                print("Adding to database")
+                self.resource_database.add_to_index(async_crawl_task.queue_obj.url, markup)
 
-                # Complete bullshit pseudocode
-                await executed_crawl_task_queue.put(executed_crawl_task)
+            for target_url in target_urls:
+                self.crawl_frontier.add(target_url=target_url, referrer_url=async_crawl_task.queue_obj.url)
 
-            exit(0)
+            # Finally, verify successful execution of task
+            self.crawl_frontier.pop_verify(async_crawl_task.queue_obj.url)
 
-            if not crawl_task_queue.empty():
-                # Go through all executed tasks, and process them into the database one after the other
-                for i in len(executed_crawl_task_queue):
-
-                    executed_crawl_task = await executed_crawl_task_queue.get()
-                    status_code, markup, target_urls = executed_crawl_task
-
-                    # If response code is not a 200, put it back into the queue and process it at a later stage again
-                    if not (status_code == requests.codes.ok):
-                        # TODO: Implement some other way to do error checking
-                        print("Not an ok status code!")
-                        self.crawl_frontier.pop_failed(executed_crawl_task.queue_obj.url)
-                    else:
-                        # Add scraped items to the mongodb database:
-                        # print("Adding to database")
-                        self.resource_database.add_to_index(executed_crawl_task.queue_obj.url, markup)
-
-                        # For all newly found target-urls, add them to the list
-
-                        # for each link in the queue, add this to the queue:
-                        for target_url in target_urls:
-                            # print("Adding target url: ", target_url)
-                            # print("Adding reference url: ", url)
-                            self.crawl_frontier.add(target_url=target_url, referrer_url=executed_crawl_task.queue_obj.url)
-                            # print("Added target url: ", target_url)
-                            # print("Adding reference url: ", url)
-
-                        # TODO: For each item in the queue, pop verify
-                        self.crawl_frontier.pop_verify(executed_crawl_task.queue_obj.url)
-
-            # Try a couple of times, and crash if this doesn't work
-            await asyncio.sleep(self.ping_interval)  #  Replace by asny call
-
-            ##############
-            # Spawn AsyncTaskRunners
-            ##############
-            crawled_sites = self.resource_database.get_number_of_crawled_sites()
-            queued_sites = self.resource_database.get_number_of_queued_urls()
-            print("Crawled sites: {} -- Queue sites: {}".format(crawled_sites, queued_sites))
+            # Verify that the queued task is now done
+            crawl_task_queue.task_done()
 
             c += 1
 
+    async def run_main_loop(self):
+
+        crawl_task_queue = asyncio.Queue(maxsize=513)
+
+        number_consumers = 2
+
+        # 1395
+
+        # Create N (multiple) consumers
+        tasks = [self.consumer(max_sites=50, crawl_task_queue=crawl_task_queue) for _ in range(number_consumers)]
+        # Create 1 (one) producer
+        tasks.append(self.producer(crawl_task_queue=crawl_task_queue))
+
+        print("Consumer and producer tasks are: ", tasks)
+
+        # Let them both run
+        # These will never have any outputs, as they both run forever!
+        await asyncio.gather(*tasks)
 
 if __name__ == "__main__":
     print("Starting the application")

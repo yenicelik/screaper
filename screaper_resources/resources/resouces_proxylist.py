@@ -50,7 +50,18 @@ class ProxyList:
         self.total_tries += 1
         return list(self._proxies.difference(self._proxies_blacklist))
 
-    def warn_proxy(self, proxy):
+    def warn_proxy(self, proxy, harsh=False):
+        """
+            Adds a counter that a proxy is not very stable.
+            If the harsh parameter is raised, will immediately delete this proxy
+                (this is usefule with ClientHttpProxyError s for example)
+        :param proxy:
+        :param harsh:
+        :return:
+        """
+        if harsh:
+            self._proxies_blacklist.add(proxy)
+
         self._bad_proxy_counter[proxy] += 1
         self.total_bad_tries += 1
         # Remove proxy if it repeatedly turns out to be a bad one

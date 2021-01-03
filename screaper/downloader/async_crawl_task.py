@@ -1,6 +1,7 @@
 import asyncio
 import random
 
+from aiohttp import ClientHttpProxyError
 from aiohttp_requests import requests
 from requests.exceptions import ProxyError, ConnectTimeout
 
@@ -26,7 +27,7 @@ class CrawlAsyncTask:
 
     async def fetch(self):
         proxy = random.choice(self.proxy_list.proxies)
-        proxy = None
+        # proxy = None
 
         print("Proxy is now: ", proxy)
 
@@ -61,6 +62,12 @@ class CrawlAsyncTask:
             print("Connection Timeout Exception 2!", e)
             self.proxy_list.warn_proxy(proxy)
             return None, e, []
+
+        except ClientHttpProxyError as e:
+            print("Connection Timeout Exception 3!", e)
+            self.proxy_list.warn_proxy(proxy, harsh=True)
+            return None, e, []
+
 
         except Exception as e:
             print("Encountered exception: ", e)
