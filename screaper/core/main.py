@@ -98,6 +98,7 @@ class Main:
 
     async def run_main_loop(self):
 
+        tasks = []
         while True:
 
             start_time = time.time()
@@ -116,17 +117,17 @@ class Main:
 
             print("Time to populate queue took: ", time.time() - start_time)
 
+            # Let them both run
+            # These will never have any outputs, as they both run forever!
+            print("Time until gather took: ", time.time() - start_time)
             tasks = []
             for queue_obj in queue_objs_to_crawl:
                 # Spawn a AsyncCrawlTask object
                 task = asyncio.create_task(self.task(CrawlAsyncTask(self.proxy_list, queue_obj)))
                 tasks.append(task)
 
-            # Let them both run
-            # These will never have any outputs, as they both run forever!
-            await asyncio.gather(*tasks)
-            print("Consumer and producer tasks are: ", tasks)
-            print("Time until gather took: ", time.time() - start_time)
+            if tasks:
+                await asyncio.gather(*tasks)
 
 
 if __name__ == "__main__":

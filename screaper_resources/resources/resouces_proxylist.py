@@ -5,6 +5,8 @@
 
     - https://www.webshare.io/rotating-proxy
     # 30$ per month for rotating proxies seems pretty alright
+
+    - https://smartproxy.com/
 """
 import json
 from urllib.request import urlopen

@@ -16,8 +16,8 @@ from screaper.core.main import Main
 class AsyncProcessWrapper:
 
     def __init__(self):
-        self.uuid = 'PROC:' + ''.join(random.choice(string.ascii_uppercase) for _ in range(4))
-        self.main = Main()
+        self.name = 'PROC:' + ''.join(random.choice(string.ascii_uppercase) for _ in range(4))
+        self.main = Main(name=self.name)
 
     def run_main_loop(self):
         asyncio.run(self.main.run_main_loop())
@@ -28,9 +28,9 @@ class Runner:
     """
 
     def __init__(self):
-        self.max_time = 60 # 3 * 3600 # 3600
-        self.number_processes = 2  # 32  # 32  # Number of processes to spawn. Each process will have a different proxy for a long while
-        self.ping_interval = 5 # 120  # Ping threads every 2 minutes to make sure that the threads are not dead yet
+        self.max_time = 12 * 3600 # 3600  # 60
+        self.number_processes = 14  # 32  # 32  # Number of processes to spawn. Each process will have a different proxy for a long while
+        self.ping_interval = 120  # 120  # Ping threads every 2 minutes to make sure that the threads are not dead yet
 
     def run(self):
 
@@ -41,29 +41,25 @@ class Runner:
         # Now do this in a for-loop
         processes = dict()
 
-        # Create one engine to populate the database
-        print("Create one engine to populate the database")
-        # TODO: The start is buggy
-
         try:
 
             while True:
 
                 # Spawn additional processes if there are not enough processes
                 for i in range(self.number_processes - len(processes)):
-                    p = Process(target=AsyncProcessWrapper().run_main_loop())
+                    p = Process(target=AsyncProcessWrapper().run_main_loop)
                     time.sleep(0.3)
                     p.start()
                     start_time = time.time()
                     # a bit disgusting, but that's fine
                     name = str(p.name) + str(p._identity)
-                    print("Spawning process pool nr: {} name: {} len: {}".format(i, name, len(processes)))
+                    print("Spawning process nr: {} name: {} len: {}".format(i, name, len(processes)))
                     processes[name] = {
                         "process": p,
                         "time": start_time
                     }
 
-                print("Sleep until next Ping...")
+                print("MAIN : Sleep until next Ping...")
                 time.sleep(self.ping_interval)
 
                 # Kill any process that has been alive for too long
