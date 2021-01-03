@@ -14,6 +14,10 @@ class EntityIndexPopulator:
 
     def __init__(self):
         # Establish a database connection
+
+        print("Need to implement an asynchronous worker here")
+        raise NotImplementedError
+
         self.db = Database()
         self.scraper = Scraper()
 

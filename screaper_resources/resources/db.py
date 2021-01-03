@@ -2,15 +2,11 @@ import asyncio
 import os
 import sqlalchemy
 
-import pandas as pd
-
 from dotenv import load_dotenv
-from sqlalchemy import false, create_engine
+from sqlalchemy import false
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
 
-from screaper_resources.resources.entities import URLQueueEntity, URLEntity, URLReferralsEntity, RawMarkup, \
-    NamedEntities
+from screaper_resources.resources.entities import URLQueueEntity, URLEntity, URLReferralsEntity, RawMarkup, NamedEntities
 
 load_dotenv()
 
@@ -158,17 +154,53 @@ class Queries:
         obj.retries += 1
         return obj
 
+    @staticmethod
+    def get_url_task_queue_record_start_list(session, max_retries=5):
+        """
+            Retrieve a list of URL sites to retrieve
+        :return:
+        """
+        # Doesnt make much sense to retrieve and set a sentinel for this, I think
+        query_list = session.query(URLEntity, URLQueueEntity) \
+            .filter(URLQueueEntity.crawler_processing_sentinel == false()) \
+            .filter(URLQueueEntity.retries < max_retries) \
+            .filter(URLEntity.id == URLQueueEntity.url_id) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('tel://'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('javascript'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('doi.org'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('wikimedia.org'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('news'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('microsoft'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('wiki'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('ftp:'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('help'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('media'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('.hp.com'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('google'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('archive'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('.se.com'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('go4worldbusiness.com'))) \
+            .join(URLEntity).order_by(
+                URLQueueEntity.occurrences.desc(),
+                # URLQueueEntity.created_at.asc()
+                # func.random()
+        ).limit(512).all()
+
+        # TODO: make this a global variable on how many item to return to the queue?
+
+        jobs = []
+        for x in query_list:
+            url_obj, url_queue_obj = x
+
+            # Pick a random item from a list of 500 candidates
+            jobs.append(url_obj)
+
+            # Pick a pseudo-randomized order from the top 100 items
+            url_queue_obj.crawler_processing_sentinel = True
+
+        return jobs
 
 
-
-
-
-
-
-
-
-
-# TODO: Replace all by the entity objects? probably better to operate with enums anyways
 class Database:
     """
         Wrapper to handle all I/O with the database.
@@ -250,6 +282,13 @@ class Database:
         print("result is: ", result)
         return result
 
+    async def get_url_task_queue_record_start_list(self):
+        """
+            Retrieve a list of URL sites to retrieve
+        :return:
+        """
+        return await self.session.run_sync(self.queries.get_url_task_queue_record_start_list)
+
     # # TODO: Gotta re-implement these
     # def get_all_indexed_markups(self, dev=False):
     #     with self.engine.connect() as connection:
@@ -268,65 +307,6 @@ class Database:
     #         print("Inserting: ", obj)
     #         named_entity_obj = NamedEntities(**obj)
     #         self.session.add(named_entity_obj)
-
-    def get_url_task_queue_record_start_list(self):
-        """
-            Retrieve a list of URL sites to retrieve
-        :return:
-        """
-        # Get the one inserted most recently,
-        # which is not processing
-        # and is not included in the index already
-
-        # .filter(URLQueueEntity.crawler_skip == false()) \
-
-        # TODO: Prebuild queries ?
-
-        # .filter(sqlalchemy.not_(URLEntity.url.contains('thomasnet.com'))) \
-        # filter out any sites which are over-proportionally visited
-        # .filter(sqlalchemy.and_(*self.popular_websites_filter_query))
-
-        # TODO: Implement priority logic into this function.
-        # Doesnt make much sense to retrieve and set a sentinel for this, I think
-        query_list = self.session.query(URLEntity, URLQueueEntity) \
-            .filter(URLQueueEntity.crawler_processing_sentinel == false()) \
-            .filter(URLQueueEntity.retries < self.max_retries) \
-            .filter(URLEntity.id == URLQueueEntity.url_id) \
-            .filter(sqlalchemy.not_(URLEntity.url.contains('tel://'))) \
-            .filter(sqlalchemy.not_(URLEntity.url.contains('javascript'))) \
-            .filter(sqlalchemy.not_(URLEntity.url.contains('doi.org'))) \
-            .filter(sqlalchemy.not_(URLEntity.url.contains('wikimedia.org'))) \
-            .filter(sqlalchemy.not_(URLEntity.url.contains('news'))) \
-            .filter(sqlalchemy.not_(URLEntity.url.contains('microsoft'))) \
-            .filter(sqlalchemy.not_(URLEntity.url.contains('wiki'))) \
-            .filter(sqlalchemy.not_(URLEntity.url.contains('ftp:'))) \
-            .filter(sqlalchemy.not_(URLEntity.url.contains('help'))) \
-            .filter(sqlalchemy.not_(URLEntity.url.contains('media'))) \
-            .filter(sqlalchemy.not_(URLEntity.url.contains('.hp.com'))) \
-            .filter(sqlalchemy.not_(URLEntity.url.contains('google'))) \
-            .filter(sqlalchemy.not_(URLEntity.url.contains('archive'))) \
-            .filter(sqlalchemy.not_(URLEntity.url.contains('.se.com'))) \
-            .filter(sqlalchemy.not_(URLEntity.url.contains('go4worldbusiness.com'))) \
-            .join(URLEntity).order_by(
-                URLQueueEntity.occurrences.desc(),
-                # URLQueueEntity.created_at.asc()
-                # func.random()
-        ).limit(512).all()
-
-        # TODO: make this a global variable on how many item to return to the queue?
-
-        jobs = []
-        for x in query_list:
-            url_obj, url_queue_obj = x
-
-            # Pick a random item from a list of 500 candidates
-            jobs.append(url_obj)
-
-            # Pick a pseudo-randomized order from the top 100 items
-            url_queue_obj.crawler_processing_sentinel = True
-
-        return jobs
-
 
 if __name__ == "__main__":
     print("Handle all I/O")

@@ -33,23 +33,13 @@ class CrawlFrontier:
         # Later on implement when a website is considered outdated
         self.outdate_timedelta = None
 
-    def pop_start_list(self):
-        objs = self.resource_database.get_url_task_queue_record_start_list()
-        self.resource_database.commit()
-        return objs
-
-    def pop_verify(self, url):
-        self.resource_database.get_url_task_queue_record_completed(url=url)
-        self.resource_database.commit()
-
-    def pop_failed(self, url):
-        self.resource_database.get_url_task_queue_record_failed(url=url)
-        self.resource_database.commit()
-
-    def add(self, target_url, referrer_url):
+    async def add(self, target_url, referrer_url):
         """
             Adds an item to be scraped to the persistent queue
         """
+
+        # TODO: Normalize URL here
+        # TODO: Save resolved DNS somewhere
 
         # Very hacky now, which is fine
         if target_url is None:
@@ -97,16 +87,13 @@ class CrawlFrontier:
             skip = True
 
         # Create URL entity
-        url_obj = self.resource_database.create_url_entity(url=target_url)
+        url_obj = await self.resource_database.create_url_entity(url=target_url)
 
         # Add to queue
-        url_queue_obj = self.resource_database.create_url_queue_entity(url_entity_obj=url_obj, skip=skip)
+        url_queue_obj = await self.resource_database.create_url_queue_entity(url_entity_obj=url_obj, skip=skip)
 
         # Add to graph
-        url_referral_obj = self.resource_database.create_referral_entity(url_entity=url_obj, referrer_url=referrer_url)
-
-        # Commit database
-        self.resource_database.commit()
+        url_referral_obj = await self.resource_database.create_referral_entity(url_entity=url_obj, referrer_url=referrer_url)
 
     # TODO: When getting, always prioritize the thomasnet pages before spanning out!
 

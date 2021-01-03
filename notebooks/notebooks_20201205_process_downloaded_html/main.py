@@ -13,6 +13,9 @@ from screaper_resources.resources.db import Database
 from screaper_entity_extraction.scraper.scraper import Scraper
 
 scraper = Scraper()
+
+raise NotImplementedError, "Need to implement another, non-asynchronous process for this"
+
 resource_database = Database()
 
 def load_df():
