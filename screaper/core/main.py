@@ -123,7 +123,7 @@ class Main:
                 self.crawl_frontier.pop_failed(async_crawl_task.queue_obj.url)
             else:
                 print("Adding to database")
-                self.resource_database.add_to_index(async_crawl_task.queue_obj.url, markup)
+                self.resource_database.add_markup_to_index(async_crawl_task.queue_obj.url, markup)
 
             for target_url in target_urls:
                 self.crawl_frontier.add(target_url=target_url, referrer_url=async_crawl_task.queue_obj.url)
@@ -140,7 +140,7 @@ class Main:
 
         crawl_task_queue = asyncio.Queue(maxsize=513)
 
-        number_consumers = 10
+        number_wconsumers = 10
 
         # 1395
 

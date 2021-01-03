@@ -3,14 +3,11 @@
     - The scraped files
     - The task queue
 """
-import uuid
 
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Text, Boolean, PrimaryKeyConstraint, ForeignKey, Index, Enum
+from sqlalchemy import Text, Boolean, ForeignKey, Index, Enum
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, DateTime
-
-from sqlalchemy_utils import URLType
 
 Base = declarative_base()
 
@@ -23,7 +20,7 @@ class URLEntity(Base):
 
     id = Column(Integer(), primary_key=True, autoincrement=True, nullable=False)
 
-    url = Column(URLType, unique=True, index=True)  # Make this an index
+    url = Column(String(), unique=True, index=True)  # Make this an index
     engine_version = Column(String(), nullable=False)  # Indicates the version under which the link was scraped for
 
     created_at = Column(DateTime(), default=datetime.utcnow(),

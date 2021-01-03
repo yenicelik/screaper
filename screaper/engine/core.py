@@ -9,14 +9,7 @@ import random
 import time
 from multiprocessing import Process
 
-import grequests
-import requests
-from requests import ConnectTimeout
-from requests.exceptions import ProxyError
-
 from screaper.crawl_frontier.crawl_frontier import CrawlFrontier
-from screaper.downloader.downloader import Downloader
-from screaper.engine.markup_processor import markup_processor
 from screaper_resources.resources.db import Database
 
 
