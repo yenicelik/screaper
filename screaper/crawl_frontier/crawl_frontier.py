@@ -69,6 +69,7 @@ class CrawlFrontier:
 
         # TODO: Make sure that if https is crawled, then don't recrawl the http (and vica versa)
 
+        print("Checking if markup exists: ", target_url)
         # Other ways to check if link is valid?
         # TODO: Implement contents to also be exported
         if self.resource_database.get_markup_exists(url=target_url):

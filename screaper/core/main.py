@@ -64,7 +64,7 @@ class Main:
 
             crawled_sites = await self.resource_database.get_number_of_crawled_sites()
             queued_sites = await self.resource_database.get_number_of_queued_urls()
-            sites_per_hour = await self.calculate_sites_per_hour(crawled_sites)
+            sites_per_hour = self.calculate_sites_per_hour(crawled_sites)
             print("Sites per hour: {} -- Crawled sites: {} -- Queue sites in DB: {} -- Sites in local queue: {}".format(sites_per_hour, crawled_sites, queued_sites, crawl_task_queue.qsize()))
             if crawl_task_queue.qsize() > (crawl_task_queue.maxsize // 2):
                 await asyncio.sleep(5)
@@ -79,14 +79,19 @@ class Main:
 
                 # If the markup does not exist yet, spawn a crawl async task
                 markup_exists = await self.resource_database.get_markup_exists(queue_obj.url)  # TODO make async
+
                 if markup_exists:
                     print("Markup exists", queue_obj.url)
                     await self.resource_database.get_url_task_queue_record_completed(url=queue_obj.url)
                     await self.resource_database.commit()
+                    continue
+
                 if not queue_obj.url:
                     print("URL is None", queue_obj.url)
                     await self.resource_database.get_url_task_queue_record_completed(url=queue_obj.url)
                     await self.resource_database.commit()
+                    continue
+
                 crawl_async_task = CrawlAsyncTask(self.proxy_list, queue_obj)
                 await crawl_task_queue.put(crawl_async_task)
 

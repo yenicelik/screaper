@@ -216,7 +216,7 @@ class Database:
         self.queries = Queries()
 
         db_url = os.getenv('DatabaseUrl')
-        self.engine = create_async_engine(db_url, encoding='utf8', echo=True)
+        self.engine = create_async_engine(db_url, encoding='utf8', echo=False)
 
         print("Engine is: ", self.engine)
 
