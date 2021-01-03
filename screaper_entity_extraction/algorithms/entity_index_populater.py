@@ -94,7 +94,7 @@ class EntityIndexPopulator:
 
             # Populate the table
             self.db.add_named_entity_candidate(entity_tuples)
-            self.db.commit()
+            self.db.async_commit()
 
         return entity_tuples
 
@@ -185,7 +185,7 @@ class EntityIndexPopulator:
 
             # Populate the table
             self.db.add_named_entity_candidate(entity_tuples)
-            self.db.commit()
+            self.db.async_commit()
 
 
     def generate_index_by_link_contents(self):
@@ -244,7 +244,7 @@ class EntityIndexPopulator:
 
             # Populate the table
             self.db.add_named_entity_candidate(entity_tuples)
-            self.db.commit()
+            self.db.async_commit()
 
 if __name__ == "__main__":
     print("Starting to tag the NER items")

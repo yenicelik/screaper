@@ -43,7 +43,7 @@ class Engine:
                 self.resource_database.create_url_entity(url="")
                 self.crawl_frontier.add(target_url=x, referrer_url="")
 
-            self.resource_database.commit()
+            self.resource_database.async_commit()
 
 
 class ThreadedEngine:
@@ -65,7 +65,7 @@ class ThreadedEngine:
             self.engine.run(max_sites=max_sites)
         finally:
             # TODO: Disconnect from database
-            self.resource_database.session.close()
+            self.resource_database.async_session.close()
 
 
 class Runner:

@@ -3,12 +3,16 @@ import os
 import sqlalchemy
 
 from dotenv import load_dotenv
-from sqlalchemy import false
+from sqlalchemy import false, create_engine
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
 
-from screaper_resources.resources.entities import URLQueueEntity, URLEntity, URLReferralsEntity, RawMarkup, NamedEntities
+import screaper
+from screaper_resources.resources.entities import URLQueueEntity, URLEntity, URLReferralsEntity, RawMarkup, \
+    NamedEntities
 
 load_dotenv()
+
 
 class Queries:
     """
@@ -43,7 +47,7 @@ class Queries:
     @staticmethod
     def add_markup_to_index(session, url, markup):
         # For now, analyse any kind of markup
-        session.create_markup_record(url=url, markup=markup)
+        Queries.create_markup_record(session=session, url=url, markup=markup)
 
     @staticmethod
     def create_markup_record(session, url, markup, engine_version="0.0.1"):
@@ -181,9 +185,9 @@ class Queries:
             .filter(sqlalchemy.not_(URLEntity.url.contains('.se.com'))) \
             .filter(sqlalchemy.not_(URLEntity.url.contains('go4worldbusiness.com'))) \
             .join(URLEntity).order_by(
-                URLQueueEntity.occurrences.desc(),
-                # URLQueueEntity.created_at.asc()
-                # func.random()
+            URLQueueEntity.occurrences.desc(),
+            # URLQueueEntity.created_at.asc()
+            # func.random()
         ).limit(512).all()
 
         # TODO: make this a global variable on how many item to return to the queue?
@@ -212,73 +216,82 @@ class Database:
     """
 
     def __init__(self):
-
         self.queries = Queries()
 
+        db_asyn_url = os.getenv('AsyncDatabaseUrl')
         db_url = os.getenv('DatabaseUrl')
-        self.engine = create_async_engine(db_url, encoding='utf8', echo=False)
 
-        print("Engine is: ", self.engine)
+        self.sync_engine = create_engine(db_url, encoding='utf8')
+        Session = sessionmaker()
+        Session.configure(bind=self.sync_engine)
+        self.sync_session = Session()
 
-        # self.engine = screaper.resources.entities.engine
-        # Session = sessionmaker()
-        # Session.configure(bind=self.engine)
-        self.session = AsyncSession(bind=self.engine)
-        self.session.begin()
+        self.async_engine = create_async_engine(db_asyn_url, encoding='utf8', echo=False)
+        print("Engine is: ", self.async_engine)
+        self.async_session = AsyncSession(bind=self.async_engine)
+        self.async_session.begin()
 
-        print("Created session: ", self.session)
+        print("Created session: ", self.async_session)
 
         self.max_retries = 4
         self.engine_version = "0.0.1"
 
-    async def commit(self):
-        await self.session.commit()
+    # TODO: Somehow there is a bug when both commit messages are active
+    def sync_commit(self):
+        self.sync_session.commit()
 
-    async def add_markup_to_index(self, url, markup):
-        await self.session.run_sync(self.queries.add_markup_to_index, url, markup)
+    def commit(self):
+        self.async_session.commit()
 
     async def create_url_entity(self, url):
-        return await self.session.run_sync(self.queries.create_url_entity, url)
+        out = await self.async_session.run_sync(self.queries.create_url_entity, url)
+        return out
 
     async def create_url_queue_entity(self, url_entity_obj, skip):
-        return await self.session.run_sync(self.queries.create_url_queue_entity, url_entity_obj, skip)
+        out = await self.async_session.run_sync(self.queries.create_url_queue_entity, url_entity_obj, skip)
+        await self.async_session.commit()
+        return out
 
     async def create_referral_entity(self, url_entity, referrer_url):
-        return await self.session.run_sync(self.queries.create_referral_entity, url_entity, referrer_url)
+        out = await self.async_session.run_sync(self.queries.create_referral_entity, url_entity, referrer_url)
+        await self.async_session.commit()
+        return out
 
     async def get_url_task_queue_record_completed(self, url):
         """
             implements part of the pop operation for queue,
             indicating that a crawler has processed the request successfully
         """
-        return await self.session.run_sync(self.queries.get_url_task_queue_record_completed, url)
+        out = await self.async_session.run_sync(self.queries.get_url_task_queue_record_completed, url)
+        await self.async_session.commit()
+        return out
 
     async def get_url_task_queue_record_failed(self, url):
         """
             implements the pop operation for queue
             indicating that a crawler has processed the request successfully
         """
-        return await self.session.run_sync(self.queries.get_url_task_queue_record_failed, url)
-
-    async def create_markup_record(self, url, markup):
-        await self.session.run_sync(self.queries.create_markup_record, url, markup)
+        out = await self.async_session.run_sync(self.queries.get_url_task_queue_record_failed, url)
+        await self.async_session.commit()
+        return out
 
     async def get_url_exists(self, url):
-        return self.session.run_sync(self.queries.get_url_exists, url)
+        out = await self.async_session.run_sync(self.queries.get_url_exists, url)
+        await self.async_session.commit()
+        return out
 
     async def get_markup_exists(self, url):
-        url_entity = await self.session.run_sync(self.queries.get_markup_exists, url)
+        url_entity = await self.async_session.run_sync(self.queries.get_markup_exists, url)
         print("url_entity is: ", url_entity)
         return url_entity
 
     async def get_number_of_queued_urls(self):
-        result = await self.session.run_sync(self.queries.get_number_of_queued_urls)
+        result = await self.async_session.run_sync(self.queries.get_number_of_queued_urls)
         print("result is: ", result)
         return result
 
     async def get_number_of_crawled_sites(self):
-        result = await self.session.run_sync(self.queries.get_raw_markup_count)
-        # self.session.query(RawMarkup).count()
+        result = await self.async_session.run_sync(self.queries.get_raw_markup_count)
         print("result is: ", result)
         return result
 
@@ -287,7 +300,20 @@ class Database:
             Retrieve a list of URL sites to retrieve
         :return:
         """
-        return await self.session.run_sync(self.queries.get_url_task_queue_record_start_list)
+        out = await self.async_session.run_sync(self.queries.get_url_task_queue_record_start_list)
+        await self.async_session.commit()
+        return out
+
+    #######
+    # Heavy load calls. These are handled over async
+    #######
+    async def add_markup_to_index(self, url, markup):
+        await self.async_session.run_sync(self.queries.add_markup_to_index, url, markup)
+        await self.async_session.commit()
+
+    async def create_markup_record(self, url, markup):
+        await self.async_session.run_sync(self.queries.create_markup_record, url, markup)
+        await self.async_session.commit()
 
     # # TODO: Gotta re-implement these
     # def get_all_indexed_markups(self, dev=False):
@@ -308,12 +334,14 @@ class Database:
     #         named_entity_obj = NamedEntities(**obj)
     #         self.session.add(named_entity_obj)
 
+
 if __name__ == "__main__":
     print("Handle all I/O")
 
     print("Checking some very basic operations with async I/O")
 
     db = Database()
+
 
     # Possibly move this to a test file
 
@@ -322,6 +350,7 @@ if __name__ == "__main__":
         # await db.get_number_of_queued_urls()
         url = "https://www.thomasnet.com/catalogs/mechanical-components-and-assemblies/bearings/"
         await db.get_markup_exists(url)
+
 
     asyncio.run(run_all())
 

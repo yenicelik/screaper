@@ -48,7 +48,7 @@ def normalize_url_entities(df_url_task_queue, df_markup):
         resource_database.session.add(obj)
 
     print("Committing...")
-    resource_database.commit()
+    resource_database.async_commit()
     print("Done adding the URL Entities")
 
 def normalize_markup(df_markup):
@@ -89,7 +89,7 @@ def normalize_markup(df_markup):
         resource_database.session.add(obj)
 
     print("Committing...")
-    resource_database.commit()
+    resource_database.async_commit()
     print("Done adding entries")
 
 def normalize_referrals(import_url_task_queue):
@@ -120,7 +120,7 @@ def normalize_referrals(import_url_task_queue):
         )
         resource_database.session.add(obj)
     print("Committing...")
-    resource_database.commit()
+    resource_database.async_commit()
     print("Done adding entries!")
 
 def normalize_queue(import_url_task_queue):
@@ -162,7 +162,7 @@ def normalize_queue(import_url_task_queue):
             url_queue_entity.occurrences += row['occurrences']
 
     print("Committing...")
-    resource_database.commit()
+    resource_database.async_commit()
     print("Done adding entries!")
 
 if __name__ == "__main__":

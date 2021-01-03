@@ -83,13 +83,11 @@ class Main:
                 if markup_exists:
                     print("Markup exists", queue_obj.url)
                     await self.resource_database.get_url_task_queue_record_completed(url=queue_obj.url)
-                    await self.resource_database.commit()
                     continue
 
                 if not queue_obj.url:
                     print("URL is None", queue_obj.url)
                     await self.resource_database.get_url_task_queue_record_completed(url=queue_obj.url)
-                    await self.resource_database.commit()
                     continue
 
                 crawl_async_task = CrawlAsyncTask(self.proxy_list, queue_obj)
@@ -135,7 +133,6 @@ class Main:
 
             # Finally, verify successful execution of task
             await self.resource_database.get_url_task_queue_record_completed(url=async_crawl_task.queue_obj.url)
-            await self.resource_database.commit()
 
             # Verify that the queued task is now done
             crawl_task_queue.task_done()
@@ -145,7 +142,7 @@ class Main:
     async def run_main_loop(self):
 
         crawl_task_queue = asyncio.Queue(maxsize=513)
-        number_consumers = 10
+        number_consumers = 50
 
         # Create N (multiple) consumers
         tasks = [self.consumer(max_sites=50, crawl_task_queue=crawl_task_queue) for _ in range(number_consumers)]

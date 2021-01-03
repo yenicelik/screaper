@@ -74,6 +74,7 @@ class CrawlFrontier:
         # TODO: Implement contents to also be exported
         if self.resource_database.get_markup_exists(url=target_url):
             # If the url's markup was already crawled, do not ping this again
+            print("Already crawled!")
             return
 
         # Add more cases why one would skip here
