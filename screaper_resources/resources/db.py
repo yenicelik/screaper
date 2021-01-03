@@ -55,7 +55,7 @@ class Database:
             markup=markup
         )
         self.commit()
-        print("Inserting single markup into DB takes {:.3f} seconds".format(time.time() - start_time))
+        # print("Inserting single markup into DB takes {:.3f} seconds".format(time.time() - start_time))
 
     def create_url_entity(
             self,
@@ -175,7 +175,7 @@ class Database:
                 URLQueueEntity.occurrences.desc(),
                 # URLQueueEntity.created_at.asc()
                 # func.random()
-        ).limit(512).all()
+        ).limit(4096).all()
 
         # TODO: make this a global variable on how many item to return to the queue?
 

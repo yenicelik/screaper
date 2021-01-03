@@ -29,10 +29,8 @@ class CrawlAsyncTask:
         proxy = random.choice(self.proxy_list.proxies)
         # proxy = None
 
-        print("Proxy is now: ", proxy)
-
+        # print("Proxy is now: ", proxy)
         # Make the asyncronous request
-
         # Fetch the request
 
         # Add the markup to the database
@@ -54,22 +52,25 @@ class CrawlAsyncTask:
             target_urls = markup_processor.get_links(self.queue_obj.url, markup)
 
         except ProxyError as e:
-            print("Connection Timeout Exception 1!", e)
+            # TODO: Log
+            # print("Connection Timeout Exception 1!", e)
             self.proxy_list.warn_proxy(proxy)
             return None, e, []
 
         except ConnectTimeout as e:
-            print("Connection Timeout Exception 2!", e)
+            # TODO: Log
+            # print("Connection Timeout Exception 2!", e)
             self.proxy_list.warn_proxy(proxy)
             return None, e, []
 
         except ClientHttpProxyError as e:
-            print("Connection Timeout Exception 3!", e)
+            # TODO: Log
+            # print("Connection Timeout Exception 3!", e)
             self.proxy_list.warn_proxy(proxy, harsh=True)
             return None, e, []
 
         except Exception as e:
-            print("Encountered exception: ", e)
+            # print("Encountered exception: ", e)
             return None, e, []
 
         return status_code, markup, target_urls

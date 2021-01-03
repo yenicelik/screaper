@@ -81,6 +81,7 @@ class Main:
                 markup_exists = self.resource_database.get_markup_exists(queue_obj.url)  # TODO make async
                 if markup_exists:
                     print("Markup exists", queue_obj.url)
+                    # TODO: Make one batched request
                     self.resource_database.get_url_task_queue_record_completed(url=queue_obj.url)
                     self.resource_database.commit()
                 if not queue_obj.url:
@@ -111,18 +112,19 @@ class Main:
 
             # If an error is returned, just skip it:
             if status_code is None:
-                print("Some error happened!")
+                # print("Some error happened!")
                 self.crawl_frontier.pop_failed(async_crawl_task.queue_obj.url)
                 continue
             else:
-                print("Made request to web server and got response", status_code, len(markup), len(target_urls))
+                # print("Made request to web server and got response", status_code, len(markup), len(target_urls))
+                pass
 
             # Push them into the database
             if not (status_code == requests.codes.ok):
-                print("Not an ok status code!")
+                # print("Not an ok status code!")
                 self.crawl_frontier.pop_failed(async_crawl_task.queue_obj.url)
             else:
-                print("Adding to database")
+                # print("Adding to database")
                 self.resource_database.add_to_index(async_crawl_task.queue_obj.url, markup)
 
             for target_url in target_urls:
@@ -138,14 +140,14 @@ class Main:
 
     async def run_main_loop(self):
 
-        crawl_task_queue = asyncio.Queue(maxsize=513)
+        crawl_task_queue = asyncio.Queue(maxsize=4096)
 
-        number_consumers = 50
+        number_consumers = 100
 
         # 1395
 
         # Create N (multiple) consumers
-        tasks = [self.consumer(max_sites=50, crawl_task_queue=crawl_task_queue) for _ in range(number_consumers)]
+        tasks = [self.consumer(max_sites=100, crawl_task_queue=crawl_task_queue) for _ in range(number_consumers)]
         # Create 1 (one) producer
         tasks.append(self.producer(crawl_task_queue=crawl_task_queue))
 
