@@ -23,4 +23,4 @@ aiodns==2.0.0
 cchardet==2.1.7
 # gino==1.0.1
 databases[postgresql]==0.4.1
-asyncpg==0.21.0
+# asyncpg==0.21.0

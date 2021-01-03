@@ -4,12 +4,10 @@ import sqlalchemy
 
 from dotenv import load_dotenv
 from sqlalchemy import false, create_engine
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+# from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
-import screaper
-from screaper_resources.resources.entities import URLQueueEntity, URLEntity, URLReferralsEntity, RawMarkup, \
-    NamedEntities
+from screaper_resources.resources.entities import URLQueueEntity, URLEntity, URLReferralsEntity, RawMarkup, NamedEntities
 
 load_dotenv()
 
@@ -202,6 +200,9 @@ class Queries:
             # Pick a pseudo-randomized order from the top 100 items
             url_queue_obj.crawler_processing_sentinel = True
 
+        if query_list:
+            session.commit()
+
         return jobs
 
 
@@ -218,102 +219,109 @@ class Database:
     def __init__(self):
         self.queries = Queries()
 
-        db_asyn_url = os.getenv('AsyncDatabaseUrl')
         db_url = os.getenv('DatabaseUrl')
-
         self.sync_engine = create_engine(db_url, encoding='utf8')
         Session = sessionmaker()
         Session.configure(bind=self.sync_engine)
         self.sync_session = Session()
 
-        self.async_engine = create_async_engine(db_asyn_url, encoding='utf8', echo=False)
-        print("Engine is: ", self.async_engine)
-        self.async_session = AsyncSession(bind=self.async_engine)
-        self.async_session.begin()
-
-        print("Created session: ", self.async_session)
+        # db_asyn_url = os.getenv('AsyncDatabaseUrl')
+        # self.async_engine = create_async_engine(db_asyn_url, encoding='utf8', echo=False)
+        # print("Engine is: ", self.async_engine)
+        # self.async_session = AsyncSession(self.async_engine)
+        # self.async_session.begin()
+        # print("Created session: ", self.async_session)
 
         self.max_retries = 4
         self.engine_version = "0.0.1"
 
     # TODO: Somehow there is a bug when both commit messages are active
     def sync_commit(self):
+        print("Sync items are: ")
+        print(self.sync_engine)
+        print(self.sync_session)
+
         self.sync_session.commit()
 
-    def commit(self):
-        self.async_session.commit()
-
-    async def create_url_entity(self, url):
-        out = await self.async_session.run_sync(self.queries.create_url_entity, url)
+    def create_url_entity(self, url):
+        out = self.queries.create_url_entity(self.sync_session, url)
+        self.sync_commit()
         return out
 
-    async def create_url_queue_entity(self, url_entity_obj, skip):
-        out = await self.async_session.run_sync(self.queries.create_url_queue_entity, url_entity_obj, skip)
-        await self.async_session.commit()
+    def create_url_queue_entity(self, url_entity_obj, skip):
+        out = self.queries.create_url_queue_entity(self.sync_session, url_entity_obj, skip)
+        self.sync_commit()
         return out
 
-    async def create_referral_entity(self, url_entity, referrer_url):
-        out = await self.async_session.run_sync(self.queries.create_referral_entity, url_entity, referrer_url)
-        await self.async_session.commit()
+    def create_referral_entity(self, url_entity, referrer_url):
+        out = self.queries.create_referral_entity(self.sync_session, url_entity, referrer_url)
+        self.sync_commit()
         return out
 
-    async def get_url_task_queue_record_completed(self, url):
+    def get_url_task_queue_record_completed(self, url):
         """
             implements part of the pop operation for queue,
             indicating that a crawler has processed the request successfully
         """
-        out = await self.async_session.run_sync(self.queries.get_url_task_queue_record_completed, url)
-        await self.async_session.commit()
+        out = self.queries.get_url_task_queue_record_completed(self.sync_session, url)
+        self.sync_commit()
         return out
 
-    async def get_url_task_queue_record_failed(self, url):
+    def get_url_task_queue_record_failed(self, url):
         """
             implements the pop operation for queue
             indicating that a crawler has processed the request successfully
         """
-        out = await self.async_session.run_sync(self.queries.get_url_task_queue_record_failed, url)
-        await self.async_session.commit()
+        out = self.queries.get_url_task_queue_record_failed(self.sync_session, url)
+        self.sync_commit()
         return out
 
-    async def get_url_exists(self, url):
-        out = await self.async_session.run_sync(self.queries.get_url_exists, url)
-        await self.async_session.commit()
+    def get_url_exists(self, url):
+        out = self.queries.get_url_exists(self.sync_session, url)
+        self.sync_commit()
         return out
 
-    async def get_markup_exists(self, url):
-        url_entity = await self.async_session.run_sync(self.queries.get_markup_exists, url)
+    def get_markup_exists(self, url):
+        url_entity = self.queries.get_markup_exists(self.sync_session, url)
         print("url_entity is: ", url_entity)
         return url_entity
 
-    async def get_number_of_queued_urls(self):
-        result = await self.async_session.run_sync(self.queries.get_number_of_queued_urls)
+    def get_number_of_queued_urls(self):
+        result = self.queries.get_number_of_queued_urls(self.sync_session)
         print("result is: ", result)
         return result
 
-    async def get_number_of_crawled_sites(self):
-        result = await self.async_session.run_sync(self.queries.get_raw_markup_count)
+    def get_number_of_crawled_sites(self):
+        result = self.queries.get_raw_markup_count(self.sync_session)
         print("result is: ", result)
         return result
 
-    async def get_url_task_queue_record_start_list(self):
+    def get_url_task_queue_record_start_list(self):
         """
             Retrieve a list of URL sites to retrieve
         :return:
         """
-        out = await self.async_session.run_sync(self.queries.get_url_task_queue_record_start_list)
-        await self.async_session.commit()
+        out = self.queries.get_url_task_queue_record_start_list(self.sync_session)
+        # self.sync_commit()
         return out
 
     #######
     # Heavy load calls. These are handled over async
     #######
-    async def add_markup_to_index(self, url, markup):
-        await self.async_session.run_sync(self.queries.add_markup_to_index, url, markup)
-        await self.async_session.commit()
+    # async def async_commit(self):
+    #     await self.async_session.commit()
 
-    async def create_markup_record(self, url, markup):
-        await self.async_session.run_sync(self.queries.create_markup_record, url, markup)
-        await self.async_session.commit()
+    # async def add_markup_to_index(self, url, markup):
+    #     async with AsyncSession(self.async_engine) as session:
+    #         async with session.begin():
+    #             await self.async_session.run_sync(self.queries.add_markup_to_index, url, markup)
+    #             await session.commit()
+    #
+    # async def create_markup_record(self, url, markup):
+    #     async with AsyncSession(self.async_engine) as session:
+    #         async with session.begin():
+    #             await self.async_session.run_sync(self.queries.create_markup_record, url, markup)
+    #             await session.commit()
 
     # # TODO: Gotta re-implement these
     # def get_all_indexed_markups(self, dev=False):

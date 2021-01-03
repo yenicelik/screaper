@@ -33,7 +33,7 @@ class CrawlFrontier:
         # Later on implement when a website is considered outdated
         self.outdate_timedelta = None
 
-    async def add(self, target_url, referrer_url):
+    def add(self, target_url, referrer_url):
         """
             Adds an item to be scraped to the persistent queue
         """
@@ -57,7 +57,7 @@ class CrawlFrontier:
             # if link starts with slash, then this is a relative link. We append the domain to the url
             basic_url = get_base_url(referrer_url)  # Returns just the main url
             target_url = basic_url + target_url
-        # if "http" not in target_url:
+        # if "http" not in targetre_url:
         #     return
 
         # remove all anchors if existent
@@ -89,13 +89,13 @@ class CrawlFrontier:
             skip = True
 
         # Create URL entity
-        url_obj = await self.resource_database.create_url_entity(url=target_url)
+        url_obj = self.resource_database.create_url_entity(url=target_url)
 
         # Add to queue
-        url_queue_obj = await self.resource_database.create_url_queue_entity(url_entity_obj=url_obj, skip=skip)
+        url_queue_obj = self.resource_database.create_url_queue_entity(url_entity_obj=url_obj, skip=skip)
 
         # Add to graph
-        url_referral_obj = await self.resource_database.create_referral_entity(url_entity=url_obj, referrer_url=referrer_url)
+        url_referral_obj = self.resource_database.create_referral_entity(url_entity=url_obj, referrer_url=referrer_url)
 
     # TODO: When getting, always prioritize the thomasnet pages before spanning out!
 

@@ -62,8 +62,8 @@ class Main:
 
         while True:
 
-            crawled_sites = await self.resource_database.get_number_of_crawled_sites()
-            queued_sites = await self.resource_database.get_number_of_queued_urls()
+            crawled_sites = self.resource_database.get_number_of_crawled_sites()
+            queued_sites = self.resource_database.get_number_of_queued_urls()
             sites_per_hour = self.calculate_sites_per_hour(crawled_sites)
             print("Sites per hour: {} -- Crawled sites: {} -- Queue sites in DB: {} -- Sites in local queue: {}".format(sites_per_hour, crawled_sites, queued_sites, crawl_task_queue.qsize()))
             if crawl_task_queue.qsize() > (crawl_task_queue.maxsize // 2):
@@ -72,22 +72,22 @@ class Main:
 
             print("Populating queue")
             # Populate crawl tasks queue
-            queue_objs_to_crawl = await self.resource_database.get_url_task_queue_record_start_list()
+            queue_objs_to_crawl = self.resource_database.get_url_task_queue_record_start_list()
 
             for queue_obj in queue_objs_to_crawl:
                 # Spawn a AsyncCrawlTask object
 
                 # If the markup does not exist yet, spawn a crawl async task
-                markup_exists = await self.resource_database.get_markup_exists(queue_obj.url)  # TODO make async
+                markup_exists = self.resource_database.get_markup_exists(queue_obj.url)  # TODO make async
 
                 if markup_exists:
                     print("Markup exists", queue_obj.url)
-                    await self.resource_database.get_url_task_queue_record_completed(url=queue_obj.url)
+                    self.resource_database.get_url_task_queue_record_completed(url=queue_obj.url)
                     continue
 
                 if not queue_obj.url:
                     print("URL is None", queue_obj.url)
-                    await self.resource_database.get_url_task_queue_record_completed(url=queue_obj.url)
+                    self.resource_database.get_url_task_queue_record_completed(url=queue_obj.url)
                     continue
 
                 crawl_async_task = CrawlAsyncTask(self.proxy_list, queue_obj)
@@ -115,7 +115,7 @@ class Main:
             # If an error is returned, just skip it:
             if status_code is None:
                 print("Some error happened!")
-                await self.resource_database.get_url_task_queue_record_failed(url=async_crawl_task.queue_obj.url)
+                self.resource_database.get_url_task_queue_record_failed(url=async_crawl_task.queue_obj.url)
                 continue
             else:
                 print("Made request to web server and got response", status_code, len(markup), len(target_urls))
@@ -123,16 +123,16 @@ class Main:
             # Push them into the database
             if not (status_code == requests.codes.ok):
                 print("Not an ok status code!")
-                await self.resource_database.get_url_task_queue_record_failed(url=async_crawl_task.queue_obj.url)
+                self.resource_database.get_url_task_queue_record_failed(url=async_crawl_task.queue_obj.url)
             else:
                 print("Adding to database")
                 await self.resource_database.add_markup_to_index(async_crawl_task.queue_obj.url, markup)
 
             for target_url in target_urls:
-                await self.crawl_frontier.add(target_url=target_url, referrer_url=async_crawl_task.queue_obj.url)
+                self.crawl_frontier.add(target_url=target_url, referrer_url=async_crawl_task.queue_obj.url)
 
             # Finally, verify successful execution of task
-            await self.resource_database.get_url_task_queue_record_completed(url=async_crawl_task.queue_obj.url)
+            self.resource_database.get_url_task_queue_record_completed(url=async_crawl_task.queue_obj.url)
 
             # Verify that the queued task is now done
             crawl_task_queue.task_done()
