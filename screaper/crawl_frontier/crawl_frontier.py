@@ -80,10 +80,11 @@ class CrawlFrontier:
         # TODO: Make sure that if https is crawled, then don't recrawl the http (and vica versa)
 
         # Other ways to check if link is valid?
-        # TODO: Implement contents to also be exported
-        if self.resource_database.get_markup_exists(url=target_url):
-            # If the url's markup was already crawled, do not ping this again
-            return
+        # Should already be checked elsewhere!
+        # # TODO: Implement contents to also be exported
+        # if self.resource_database.get_markup_exists(url=target_url):
+        #     # If the url's markup was already crawled, do not ping this again
+        #     return
 
         # Add more cases why one would skip here
         skip = False

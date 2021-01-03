@@ -45,7 +45,7 @@ class CrawlAsyncTask:
                 self.queue_obj.url,
                 headers=self.headers,
                 proxy=proxy,
-                timeout=20.
+                timeout=12.5
             )
             markup = await response.text()
             status_code = response.status
@@ -71,6 +71,7 @@ class CrawlAsyncTask:
 
         except Exception as e:
             # print("Encountered exception: ", e)
+            self.proxy_list.total_bad_tries += 1
             return None, e, []
 
         return status_code, markup, target_urls

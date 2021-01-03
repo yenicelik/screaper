@@ -1,5 +1,10 @@
 """
     Implements the proxy-list resources
+
+    Look into this list, maybe.
+
+    - https://www.webshare.io/rotating-proxy
+    # 30$ per month for rotating proxies seems pretty alright
 """
 import json
 from urllib.request import urlopen
@@ -41,9 +46,13 @@ class ProxyList:
 
         self._proxies_blacklist = set()
 
-        self.max_retries_per_proxy = 10
+        self.max_retries_per_proxy = 2
         self.total_tries = 0
         self.total_bad_tries = 0
+
+    @property
+    def proxy_list_success_rate(self):
+        return ( 1. - (self.total_bad_tries / (self.total_tries + 1) ) ) * 100.
         
     @property
     def proxies(self):

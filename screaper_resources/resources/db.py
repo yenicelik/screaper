@@ -8,7 +8,7 @@ import yaml
 import pandas as pd
 
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, false
+from sqlalchemy import create_engine, false, func
 from sqlalchemy.orm import sessionmaker
 
 from screaper_resources.resources.entities import URLQueueEntity, URLEntity, URLReferralsEntity, RawMarkup, \
@@ -54,7 +54,7 @@ class Database:
             url=url,
             markup=markup
         )
-        self.commit()
+        # self.commit()
         # print("Inserting single markup into DB takes {:.3f} seconds".format(time.time() - start_time))
 
     def create_url_entity(
@@ -138,6 +138,8 @@ class Database:
             Retrieve a list of URL sites to retrieve
         :return:
         """
+
+        start_time = time.time()
         # Get the one inserted most recently,
         # which is not processing
         # and is not included in the index already
@@ -146,9 +148,24 @@ class Database:
 
         # TODO: Prebuild queries ?
 
-        # .filter(sqlalchemy.not_(URLEntity.url.contains('thomasnet.com'))) \
         # filter out any sites which are over-proportionally visited
         # .filter(sqlalchemy.and_(*self.popular_websites_filter_query))
+
+        # .filter(sqlalchemy.not_(URLEntity.url.contains('tel://'))) \
+        # .filter(sqlalchemy.not_(URLEntity.url.contains('javascript'))) \
+        # .filter(sqlalchemy.not_(URLEntity.url.contains('doi.org'))) \
+        # .filter(sqlalchemy.not_(URLEntity.url.contains('wikimedia.org'))) \
+        # .filter(sqlalchemy.not_(URLEntity.url.contains('news'))) \
+        # .filter(sqlalchemy.not_(URLEntity.url.contains('microsoft'))) \
+        # .filter(sqlalchemy.not_(URLEntity.url.contains('wiki'))) \
+        # .filter(sqlalchemy.not_(URLEntity.url.contains('ftp:'))) \
+        # .filter(sqlalchemy.not_(URLEntity.url.contains('help'))) \
+        # .filter(sqlalchemy.not_(URLEntity.url.contains('media'))) \
+        # .filter(sqlalchemy.not_(URLEntity.url.contains('.hp.com'))) \
+        # .filter(sqlalchemy.not_(URLEntity.url.contains('google'))) \
+        # .filter(sqlalchemy.not_(URLEntity.url.contains('archive'))) \
+        # .filter(sqlalchemy.not_(URLEntity.url.contains('.se.com'))) \
+        # .filter(sqlalchemy.not_(URLEntity.url.contains('go4worldbusiness.com'))) \
 
         # TODO: Implement priority logic into this function.
         # Doesnt make much sense to retrieve and set a sentinel for this, I think
@@ -156,38 +173,40 @@ class Database:
             .filter(URLQueueEntity.crawler_processing_sentinel == false()) \
             .filter(URLQueueEntity.retries < self.max_retries) \
             .filter(URLEntity.id == URLQueueEntity.url_id) \
-            .filter(sqlalchemy.not_(URLEntity.url.contains('tel://'))) \
-            .filter(sqlalchemy.not_(URLEntity.url.contains('javascript'))) \
-            .filter(sqlalchemy.not_(URLEntity.url.contains('doi.org'))) \
-            .filter(sqlalchemy.not_(URLEntity.url.contains('wikimedia.org'))) \
-            .filter(sqlalchemy.not_(URLEntity.url.contains('news'))) \
-            .filter(sqlalchemy.not_(URLEntity.url.contains('microsoft'))) \
-            .filter(sqlalchemy.not_(URLEntity.url.contains('wiki'))) \
-            .filter(sqlalchemy.not_(URLEntity.url.contains('ftp:'))) \
-            .filter(sqlalchemy.not_(URLEntity.url.contains('help'))) \
-            .filter(sqlalchemy.not_(URLEntity.url.contains('media'))) \
-            .filter(sqlalchemy.not_(URLEntity.url.contains('.hp.com'))) \
-            .filter(sqlalchemy.not_(URLEntity.url.contains('google'))) \
-            .filter(sqlalchemy.not_(URLEntity.url.contains('archive'))) \
-            .filter(sqlalchemy.not_(URLEntity.url.contains('.se.com'))) \
-            .filter(sqlalchemy.not_(URLEntity.url.contains('go4worldbusiness.com'))) \
-            .join(URLEntity).order_by(
-                URLQueueEntity.occurrences.desc(),
+            .filter(
+                sqlalchemy.or_(
+                    URLEntity.url.contains('thomasnet.com'),
+                    URLEntity.url.contains('go4worldbusiness.com')
+                )
+            ) \
+            .join(URLEntity) \
+            .order_by(
+                # URLQueueEntity.occurrences.desc(),
                 # URLQueueEntity.created_at.asc()
-                # func.random()
-        ).limit(4096).all()
+                func.random()
+                # Gotta do random takeout as we use multiprocessing
+        ).limit(512).all()
 
+        print("Getting queue (SQL only) takes {:.3f} seconds".format(time.time() - start_time))
+
+        # .join(RawMarkup, isouter=True) \
         # TODO: make this a global variable on how many item to return to the queue?
 
         jobs = []
         for x in query_list:
             url_obj, url_queue_obj = x
 
+            # print("Items are: ", url_obj, url_queue_obj, raw_markup)
+            # if raw_markup is not None:
+            #     continue
+
             # Pick a random item from a list of 500 candidates
             jobs.append(url_obj)
 
             # Pick a pseudo-randomized order from the top 100 items
             url_queue_obj.crawler_processing_sentinel = True
+
+        print("Getting queue (full) takes {:.3f} seconds".format(time.time() - start_time))
 
         return jobs
 
@@ -253,11 +272,11 @@ class Database:
 
         return url_entity
 
-    def get_markup_exists(self, url):
+    def get_markup_exists(self, urls):
         url_entity = self.session.query(URLEntity) \
-            .filter(URLEntity.url == url) \
+            .filter(URLEntity.url.in_(urls)) \
             .join(RawMarkup) \
-            .one_or_none()
+            .fetchall()
 
         return url_entity
 

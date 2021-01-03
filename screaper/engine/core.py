@@ -6,74 +6,21 @@
 """
 import asyncio
 import random
+import string
 import time
 from multiprocessing import Process
 
-import grequests
-import requests
-from requests import ConnectTimeout
-from requests.exceptions import ProxyError
-
-from screaper.crawl_frontier.crawl_frontier import CrawlFrontier
-from screaper.downloader.downloader import Downloader
-from screaper.engine.markup_processor import markup_processor
-from screaper_resources.resources.db import Database
+from screaper.core.main import Main
 
 
-class Engine:
-
-    def __init__(self, resource_database, crawl_frontier, downloader):
-        # establish a database connection
-
-        seed_urls = [
-            # "https://www.thomasnet.com/browse/",  # entire database
-            # "https://www.thomasnet.com/browse/machinery-tools-supplies-1.html",  # category depth 1
-            # "https://www.thomasnet.com/browse/machinery-tools-supplies/bearings-1.html",  # category depth 2
-            "https://www.thomasnet.com/catalogs/mechanical-components-and-assemblies/bearings/",
-            "https://www.go4worldbusiness.com/suppliers/bearing.html?region=worldwide",
-            # "https://www.thomasnet.com/browse/machinery-tools-supplies/bearings/roller-1.html",  # category depth 3
-            # "https://www.thomasnet.com/products/roller-bearings-4221206-1.html",  # category listing (with multiple pages)
-            # "https://www.thomasnet.com/profile/01150392/bdi.html?cov=NA&what=Roller+Bearings&heading=4221206&cid=1150392&searchpos=1",  # example distributor website
-            # "https://www.bdiexpress.com/us/en/",  # example distributor website
-        ]
-
-        add_seed_urls = False or (self.resource_database.get_number_of_queued_urls() == 0)
-        print("Number of sites: ", self.resource_database.get_number_of_queued_urls(), add_seed_urls)
-
-        # Delete all in URL and other tables
-
-        if add_seed_urls:
-            print("Adding seed urls: ")
-
-            for x in seed_urls:
-                print("Adding: ", x)
-                self.resource_database.create_url_entity(url="")
-                self.crawl_frontier.add(target_url=x, referrer_url="")
-
-            self.resource_database.commit()
-
-
-class ThreadedEngine:
+class AsyncProcessWrapper:
 
     def __init__(self):
+        self.uuid = 'PROC:' + ''.join(random.choice(string.ascii_uppercase) for _ in range(4))
+        self.main = Main()
 
-        self.resource_database = Database()
-        self.crawl_frontier = CrawlFrontier(resource_database=self.resource_database)
-        self.downloader = Downloader(resource_database=self.resource_database)
-
-        self.engine = Engine(self.resource_database, self.crawl_frontier, self.downloader)
-
-    def run(self, max_sites=None):
-
-        # TODO: Pop a site from the proxy-list if the proxy is not healthy!
-        # Big try-catch around this?
-        # It won't help, really
-        try:
-            self.engine.run(max_sites=max_sites)
-        finally:
-            # TODO: Disconnect from database
-            self.resource_database.session.close()
-
+    def run_main_loop(self):
+        asyncio.run(self.main.run_main_loop())
 
 class Runner:
     """
@@ -81,9 +28,9 @@ class Runner:
     """
 
     def __init__(self):
-        self.max_time = 3600 # 3600
+        self.max_time = 60 # 3 * 3600 # 3600
         self.number_processes = 2  # 32  # 32  # Number of processes to spawn. Each process will have a different proxy for a long while
-        self.ping_interval = 120  # Ping threads every 2 minutes to make sure that the threads are not dead yet
+        self.ping_interval = 5 # 120  # Ping threads every 2 minutes to make sure that the threads are not dead yet
 
     def run(self):
 
@@ -97,7 +44,6 @@ class Runner:
         # Create one engine to populate the database
         print("Create one engine to populate the database")
         # TODO: The start is buggy
-        ThreadedEngine().run(max_sites=1)
 
         try:
 
@@ -105,7 +51,7 @@ class Runner:
 
                 # Spawn additional processes if there are not enough processes
                 for i in range(self.number_processes - len(processes)):
-                    p = Process(target=ThreadedEngine().run)
+                    p = Process(target=AsyncProcessWrapper().run_main_loop())
                     time.sleep(0.3)
                     p.start()
                     start_time = time.time()
@@ -147,7 +93,6 @@ class Runner:
             for name, proc_obj in processes.items():
                 proc_obj['process'].terminate()
 
-
 engine = Runner()
 
 if __name__ == "__main__":
@@ -155,5 +100,5 @@ if __name__ == "__main__":
     # engine = Engine()
     # engine.run()
 
-    engine_wrapper = Runner()
-    engine_wrapper.run()
+    runner = Runner()
+    runner.run()
