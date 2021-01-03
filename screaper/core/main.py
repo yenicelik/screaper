@@ -140,7 +140,7 @@ class Main:
 
         crawl_task_queue = asyncio.Queue(maxsize=513)
 
-        number_consumers = 10
+        number_consumers = 50
 
         # 1395
 

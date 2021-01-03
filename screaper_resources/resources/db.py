@@ -1,5 +1,7 @@
 import os
 import random
+import time
+
 import sqlalchemy
 import yaml
 
@@ -46,12 +48,14 @@ class Database:
             Adds a downloaded item to the markup
         """
 
+        start_time = time.time()
         # For now, analyse any kind of markup
         self.create_markup_record(
             url=url,
             markup=markup
         )
         self.commit()
+        print("Inserting single markup into DB takes {:.3f} seconds".format(time.time() - start_time))
 
     def create_url_entity(
             self,
