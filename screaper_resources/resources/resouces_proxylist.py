@@ -57,8 +57,7 @@ class ProxyList:
         return ( 1. - (self.total_bad_tries / (self.total_tries + 1) ) ) * 100.
         
     @property
-    def proxies(self):
-        self.total_tries += 1
+    def proxies(self, count=True):
         return list(self._proxies.difference(self._proxies_blacklist))
 
     def warn_proxy(self, proxy, harsh=False):

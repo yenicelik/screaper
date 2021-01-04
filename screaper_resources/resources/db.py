@@ -8,7 +8,7 @@ import yaml
 import pandas as pd
 
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, false, func
+from sqlalchemy import create_engine, false, func, update
 from sqlalchemy.orm import sessionmaker
 
 from screaper_resources.resources.entities import URLQueueEntity, URLEntity, URLReferralsEntity, RawMarkup, \
@@ -133,6 +133,13 @@ class Database:
 
         return url_referral_entity_obj
 
+    #####################################################
+    #                                                   #
+    #   Bulk, expensive, often-time, often-called ops   #
+    #                                                   #
+    #####################################################
+
+    # Write bulk operation instead?
     def get_url_task_queue_record_start_list(self):
         """
             Retrieve a list of URL sites to retrieve
@@ -169,117 +176,109 @@ class Database:
 
         # TODO: Implement priority logic into this function.
         # Doesnt make much sense to retrieve and set a sentinel for this, I think
-        query_list = self.session.query(URLEntity, URLQueueEntity) \
+        # Also include that markup should not be included
+        query_list = self.session.query(URLEntity.url, URLQueueEntity.id) \
             .filter(URLQueueEntity.crawler_processing_sentinel == false()) \
             .filter(URLQueueEntity.retries < self.max_retries) \
             .filter(URLEntity.id == URLQueueEntity.url_id) \
             .filter(
-                sqlalchemy.or_(
-                    URLEntity.url.contains('thomasnet.com'),
-                    URLEntity.url.contains('go4worldbusiness.com')
-                )
-            ) \
+            sqlalchemy.or_(
+                URLEntity.url.contains('thomasnet.com'),
+                URLEntity.url.contains('go4worldbusiness.com')
+            )
+        ) \
             .join(URLEntity) \
             .order_by(
-                # URLQueueEntity.occurrences.desc(),
-                # URLQueueEntity.created_at.asc()
-                func.random()
-                # Gotta do random takeout as we use multiprocessing
+            # URLQueueEntity.occurrences.desc(),
+            # URLQueueEntity.created_at.asc()
+            func.random()
+            # Gotta do random takeout as we use multiprocessing
         ).limit(512).all()
 
-        print("Getting queue (SQL only) takes {:.3f} seconds".format(time.time() - start_time))
+        # TODO: Possibility to yield
 
-        # .join(RawMarkup, isouter=True) \
-        # TODO: make this a global variable on how many item to return to the queue?
+        print("Query list is: ", query_list)
+        # Python unzip function?
+        queue_uris = [x[0] for x in query_list]
+        queue_uri_ids = [x[1] for x in query_list]
 
-        jobs = []
-        for x in query_list:
-            url_obj, url_queue_obj = x
+        print("Getting queue (1) takes {:.3f} seconds".format(time.time() - start_time))
 
-            # print("Items are: ", url_obj, url_queue_obj, raw_markup)
-            # if raw_markup is not None:
-            #     continue
+        # Bulk update
+        query = self.session.query(URLQueueEntity).filter(URLQueueEntity.id.in_(queue_uri_ids))
+        query.update({"crawler_processing_sentinel": True}, synchronize_session=False)
 
-            # Pick a random item from a list of 500 candidates
-            jobs.append(url_obj)
+        print("Getting queue (2) takes {:.3f} seconds".format(time.time() - start_time))
 
-            # Pick a pseudo-randomized order from the top 100 items
-            url_queue_obj.crawler_processing_sentinel = True
+        return queue_uris
 
-        print("Getting queue (full) takes {:.3f} seconds".format(time.time() - start_time))
-
-        return jobs
-
-    def get_url_task_queue_record_completed(self, url):
+    def get_url_task_queue_record_completed(self, urls):
         """
             implements part of the pop operation for queue,
             indicating that a crawler has processed the request successfully
         """
-        obj = self.session.query(URLEntity) \
-            .filter(URLEntity.url == url) \
-            .join(URLQueueEntity) \
-            .first()
+        query = self.session.query(URLEntity).join(URLQueueEntity).filter(URLEntity.url.in_(urls))
+        query.update({"crawler_processed_sentinel": True}, synchronize_session=False)
 
-        # TODO: Will this update the sub-object in the database? (because join?)
-        obj.crawler_processed_sentinel = True
-        assert obj.crawler_processed_sentinel, obj.crawler_processed_sentinel
-        return obj
-
-    def get_url_task_queue_record_failed(self, url):
+    def get_url_task_queue_record_failed(self, urls):
         """
             implements the pop operation for queue
             indicating that a crawler has processed the request successfully
         """
-        obj = self.session.query(URLQueueEntity) \
-            .join(URLEntity) \
-            .filter(URLEntity.url == url) \
-            .one()
 
-        # TODO: Will this update the sub-object in the database? (because join?)
-        # If retried too many times and failed, skip
-        skip = obj.retries + 1 >= self.max_retries
-        obj.crawler_processing_sentinel = False
-        obj.crawler_processed_sentinel = False
-        obj.skip = skip
-        obj.retries += 1
-        return obj
-
-    # Markup
-    def create_markup_record(
-            self,
-            url,
-            markup
-    ):
-        url_entity = self.session.query(URLEntity) \
-            .filter(URLEntity.url == url) \
-            .one_or_none()
-
-        # generate a random 64-bit random string
-        obj = RawMarkup(
-            url_id=url_entity.id,
-            markup=markup,
-            spider_processing_sentinel=False,
-            spider_processed_sentinel=False,
-            spider_skip=False,
-            version_spider=self.engine_version
+        query = self.session.query(URLEntity).join(URLQueueEntity).filter(URLEntity.url.in_(urls))
+        query.update(
+            values={
+                URLQueueEntity.retries: URLQueueEntity.retries + 1,
+                URLQueueEntity.crawler_processed_sentinel: False,
+                URLQueueEntity.crawler_processing_sentinel: False,
+                URLQueueEntity.crawler_skip: URLQueueEntity.retries + 1 >= self.max_retries,
+            },
+            synchronize_session=False
         )
-        self.session.add(obj)
 
-    def get_url_exists(self, url):
-        url_entity = self.session.query(URLEntity) \
-            .filter(URLEntity.url == url) \
-            .one_or_none()
+    def create_markup_record(self, url_markup_tuple_dict):
+        """
+        :param url_markup_tuple_dict: Dictionary of url -> markup
+        """
+        urls = [x for x in url_markup_tuple_dict.keys()]
 
-        return url_entity
-
-    def get_markup_exists(self, urls):
-        url_entity = self.session.query(URLEntity) \
+        query = self.session.query(URLEntity.id, URLEntity.url, RawMarkup.id) \
             .filter(URLEntity.url.in_(urls)) \
-            .join(RawMarkup) \
+            .join(URLEntity.id == RawMarkup.url_id, isouter=True) \
             .fetchall()
 
-        return url_entity
+        to_update = []
+        to_insert = []
+        for obj in query:
+            url_id, url, markup_id = obj
+            print("Looking at: ", url_id, urls, markup_id)
+            if markup_id:
+                to_update.append(obj)
+            else:
+                obj = RawMarkup(
+                    url_id=url_id,
+                    markup=url_markup_tuple_dict[url],
+                    spider_processing_sentinel=False,
+                    spider_processed_sentinel=False,
+                    spider_skip=False,
+                    version_spider=self.engine_version
+                )
+                to_insert.append(obj)
 
+        # Bulk update the ones that were already inserted
+        # For now, we ignore that a newer markup was retrieved for implementation simplicity reasons
+        query = self.session.query(URLQueueEntity).filter(URLQueueEntity.url_id.in_([x[0] for x in to_update]))
+        query.update({"crawler_processed_sentinel": True}, synchronize_session=False)
+
+        # Bulk save all the markups that were fetched
+        self.session.bulk_save_objects(to_insert)
+
+    #####################################################
+    #                                                   #
+    # Non-bulk, cheap, one-time, few-called operations  #
+    #                                                   #
+    #####################################################
     def get_number_of_queued_urls(self):
         result = self.session.query(URLQueueEntity).count()
         return result
@@ -290,7 +289,9 @@ class Database:
 
     def get_all_indexed_markups(self, dev=False):
         with self.engine.connect() as connection:
-            query_result = connection.execute("SELECT url, markup, raw_markup.id AS markup_id FROM url, raw_markup WHERE url.id = raw_markup.url_id {};".format("ORDER BY RANDOM() LIMIT 16" if dev else ""))
+            query_result = connection.execute(
+                "SELECT url, markup, raw_markup.id AS markup_id FROM url, raw_markup WHERE url.id = raw_markup.url_id {};".format(
+                    "ORDER BY RANDOM() LIMIT 16" if dev else ""))
             column_names = query_result.keys()
             query_result = query_result.fetchall()
 
@@ -306,5 +307,9 @@ class Database:
             named_entity_obj = NamedEntities(**obj)
             self.session.add(named_entity_obj)
 
+
 if __name__ == "__main__":
     print("Handle all I/O")
+
+    database = Database()
+    database.get_url_task_queue_record_start_list()

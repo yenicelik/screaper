@@ -36,6 +36,12 @@ class Main:
 
         self.task_durations = []
 
+
+        # Lists to be flushed every now and then for database bulk operations
+        self.buffer_markup_records = dict()  # This buffer is a dictionary for more efficient lookup and insert
+        self.buffer_queue_entry_completed = []
+        self.buffer_queue_entry_failed = []
+
     def calculate_sites_per_minute(self, crawled_sites):
         """
             Calculates how many sites we can crawl per hour
@@ -74,7 +80,7 @@ class Main:
         # If an error is returned, just skip it:
         if status_code is None:
             # print("Some error happened!")
-            self.crawl_frontier.pop_failed(async_crawl_task.queue_obj.url)
+            self.buffer_queue_entry_failed.append(async_crawl_task.queue_obj.url)
             return
         else:
             # print("Made request to web server and got response", status_code, len(markup), len(target_urls))
@@ -83,16 +89,17 @@ class Main:
         # Push them into the database
         if not (status_code == requests.codes.ok):
             # print("Not an ok status code!")
-            self.crawl_frontier.pop_failed(async_crawl_task.queue_obj.url)
+            self.buffer_queue_entry_failed.append(async_crawl_task.queue_obj.url)
         else:
             # print("Adding to database")
-            self.resource_database.add_to_index(async_crawl_task.queue_obj.url, markup)
+            self.buffer_markup_records[async_crawl_task.queue_obj.url] = markup
 
         for target_url in target_urls:
+            # TODO: Add the success items up here, or delete the crawl frontier logic?
             self.crawl_frontier.add(target_url=target_url, referrer_url=async_crawl_task.queue_obj.url)
 
         # Finally, verify successful execution of task
-        self.crawl_frontier.pop_verify(async_crawl_task.queue_obj.url)
+        self.buffer_queue_entry_completed.append(async_crawl_task.queue_obj.url)
 
         self.task_durations.append(time.time() - start_time)
 
@@ -108,13 +115,14 @@ class Main:
             sites_per_minute = self.calculate_sites_per_minute(crawled_sites)
             average_time_per_task = np.median(self.task_durations + [30.,])
             proxy_success_rate = self.proxy_list.proxy_list_success_rate
-            print("Process {} :: Sites per s/m/h: {:.2f}/{:.1f}/{:.1f} -- Crawled sites: {} -- AVG Time per Task: {:.2f} -- Proxy success rate: {:.1f} -- Queue sites in DB: {}".format(self.name, sites_per_minute / 60, sites_per_minute, sites_per_minute * 60, crawled_sites, average_time_per_task, proxy_success_rate, queued_sites))
+            print("Process {} :: Global Sites per s/m/h: {:.2f}/{:.1f}/{:.1f} -- Crawled sites: {} -- Available proxies: {}".format(self.name, sites_per_minute / 60, sites_per_minute, sites_per_minute * 60, crawled_sites, len(self._proxies.proxy_list.difference(self.proxy_list._proxies_blacklist))))
+            print("Process {} :: AVG Time per Task: {:.2f} -- Proxy success rate: {:.1f} -- Queue sites in DB: {}".format(self.name, average_time_per_task, proxy_success_rate, queued_sites))
 
             print("Populating queue")
             # Populate crawl tasks queue
             queue_objs_to_crawl = self.crawl_frontier.pop_start_list()
-            # For all the queue_objs, make sure the markup does not exist yet
 
+            # For all the queue_objs, make sure the markup does not exist yet
             print("Time to populate queue took: ", time.time() - start_time)
 
             # Let them both run
@@ -128,6 +136,12 @@ class Main:
 
             if tasks:
                 await asyncio.gather(*tasks)
+
+            # "Flush" the database in one go
+            self.resource_database.get_url_task_queue_record_failed(urls=self.buffer_queue_entry_failed)
+            self.resource_database.get_url_task_queue_record_completed(urls=self.buffer_queue_entry_completed)
+
+            self.resource_database.commit()
 
 
 if __name__ == "__main__":

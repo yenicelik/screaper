@@ -35,16 +35,7 @@ class CrawlFrontier:
 
     def pop_start_list(self):
         objs = self.resource_database.get_url_task_queue_record_start_list()
-        self.resource_database.commit()
         return objs
-
-    def pop_verify(self, url):
-        self.resource_database.get_url_task_queue_record_completed(url=url)
-        self.resource_database.commit()
-
-    def pop_failed(self, url):
-        self.resource_database.get_url_task_queue_record_failed(url=url)
-        self.resource_database.commit()
 
     def add(self, target_url, referrer_url):
         """
@@ -97,6 +88,10 @@ class CrawlFrontier:
         if any([search(x, target_url) for x in self.popular_websites]):
             skip = True
 
+        # Also return these, rather than commiting these immediately
+        # (Or just keep them, because we don't read from here anyways...?
+        # Do profiling before pushing these up the hierarchy
+
         # Create URL entity
         url_obj = self.resource_database.create_url_entity(url=target_url)
 
@@ -105,9 +100,6 @@ class CrawlFrontier:
 
         # Add to graph
         url_referral_obj = self.resource_database.create_referral_entity(url_entity=url_obj, referrer_url=referrer_url)
-
-        # Commit database
-        self.resource_database.commit()
 
     # TODO: When getting, always prioritize the thomasnet pages before spanning out!
 
