@@ -16,6 +16,7 @@ from screaper_resources.resources.entities import URLQueueEntity, URLEntity, URL
 
 load_dotenv()
 
+# TODO: Add query normalization
 
 # TODO: Replace all by the entity objects? probably better to operate with enums anyways
 class Database:
@@ -43,24 +44,7 @@ class Database:
     def commit(self):
         self.session.commit()
 
-    def add_to_index(self, url, markup):
-        """
-            Adds a downloaded item to the markup
-        """
-
-        start_time = time.time()
-        # For now, analyse any kind of markup
-        self.create_markup_record(
-            url=url,
-            markup=markup
-        )
-        # self.commit()
-        # print("Inserting single markup into DB takes {:.3f} seconds".format(time.time() - start_time))
-
-    def create_url_entity(
-            self,
-            url
-    ):
+    def create_url_entity(self, url):
         url_entity_obj = self.session.query(URLEntity) \
             .filter(URLEntity.url == url) \
             .one_or_none()
@@ -79,12 +63,8 @@ class Database:
 
         return url_entity_obj
 
-    # TODO: Replace all ocurrences of urls with URL entities
-    def create_url_queue_entity(
-            self,
-            url_entity_obj,
-            skip
-    ):
+    # Perhaps a bulk operation instead?
+    def create_url_queue_entity(self, url_entity_obj, skip):
         url_queue_obj = self.session.query(URLQueueEntity) \
             .filter(URLQueueEntity.url_id == url_entity_obj.id) \
             .one_or_none()
@@ -174,20 +154,25 @@ class Database:
         # .filter(sqlalchemy.not_(URLEntity.url.contains('.se.com'))) \
         # .filter(sqlalchemy.not_(URLEntity.url.contains('go4worldbusiness.com'))) \
 
+        # .join(RawMarkup, isouter=True) \
+        # .filter(RawMarkup.id == None) \
+
+            # Make sure markup does not exist yet?s
         # TODO: Implement priority logic into this function.
         # Doesnt make much sense to retrieve and set a sentinel for this, I think
         # Also include that markup should not be included
         query_list = self.session.query(URLEntity.url, URLQueueEntity.id) \
+            .join(RawMarkup, isouter=True) \
+            .filter(RawMarkup.id == None) \
             .filter(URLQueueEntity.crawler_processing_sentinel == false()) \
             .filter(URLQueueEntity.retries < self.max_retries) \
             .filter(URLEntity.id == URLQueueEntity.url_id) \
             .filter(
-            sqlalchemy.or_(
-                URLEntity.url.contains('thomasnet.com'),
-                URLEntity.url.contains('go4worldbusiness.com')
-            )
-        ) \
-            .join(URLEntity) \
+                sqlalchemy.or_(
+                    URLEntity.url.contains('thomasnet.com'),
+                    URLEntity.url.contains('go4worldbusiness.com')
+                )
+            ) \
             .order_by(
             # URLQueueEntity.occurrences.desc(),
             # URLQueueEntity.created_at.asc()
@@ -196,6 +181,8 @@ class Database:
         ).limit(512).all()
 
         # TODO: Possibility to yield
+
+        # TODO: Make sure the ids don't exist in the markup table yet!
 
         print("Query list is: ", query_list)
         # Python unzip function?
@@ -217,7 +204,7 @@ class Database:
             implements part of the pop operation for queue,
             indicating that a crawler has processed the request successfully
         """
-        query = self.session.query(URLEntity).join(URLQueueEntity).filter(URLEntity.url.in_(urls))
+        query = self.session.query(URLQueueEntity).filter(URLQueueEntity.url_id == URLEntity.id).filter(URLEntity.url.in_(urls))
         query.update({"crawler_processed_sentinel": True}, synchronize_session=False)
 
     def get_url_task_queue_record_failed(self, urls):
@@ -226,7 +213,7 @@ class Database:
             indicating that a crawler has processed the request successfully
         """
 
-        query = self.session.query(URLEntity).join(URLQueueEntity).filter(URLEntity.url.in_(urls))
+        query = self.session.query(URLQueueEntity).filter(URLQueueEntity.url_id == URLEntity.id).filter(URLEntity.url.in_(urls))
         query.update(
             values={
                 URLQueueEntity.retries: URLQueueEntity.retries + 1,
@@ -245,34 +232,35 @@ class Database:
 
         query = self.session.query(URLEntity.id, URLEntity.url, RawMarkup.id) \
             .filter(URLEntity.url.in_(urls)) \
-            .join(URLEntity.id == RawMarkup.url_id, isouter=True) \
-            .fetchall()
+            .join(RawMarkup, isouter=True) \
+            .all()
 
-        to_update = []
+        # TODO: Must be an outer join!
+
         to_insert = []
         for obj in query:
             url_id, url, markup_id = obj
-            print("Looking at: ", url_id, urls, markup_id)
-            if markup_id:
-                to_update.append(obj)
-            else:
-                obj = RawMarkup(
-                    url_id=url_id,
-                    markup=url_markup_tuple_dict[url],
-                    spider_processing_sentinel=False,
-                    spider_processed_sentinel=False,
-                    spider_skip=False,
-                    version_spider=self.engine_version
-                )
-                to_insert.append(obj)
+            print("Looking at: ", url_id, markup_id, url)
+            # If existent, just create a new entry. The timestamps will differentiate anyways
+            obj = RawMarkup(
+                url_id=url_id,
+                markup=url_markup_tuple_dict[url],
+                spider_processing_sentinel=False,
+                spider_processed_sentinel=False,
+                spider_skip=False,
+                version_spider=self.engine_version
+            )
+            to_insert.append(obj)
 
-        # Bulk update the ones that were already inserted
-        # For now, we ignore that a newer markup was retrieved for implementation simplicity reasons
-        query = self.session.query(URLQueueEntity).filter(URLQueueEntity.url_id.in_([x[0] for x in to_update]))
-        query.update({"crawler_processed_sentinel": True}, synchronize_session=False)
-
+        print("Bulk inserting", len(to_insert))
         # Bulk save all the markups that were fetched
+
+        # sqlalchemy.exc.IntegrityError: (psycopg2.errors.UniqueViolation) duplicate key value violates unique constraint "raw_markup_pkey"
+        # DETAIL:  Key (id)=(3540) already exists.
+
         self.session.bulk_save_objects(to_insert)
+
+        # Do not update anything to processed, this will be done in one of the next steps anyways
 
     #####################################################
     #                                                   #

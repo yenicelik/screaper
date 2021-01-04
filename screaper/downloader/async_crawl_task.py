@@ -7,6 +7,10 @@ from requests.exceptions import ProxyError, ConnectTimeout
 
 from screaper.engine.markup_processor import markup_processor
 
+# TODO: Implement Caching requests.
+# DNS Cache
+# Headers Cache
+# Cookies Cache
 
 class CrawlAsyncTask:
     """
@@ -14,9 +18,9 @@ class CrawlAsyncTask:
         Similar to a thread, but modeled as an async task
     """
 
-    def __init__(self, proxy_list, queue_obj):
+    def __init__(self, proxy_list, url):
         self.proxy_list = proxy_list
-        self.queue_obj = queue_obj
+        self.url= url
 
         # Remove the sleeptime. Or no, actually, keep it
         self.headers = {
@@ -42,14 +46,14 @@ class CrawlAsyncTask:
 
             # Make the asyncio request
             response = await requests.get(
-                self.queue_obj.url,
+                self.url,
                 headers=self.headers,
                 proxy=proxy,
-                timeout=12.5
+                timeout=15.0
             )
             markup = await response.text()
             status_code = response.status
-            target_urls = markup_processor.get_links(self.queue_obj.url, markup)
+            target_urls = markup_processor.get_links(self.url, markup)
 
         except ProxyError as e:
             # TODO: Log
@@ -85,9 +89,9 @@ if __name__ == "__main__":
 
     proxy_list = ProxyList()
     database = Database()
-    queue_obj = CrawlFrontier(database).pop_start()
+    queue_obj = CrawlFrontier(database).pop_start_list()[0]
 
     print("Queue obj is: ", queue_obj)
 
-    single_execution = CrawlAsyncTask(proxy_list, queue_obj=queue_obj)
+    single_execution = CrawlAsyncTask(proxy_list, url=queue_obj.url)
     print(asyncio.run(single_execution.fetch()))

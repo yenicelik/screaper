@@ -34,9 +34,11 @@ class Main:
 
         self.timestamps = []
 
-        self.task_durations = []
+        self.task_durations = [30., ] # Adding as an initial starting point s.t. we don't have division by zero or nan ops
 
+        self.flush_buffers()
 
+    def flush_buffers(self):
         # Lists to be flushed every now and then for database bulk operations
         self.buffer_markup_records = dict()  # This buffer is a dictionary for more efficient lookup and insert
         self.buffer_queue_entry_completed = []
@@ -80,7 +82,7 @@ class Main:
         # If an error is returned, just skip it:
         if status_code is None:
             # print("Some error happened!")
-            self.buffer_queue_entry_failed.append(async_crawl_task.queue_obj.url)
+            self.buffer_queue_entry_failed.append(async_crawl_task.url)
             return
         else:
             # print("Made request to web server and got response", status_code, len(markup), len(target_urls))
@@ -89,17 +91,17 @@ class Main:
         # Push them into the database
         if not (status_code == requests.codes.ok):
             # print("Not an ok status code!")
-            self.buffer_queue_entry_failed.append(async_crawl_task.queue_obj.url)
+            self.buffer_queue_entry_failed.append(async_crawl_task.url)
         else:
             # print("Adding to database")
-            self.buffer_markup_records[async_crawl_task.queue_obj.url] = markup
+            self.buffer_markup_records[async_crawl_task.url] = markup
 
         for target_url in target_urls:
             # TODO: Add the success items up here, or delete the crawl frontier logic?
-            self.crawl_frontier.add(target_url=target_url, referrer_url=async_crawl_task.queue_obj.url)
+            self.crawl_frontier.add(target_url=target_url, referrer_url=async_crawl_task.url)
 
         # Finally, verify successful execution of task
-        self.buffer_queue_entry_completed.append(async_crawl_task.queue_obj.url)
+        self.buffer_queue_entry_completed.append(async_crawl_task.url)
 
         self.task_durations.append(time.time() - start_time)
 
@@ -113,34 +115,38 @@ class Main:
             crawled_sites = self.resource_database.get_number_of_crawled_sites()
             queued_sites = self.resource_database.get_number_of_queued_urls()
             sites_per_minute = self.calculate_sites_per_minute(crawled_sites)
-            average_time_per_task = np.median(self.task_durations + [30.,])
+            average_time_per_task = np.median(self.task_durations)
             proxy_success_rate = self.proxy_list.proxy_list_success_rate
-            print("Process {} :: Global Sites per s/m/h: {:.2f}/{:.1f}/{:.1f} -- Crawled sites: {} -- Available proxies: {}".format(self.name, sites_per_minute / 60, sites_per_minute, sites_per_minute * 60, crawled_sites, len(self._proxies.proxy_list.difference(self.proxy_list._proxies_blacklist))))
+            print("Process {} :: Global Sites per s/m/h: {:.2f}/{:.1f}/{:.1f} -- Crawled sites: {} -- Available proxies: {}".format(self.name, sites_per_minute / 60, sites_per_minute, sites_per_minute * 60, crawled_sites, len(self.proxy_list._proxies.difference(self.proxy_list._proxies_blacklist))))
             print("Process {} :: AVG Time per Task: {:.2f} -- Proxy success rate: {:.1f} -- Queue sites in DB: {}".format(self.name, average_time_per_task, proxy_success_rate, queued_sites))
 
             print("Populating queue")
             # Populate crawl tasks queue
-            queue_objs_to_crawl = self.crawl_frontier.pop_start_list()
+            urls_to_crawl = self.crawl_frontier.pop_start_list()
 
-            # For all the queue_objs, make sure the markup does not exist yet
+            # For all the urls, make sure the markup does not exist yet
             print("Time to populate queue took: ", time.time() - start_time)
 
             # Let them both run
             # These will never have any outputs, as they both run forever!
             print("Time until gather took: ", time.time() - start_time)
             tasks = []
-            for queue_obj in queue_objs_to_crawl:
+            for url in urls_to_crawl:
                 # Spawn a AsyncCrawlTask object
-                task = asyncio.create_task(self.task(CrawlAsyncTask(self.proxy_list, queue_obj)))
+                task = asyncio.create_task(self.task(CrawlAsyncTask(self.proxy_list, url=url)))
                 tasks.append(task)
 
             if tasks:
                 await asyncio.gather(*tasks)
 
             # "Flush" the database in one go
+            print("Flushing records: Markups {} -- Failed {} -- Completed {}".format(len(self.buffer_markup_records), len(self.buffer_queue_entry_failed), len(self.buffer_queue_entry_completed)))
+            self.resource_database.create_markup_record(self.buffer_markup_records)
             self.resource_database.get_url_task_queue_record_failed(urls=self.buffer_queue_entry_failed)
             self.resource_database.get_url_task_queue_record_completed(urls=self.buffer_queue_entry_completed)
 
+            # Flush all buffers
+            self.flush_buffers()
             self.resource_database.commit()
 
 

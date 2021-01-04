@@ -48,16 +48,17 @@ class ProxyList:
 
         self._proxies_blacklist = set()
 
-        self.max_retries_per_proxy = 2
-        self.total_tries = 0
-        self.total_bad_tries = 0
+        self.max_retries_per_proxy = 5
+        self.total_tries = 1
+        self.total_bad_tries = 1
 
     @property
     def proxy_list_success_rate(self):
-        return ( 1. - (self.total_bad_tries / (self.total_tries + 1) ) ) * 100.
+        return (1. - (self.total_bad_tries / (self.total_tries + 1) ) ) * 100.
         
     @property
-    def proxies(self, count=True):
+    def proxies(self):
+        self.total_tries += 1
         return list(self._proxies.difference(self._proxies_blacklist))
 
     def warn_proxy(self, proxy, harsh=False):
@@ -75,13 +76,10 @@ class ProxyList:
         self._bad_proxy_counter[proxy] += 1
         self.total_bad_tries += 1
         # Remove proxy if it repeatedly turns out to be a bad one
-        if self._bad_proxy_counter[proxy] > self.max_retries_per_proxy and \
-                ((self._bad_proxy_counter[proxy] / self.total_bad_tries) > 0.01) and \
-                (self.total_bad_tries / self.total_tries > 0.01):
-            # TODO: Devise this rule
+        if self._bad_proxy_counter[proxy] > self.max_retries_per_proxy:
             self._proxies_blacklist.add(proxy)
             # del self._bad_proxy_counter[proxy]
-        if len(self._proxies) < 10:
+        if len(self._proxies) < 5:
             raise Exception("Less than 5 proxies left!!!", self._proxies, self._bad_proxy_counter)
 
 
