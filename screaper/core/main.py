@@ -43,6 +43,7 @@ class Main:
         self.buffer_markup_records = dict()  # This buffer is a dictionary for more efficient lookup and insert
         self.buffer_queue_entry_completed = []
         self.buffer_queue_entry_failed = []
+        self.buffer_queue_and_referrer_triplet = []
 
     def calculate_sites_per_minute(self, crawled_sites):
         """
@@ -98,7 +99,8 @@ class Main:
 
         for target_url in target_urls:
             # TODO: Add the success items up here, or delete the crawl frontier logic?
-            self.crawl_frontier.add(target_url=target_url, referrer_url=async_crawl_task.url)
+            target_url, referrer_url, skip = self.crawl_frontier.add(target_url=target_url, referrer_url=async_crawl_task.url)
+            self.buffer_queue_and_referrer_triplet.append((target_url, referrer_url, skip))
 
         # Finally, verify successful execution of task
         self.buffer_queue_entry_completed.append(async_crawl_task.url)
@@ -141,9 +143,18 @@ class Main:
 
             # "Flush" the database in one go
             print("Flushing records: Markups {} -- Failed {} -- Completed {}".format(len(self.buffer_markup_records), len(self.buffer_queue_entry_failed), len(self.buffer_queue_entry_completed)))
+            flush_start_time = time.time()
             self.resource_database.create_markup_record(self.buffer_markup_records)
             self.resource_database.get_url_task_queue_record_failed(urls=self.buffer_queue_entry_failed)
             self.resource_database.get_url_task_queue_record_completed(urls=self.buffer_queue_entry_completed)
+
+            # Create URL entity
+            self.resource_database.create_url_entity(urls=[x[0] for x in self.buffer_queue_and_referrer_triplet])
+            # Add to queue
+            self.resource_database.create_url_queue_entity(url_skip_tuple_dict=dict((x[0], x[2]) for x in self.buffer_queue_and_referrer_triplet))
+            # Add to referrer graph
+            self.resource_database.create_referral_entity(target_url_referrer_url_tuple_list=[(x[0], x[1]) for x in self.buffer_queue_and_referrer_triplet])
+            print("Flushing took {:.3f} second".format(time.time() - flush_start_time))
 
             # Flush all buffers
             self.flush_buffers()

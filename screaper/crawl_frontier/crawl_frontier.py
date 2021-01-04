@@ -42,6 +42,8 @@ class CrawlFrontier:
             Adds an item to be scraped to the persistent queue
         """
 
+        # TODO: Add URL normalization here
+
         # Very hacky now, which is fine
         if target_url is None:
             # TODO: Log a warning that some url is none!
@@ -91,15 +93,7 @@ class CrawlFrontier:
         # Also return these, rather than commiting these immediately
         # (Or just keep them, because we don't read from here anyways...?
         # Do profiling before pushing these up the hierarchy
-
-        # Create URL entity
-        url_obj = self.resource_database.create_url_entity(url=target_url)
-
-        # Add to queue
-        url_queue_obj = self.resource_database.create_url_queue_entity(url_entity_obj=url_obj, skip=skip)
-
-        # Add to graph
-        url_referral_obj = self.resource_database.create_referral_entity(url_entity=url_obj, referrer_url=referrer_url)
+        return target_url, referrer_url, skip
 
     # TODO: When getting, always prioritize the thomasnet pages before spanning out!
 
