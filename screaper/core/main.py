@@ -129,7 +129,6 @@ class Main:
 
             # Let them both run
             # These will never have any outputs, as they both run forever!
-            print("Time until gather took: ", time.time() - start_time)
             tasks = []
             for url in urls_to_crawl:
                 # Spawn a AsyncCrawlTask object
@@ -138,6 +137,7 @@ class Main:
 
             if tasks:
                 await asyncio.gather(*tasks)
+                print("Time until gather took: ", time.time() - start_time)
 
             # "Flush" the database in one go
             print("Flushing records: Markups {} -- Failed {} -- Completed {}".format(len(self.buffer_markup_records), len(self.buffer_queue_entry_failed), len(self.buffer_queue_entry_completed)))

@@ -44,45 +44,61 @@ class Database:
     def commit(self):
         self.session.commit()
 
-    def create_url_entity(self, url):
-        url_entity_obj = self.session.query(URLEntity) \
-            .filter(URLEntity.url == url) \
-            .one_or_none()
+    def create_url_entity(self, urls):
+        existing_urls = self.session.query(URLEntity.url).filter(URLEntity.id.in_(urls)).all()
+        missing_urls = [x for x in urls if x not in existing_urls]
 
-        # TODO: Make it mixed,
-        # such that there is a limit of how many urls from one domain can be picked
-
-        # Add the URL Into the Queue
-        if url_entity_obj is None:
-            # Create a URL Object
+        # Create a new URL object
+        to_insert = []
+        for url in missing_urls:
             url_entity_obj = URLEntity(
                 url=url,
                 engine_version=self.engine_version
             )
-            self.session.add(url_entity_obj)
+            to_insert.append(url_entity_obj)
 
-        return url_entity_obj
+        # Apply a bulk insert
+        self.session.bulk_save_objects(to_insert)
 
     # Perhaps a bulk operation instead?
-    def create_url_queue_entity(self, url_entity_obj, skip):
-        url_queue_obj = self.session.query(URLQueueEntity) \
-            .filter(URLQueueEntity.url_id == url_entity_obj.id) \
-            .one_or_none()
+    # TODO: Make this to a bulk query
+    # TODO: Change this to a url entity
+    def create_url_queue_entity(self, url_skip_tuples):
+        """
+            Assumes that the URL was already input into the URL queue!!
+        :param urls:
+        :param skip:
+        :return:
+        """
+        urls = [x[0] for x in url_skip_tuples]
+        skip_flags = [x[1] for x in url_skip_tuples]
 
-        # Add to the queue if not already within the queue
-        if url_queue_obj is None:
+        # Check which URLs were already submitted
+        url_ids = self.session.query(URLEntity.id)\
+            .filter(URLEntity.id.in_(urls)).all()
+
+        assert len(url_ids) == len(urls), ("Not same size!", url_ids, urls)
+
+        # Increment occurrences count for existing url_queue_objects
+        query = self.session.query(URLQueueEntity).filter(URLQueueEntity.url_id == URLEntity.id)\
+            .filter(URLEntity.url.in_(url_ids))
+        query.update({URLQueueEntity.occurrences: URLQueueEntity.occurrences + 1}, synchronize_session=False)
+
+        # Create queue objects for non-existing url_queue_objects
+        # Create URL objects for all urls that were not included already
+        to_insert = []
+        for url_id, skip_flag in zip(url_ids, skip_flags):
+            # Add to the queue if not already within the queue
             url_queue_obj = URLQueueEntity(
-                url_id=url_entity_obj.id,
+                url_id=url_id,
                 crawler_processing_sentinel=False,
                 crawler_processed_sentinel=False,
-                crawler_skip=skip,
+                crawler_skip=skip_flag,
                 version_crawl_frontier=self.engine_version
             )
-            self.session.add(url_queue_obj)
-        else:
-            url_queue_obj.occurrences += 1
+            to_insert.append(url_queue_obj)
 
-        return url_queue_obj
+        self.session.add(to_insert)
 
     def create_referral_entity(
             self,
@@ -125,6 +141,9 @@ class Database:
             Retrieve a list of URL sites to retrieve
         :return:
         """
+
+        # TODO: Make it mixed,
+        # such that there is a limit of how many urls from one domain can be picked
 
         start_time = time.time()
         # Get the one inserted most recently,
