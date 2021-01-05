@@ -77,14 +77,14 @@ class Database:
         self.session.bulk_save_objects(to_insert)
 
     # Perhaps a bulk operation instead?
-    def create_url_queue_entity(self, url_skip_tuple_dict):
+    def create_url_queue_entity(self, url_skip_score_tuple_dict):
         """
             Assumes that the URL was already input into the URL queue!!
         """
 
         # TODO: Test this function?
 
-        urls = [x for x in url_skip_tuple_dict.keys()]
+        urls = [x for x in url_skip_score_tuple_dict.keys()]
 
         # Check which URLs were already submitted
         query = self.session.query(URLEntity.id, URLEntity.url)\
@@ -115,8 +115,9 @@ class Database:
                 url_id=url_id,
                 crawler_processing_sentinel=False,
                 crawler_processed_sentinel=False,
-                crawler_skip=url_skip_tuple_dict[queue_url],
-                version_crawl_frontier=self.engine_version
+                crawler_skip=url_skip_score_tuple_dict[queue_url][0],
+                version_crawl_frontier=self.engine_version,
+                score=url_skip_score_tuple_dict[queue_url][1]
             )
             to_insert.append(url_queue_obj)
 
@@ -219,6 +220,13 @@ class Database:
 
         # TODO: Don't forget to add these back up!!!
 
+        # .filter(
+        #     sqlalchemy.or_(
+        #         URLEntity.url.contains('thomasnet.com'),
+        #         URLEntity.url.contains('go4worldbusiness.com')
+        #     )
+        # ) \
+
         random_offset = random.randint(0, 50000)
         query_list = self.session.query(URLEntity.url, URLQueueEntity.id) \
             .filter(URLEntity.id == URLQueueEntity.url_id) \
@@ -226,12 +234,6 @@ class Database:
             .filter(RawMarkup.id == None) \
             .filter(URLQueueEntity.crawler_processing_sentinel == false()) \
             .filter(URLQueueEntity.retries < self.max_retries) \
-            .filter(
-                sqlalchemy.or_(
-                    URLEntity.url.contains('thomasnet.com'),
-                    URLEntity.url.contains('go4worldbusiness.com')
-                )
-            ) \
             .offset(random_offset) \
             .limit(512)
         # print("Query is: ", query_list)
