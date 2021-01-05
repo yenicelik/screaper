@@ -48,6 +48,7 @@ class URLQueueEntity(Base):
                          default=0)  # Indicates how often this link was found, s.t. a priority queue can be managed through this
     version_crawl_frontier = Column(String(),
                                     nullable=False)  # Indicates the version under which the link was scraped for
+    score = Column(Integer(), nullable=False, default=0, index=True)
 
     created_at = Column(DateTime(), default=datetime.utcnow(),
                         nullable=False)  # Timestamp when the query is added to the queue

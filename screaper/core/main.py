@@ -8,6 +8,7 @@ import time
 import numpy as np
 
 import requests
+from flashtext import KeywordProcessor
 
 from screaper.crawl_frontier.crawl_frontier import CrawlFrontier
 
@@ -41,6 +42,10 @@ class Main:
         self.task_durations = [30., ] # Adding as an initial starting point s.t. we don't have division by zero or nan ops
 
         self.flush_buffers()
+
+        self.keyword_processor = KeywordProcessor()
+        self.keyword_processor.add_keywords_from_list(['bearing'])
+
 
     def flush_buffers(self):
         # Lists to be flushed every now and then for database bulk operations
@@ -99,12 +104,16 @@ class Main:
             self.buffer_queue_entry_failed.append(async_crawl_task.url)
         else:
             # print("Adding to database")
+
+            # Determine the score by how many occurrences of the word "bearing" it covers
+            score = len(self.keyword_processor.extract_keywords())
+
             self.buffer_markup_records[async_crawl_task.url] = markup
 
         for target_url in target_urls:
             # TODO: Add the success items up here, or delete the crawl frontier logic?
             target_url, referrer_url, skip = self.crawl_frontier.add(target_url=target_url, referrer_url=async_crawl_task.url)
-            self.buffer_queue_and_referrer_triplet.append((target_url, referrer_url, skip))
+            self.buffer_queue_and_referrer_triplet.append((target_url, referrer_url, skip, score))
 
         # Finally, verify successful execution of task
         self.buffer_queue_entry_completed.append(async_crawl_task.url)
@@ -159,7 +168,7 @@ class Main:
             # self.resource_database.commit()
 
             # Add to queue
-            self.resource_database.create_url_queue_entity(url_skip_tuple_dict=dict((x[0], x[2]) for x in self.buffer_queue_and_referrer_triplet))
+            self.resource_database.create_url_queue_entity(url_skip_tuple_dict=dict((x[0], x[2], x[3]) for x in self.buffer_queue_and_referrer_triplet))
             # self.resource_database.commit()
 
             # Add to referrer graph
