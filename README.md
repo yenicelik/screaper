@@ -137,3 +137,12 @@ Instantiate the tables
 - https://towardsdatascience.com/overview-of-deep-learning-on-graph-embeddings-4305c10ad4a4
 
 -> Perhaps do not include any scripts that are not company pages, or just be more careful which pages to scrape, and which ones to just skip
+
+
+#### Run with higher priority
+
+``` 
+nice -n 17 python -m screaper.core.main
+nice -n 17 python -m screaper.engine.core.
+
+```

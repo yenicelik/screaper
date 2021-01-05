@@ -1,18 +1,24 @@
 import os
 import time
+import random
 
 import sqlalchemy
 
 import pandas as pd
 
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, false, func
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine, false
+from sqlalchemy.orm import sessionmaker, scoped_session
+
+# from sqlalchemy.pool import NullPool
+# poolclass=NullPool
 
 from screaper_resources.resources.entities import URLQueueEntity, URLEntity, URLReferralsEntity, RawMarkup, \
     NamedEntities
 
 load_dotenv()
+
+# Perhaps try python 3.9?
 
 
 # TODO: Add query normalization
@@ -30,11 +36,12 @@ class Database:
 
     def __init__(self):
         db_url = os.getenv('DatabaseUrl')
-        self.engine = create_engine(db_url, encoding='utf8')
+        self.engine = create_engine(db_url, encoding='utf8', pool_size=5, max_overflow=10)  # pool_timeout=1
+        self.engine.dispose()
 
         # self.engine = screaper.resources.entities.engine
-        Session = sessionmaker()
-        Session.configure(bind=self.engine)
+        Session = scoped_session(sessionmaker(autocommit=False, autoflush=True, expire_on_commit=False, bind=self.engine))
+        # Session.configure()
         self.session = Session()
 
         self.max_retries = 4
@@ -115,12 +122,15 @@ class Database:
 
     def create_referral_entity(self, target_url_referrer_url_tuple_list):
 
-        target_urls, referrer_urls = list(zip(*target_url_referrer_url_tuple_list))
+        target_urls = [x[0] for x in target_url_referrer_url_tuple_list]
+        referrer_urls = [x[1] for x in target_url_referrer_url_tuple_list]
 
         query = self.session.query(URLEntity.id, URLEntity.url).filter(URLEntity.url.in_(target_urls)).all()
-        target_url_ids, target_urls = list(zip(*query))
+        target_url_ids = [x[0] for x in query]
+        target_urls = [x[1] for x in query]
         query = self.session.query(URLEntity.id, URLEntity.url).filter(URLEntity.url.in_(referrer_urls)).all()
-        referrer_url_ids, referrer_urls = list(zip(*query))
+        referrer_url_ids = [x[0] for x in query]
+        referrer_urls = [x[1] for x in query]
 
         # Skip items that were already added
         # Just update items that were already added (this has low repercussions, also duplicates here just enforce the graph, which is fine)
@@ -193,28 +203,40 @@ class Database:
         # .join(RawMarkup, isouter=True) \
         # .filter(RawMarkup.id == None) \
 
+        # .order_by(
+        #     URLQueueEntity.occurrences.desc(),
+        #     # URLQueueEntity.created_at.asc()
+        #     # func.random()
+        #     # Gotta do random takeout as we use multiprocessing
+        # )\
+
         # Make sure markup does not exist yet?s
         # TODO: Implement priority logic into this function.
         # Doesnt make much sense to retrieve and set a sentinel for this, I think
         # Also include that markup should not be included
+
+        # TODO: Don't forget to add these back up!!!
+
+        random_offset = random.randint(0, 50000)
         query_list = self.session.query(URLEntity.url, URLQueueEntity.id) \
+            .filter(URLEntity.id == URLQueueEntity.url_id) \
             .join(RawMarkup, isouter=True) \
             .filter(RawMarkup.id == None) \
             .filter(URLQueueEntity.crawler_processing_sentinel == false()) \
             .filter(URLQueueEntity.retries < self.max_retries) \
-            .filter(URLEntity.id == URLQueueEntity.url_id) \
+            .filter(URLQueueEntity.retries < self.max_retries) \
             .filter(
-            sqlalchemy.or_(
-                URLEntity.url.contains('thomasnet.com'),
-                URLEntity.url.contains('go4worldbusiness.com')
-            )
-        ) \
-            .order_by(
-            # URLQueueEntity.occurrences.desc(),
-            # URLQueueEntity.created_at.asc()
-            func.random()
-            # Gotta do random takeout as we use multiprocessing
-        ).limit(512).all()
+                sqlalchemy.or_(
+                    URLEntity.url.contains('thomasnet.com'),
+                    URLEntity.url.contains('go4worldbusiness.com')
+                )
+            ) \
+            .offset(random_offset) \
+            .limit(512)
+        # print("Query is: ", query_list)
+        query_list = query_list.all()
+
+        # TODO: Filter out markups that are not included
 
         # TODO: Possibility to yield
 
@@ -335,5 +357,12 @@ class Database:
 if __name__ == "__main__":
     print("Handle all I/O")
 
-    database = Database()
-    database.get_url_task_queue_record_start_list()
+    for i in range(10):
+        start_time = time.time()
+
+        database = Database()
+        database.get_url_task_queue_record_start_list()
+        database.commit()
+
+        print("It takes this many seconds to retrieve the queue start: ", time.time() - start_time)
+

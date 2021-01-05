@@ -6,6 +6,7 @@ from re import search
 
 import yaml
 
+from flashtext import KeywordProcessor
 from dotenv import load_dotenv
 from url_parser import get_base_url
 
@@ -29,6 +30,10 @@ class CrawlFrontier:
             self.popular_websites = yaml.load(file)["websites"]
             # print("Popular websites are: ", self.popular_websites)
         # self.popular_websites_filter_query = [sqlalchemy.not_(URLEntity.url.contains(popular_website)) for popular_website in self.popular_websites]
+        self.popular_websites = self.pop_start_list()
+
+        self.populat_websites_processor = KeywordProcessor()
+        self.populat_websites_processor.add_keywords_from_list(self.popular_websites)
 
         # Later on implement when a website is considered outdated
         self.outdate_timedelta = None
@@ -87,7 +92,7 @@ class CrawlFrontier:
         # if all([x not in target_url for x in self.whitelist]):
         #     # if the link is not whitelisted, do not look for this further
         #     skip = True
-        if any([search(x, target_url) for x in self.popular_websites]):
+        if self.populat_websites_processor.extract_keywords(target_url):
             skip = True
 
         # Also return these, rather than commiting these immediately

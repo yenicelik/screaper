@@ -11,13 +11,15 @@ import time
 from multiprocessing import Process
 
 from screaper.core.main import Main
+from screaper_resources.resources.db import Database
 
 
 class AsyncProcessWrapper:
 
     def __init__(self):
         self.name = 'PROC:' + ''.join(random.choice(string.ascii_uppercase) for _ in range(4))
-        self.main = Main(name=self.name)
+        resource_database = Database()  # TODO Make database async!
+        self.main = Main(name=self.name, database=resource_database)
 
     def run_main_loop(self):
         asyncio.run(self.main.run_main_loop())
