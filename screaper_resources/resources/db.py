@@ -34,10 +34,12 @@ class Database:
         The CRUD is already implemented by the ORM
     """
 
+    # For session placement, check code examples here:
+    # https://docs.sqlalchemy.org/en/13/orm/session_basics.html#when-do-i-construct-a-session-when-do-i-commit-it-and-when-do-i-close-it
+
     def __init__(self):
         db_url = os.getenv('DatabaseUrl')
         self.engine = create_engine(db_url, encoding='utf8', pool_size=5, max_overflow=10)  # pool_timeout=1
-        self.engine.dispose()
 
         # self.engine = screaper.resources.entities.engine
         Session = scoped_session(sessionmaker(autocommit=False, autoflush=True, expire_on_commit=False, bind=self.engine))
@@ -223,7 +225,6 @@ class Database:
             .join(RawMarkup, isouter=True) \
             .filter(RawMarkup.id == None) \
             .filter(URLQueueEntity.crawler_processing_sentinel == false()) \
-            .filter(URLQueueEntity.retries < self.max_retries) \
             .filter(URLQueueEntity.retries < self.max_retries) \
             .filter(
                 sqlalchemy.or_(

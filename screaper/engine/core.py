@@ -18,10 +18,18 @@ class AsyncProcessWrapper:
 
     def __init__(self):
         self.name = 'PROC:' + ''.join(random.choice(string.ascii_uppercase) for _ in range(4))
-        resource_database = Database()  # TODO Make database async!
-        self.main = Main(name=self.name, database=resource_database)
 
     def run_main_loop(self):
+
+        # You are stupid. You replaced the engine-pool creation in the main thread,
+        # not the child process (because the __init__ was called in the parent, not by the Process.).
+        # Don't repeat this stupid mistake again lol
+
+        self.resource_database = Database()  # TODO Make database async!
+        # time.sleep(10.)
+        self.resource_database.engine.dispose()
+        self.main = Main(name=self.name, database=self.resource_database)
+
         asyncio.run(self.main.run_main_loop())
 
 class Runner:
@@ -31,7 +39,7 @@ class Runner:
 
     def __init__(self):
         self.max_time = 12 * 3600 # 3600  # 60
-        self.number_processes = 7  # 32  # 32  # Number of processes to spawn. Each process will have a different proxy for a long while
+        self.number_processes = 12  # 6  # 32  # 32  # Number of processes to spawn. Each process will have a different proxy for a long while
         self.ping_interval = 120  # 120  # Ping threads every 2 minutes to make sure that the threads are not dead yet
 
     def run(self):
