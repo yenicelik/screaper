@@ -6,6 +6,7 @@ from re import search
 
 import yaml
 
+from flashtext import KeywordProcessor
 from dotenv import load_dotenv
 from url_parser import get_base_url
 
@@ -29,27 +30,24 @@ class CrawlFrontier:
             self.popular_websites = yaml.load(file)["websites"]
             # print("Popular websites are: ", self.popular_websites)
         # self.popular_websites_filter_query = [sqlalchemy.not_(URLEntity.url.contains(popular_website)) for popular_website in self.popular_websites]
+        self.popular_websites = self.pop_start_list()
+
+        self.populat_websites_processor = KeywordProcessor()
+        self.populat_websites_processor.add_keywords_from_list(self.popular_websites)
 
         # Later on implement when a website is considered outdated
         self.outdate_timedelta = None
 
-    def pop_start(self):
-        obj = self.resource_database.get_url_task_queue_record_start()
-        self.resource_database.commit()
-        return obj
-
-    def pop_verify(self, url):
-        self.resource_database.get_url_task_queue_record_completed(url=url)
-        self.resource_database.commit()
-
-    def pop_failed(self, url):
-        self.resource_database.get_url_task_queue_record_failed(url=url)
-        self.resource_database.commit()
+    def pop_start_list(self):
+        objs = self.resource_database.get_url_task_queue_record_start_list()
+        return objs
 
     def add(self, target_url, referrer_url):
         """
             Adds an item to be scraped to the persistent queue
         """
+
+        # TODO: Add URL normalization here
 
         # Very hacky now, which is fine
         if target_url is None:
@@ -70,7 +68,6 @@ class CrawlFrontier:
         # if "http" not in target_url:
         #     return
 
-
         # remove all anchors if existent
         target_url = target_url.split('#')[0]
 
@@ -81,10 +78,11 @@ class CrawlFrontier:
         # TODO: Make sure that if https is crawled, then don't recrawl the http (and vica versa)
 
         # Other ways to check if link is valid?
-        # TODO: Implement contents to also be exported
-        if self.resource_database.get_markup_exists(url=target_url):
-            # If the url's markup was already crawled, do not ping this again
-            return
+        # Should already be checked elsewhere!
+        # # TODO: Implement contents to also be exported
+        # if self.resource_database.get_markup_exists(url=target_url):
+        #     # If the url's markup was already crawled, do not ping this again
+        #     return
 
         # Add more cases why one would skip here
         skip = False
@@ -94,20 +92,13 @@ class CrawlFrontier:
         # if all([x not in target_url for x in self.whitelist]):
         #     # if the link is not whitelisted, do not look for this further
         #     skip = True
-        if any([search(x, target_url) for x in self.popular_websites]):
+        if self.populat_websites_processor.extract_keywords(target_url):
             skip = True
 
-        # Create URL entity
-        url_obj = self.resource_database.create_url_entity(url=target_url)
-
-        # Add to queue
-        url_queue_obj = self.resource_database.create_url_queue_entity(url_entity_obj=url_obj, skip=skip)
-
-        # Add to graph
-        url_referral_obj = self.resource_database.create_referral_entity(url_entity=url_obj, referrer_url=referrer_url)
-
-        # Commit database
-        self.resource_database.commit()
+        # Also return these, rather than commiting these immediately
+        # (Or just keep them, because we don't read from here anyways...?
+        # Do profiling before pushing these up the hierarchy
+        return target_url, referrer_url, skip
 
     # TODO: When getting, always prioritize the thomasnet pages before spanning out!
 
