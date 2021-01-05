@@ -39,7 +39,7 @@ class Runner:
 
     def __init__(self):
         self.max_time = 12 * 3600 # 3600  # 60
-        self.number_processes = 12  # 6  # 32  # 32  # Number of processes to spawn. Each process will have a different proxy for a long while
+        self.number_processes = 7  # 6  # 32  # 32  # Number of processes to spawn. Each process will have a different proxy for a long while
         self.ping_interval = 120  # 120  # Ping threads every 2 minutes to make sure that the threads are not dead yet
 
     def run(self):

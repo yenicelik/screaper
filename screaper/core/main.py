@@ -129,7 +129,7 @@ class Main:
             print("Populating queue")
             # Populate crawl tasks queue
             urls_to_crawl = self.crawl_frontier.pop_start_list()
-            self.resource_database.commit()
+            # self.resource_database.commit()
 
             # For all the urls, make sure the markup does not exist yet
             print("Time to populate queue took: ", time.time() - start_time)
@@ -152,20 +152,20 @@ class Main:
             self.resource_database.create_markup_record(self.buffer_markup_records)
             self.resource_database.get_url_task_queue_record_failed(urls=self.buffer_queue_entry_failed)
             self.resource_database.get_url_task_queue_record_completed(urls=self.buffer_queue_entry_completed)
-            self.resource_database.commit()
+            # self.resource_database.commit()
 
             # Create URL entity
             self.resource_database.create_url_entity(urls=[x[0] for x in self.buffer_queue_and_referrer_triplet])
-            self.resource_database.commit()
+            # self.resource_database.commit()
 
             # Add to queue
             self.resource_database.create_url_queue_entity(url_skip_tuple_dict=dict((x[0], x[2]) for x in self.buffer_queue_and_referrer_triplet))
-            self.resource_database.commit()
+            # self.resource_database.commit()
 
             # Add to referrer graph
             self.resource_database.create_referral_entity(target_url_referrer_url_tuple_list=[(x[0], x[1]) for x in self.buffer_queue_and_referrer_triplet])
             print("Flushing took {:.3f} second".format(time.time() - flush_start_time))
-            self.resource_database.commit()
+            # self.resource_database.commit()
 
             # Flush all buffers
             self.flush_buffers()
