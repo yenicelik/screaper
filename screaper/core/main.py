@@ -102,11 +102,12 @@ class Main:
         if not (status_code == requests.codes.ok):
             # print("Not an ok status code!")
             self.buffer_queue_entry_failed.append(async_crawl_task.url)
+            score = 0
         else:
             # print("Adding to database")
 
             # Determine the score by how many occurrences of the word "bearing" it covers
-            score = len(self.keyword_processor.extract_keywords())
+            score = len(self.keyword_processor.extract_keywords(markup))
 
             self.buffer_markup_records[async_crawl_task.url] = markup
 
@@ -138,7 +139,7 @@ class Main:
             print("Populating queue")
             # Populate crawl tasks queue
             urls_to_crawl = self.crawl_frontier.pop_start_list()
-            # self.resource_database.commit()
+            self.resource_database.commit()
 
             # For all the urls, make sure the markup does not exist yet
             print("Time to populate queue took: ", time.time() - start_time)
@@ -168,7 +169,7 @@ class Main:
             # self.resource_database.commit()
 
             # Add to queue
-            self.resource_database.create_url_queue_entity(url_skip_tuple_dict=dict((x[0], x[2], x[3]) for x in self.buffer_queue_and_referrer_triplet))
+            self.resource_database.create_url_queue_entity(url_skip_score_tuple_dict=dict((x[0], (x[2], x[3])) for x in self.buffer_queue_and_referrer_triplet))
             # self.resource_database.commit()
 
             # Add to referrer graph

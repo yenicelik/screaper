@@ -30,7 +30,10 @@ class CrawlAsyncTask:
         self.sleeptime = 0.35  # 0.35
 
     async def fetch(self):
-        proxy = random.choice(self.proxy_list.proxies)
+        if "thomasnet" in self.url or "go4worldbusiness" in self.url:
+            proxy = random.choice(self.proxy_list.proxies)
+        else:
+            proxy = None
         # proxy = None
 
         # print("Proxy is now: ", proxy)

@@ -3,9 +3,9 @@
 """
 
 SQL = """
-    ALTER TABLE url_queue ADD score INTEGER NOT NULL;
+    ALTER TABLE url_queue ADD score INTEGER NOT NULL DEFAULT 0;    -- CREATE INDEX url_queue.score;
+    CREATE INDEX ix_url_queue_score ON url_queue(score);
 """
-score = Column(Integer(), nullable=False, default=0, index=True)
 
 if __name__ == "__main__":
     print("Adding depth parameter for pseudo-BFS based on initial sites")

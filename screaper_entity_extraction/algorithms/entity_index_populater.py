@@ -27,6 +27,9 @@ class EntityIndexPopulator:
 
         # Pull a subset
         df = self.db.get_all_indexed_markups(dev=self.dev)
+
+        # TODO: Replace with only grabbing homepages!
+
         print(df.head())
         print(df.columns)
 

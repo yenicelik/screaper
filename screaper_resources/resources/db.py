@@ -220,21 +220,22 @@ class Database:
 
         # TODO: Don't forget to add these back up!!!
 
-        # .filter(
-        #     sqlalchemy.or_(
-        #         URLEntity.url.contains('thomasnet.com'),
-        #         URLEntity.url.contains('go4worldbusiness.com')
-        #     )
-        # ) \
+        # .join(RawMarkup, isouter=True) \
+        # .filter(RawMarkup.id == None) \
+        # .offset(random_offset) \
 
-        random_offset = random.randint(0, 50000)
+
         query_list = self.session.query(URLEntity.url, URLQueueEntity.id) \
             .filter(URLEntity.id == URLQueueEntity.url_id) \
-            .join(RawMarkup, isouter=True) \
-            .filter(RawMarkup.id == None) \
-            .filter(URLQueueEntity.crawler_processing_sentinel == false()) \
+            .filter(URLQueueEntity.crawler_processed_sentinel == false()) \
             .filter(URLQueueEntity.retries < self.max_retries) \
-            .offset(random_offset) \
+            .order_by(URLQueueEntity.score.desc()) \
+            .filter(
+                sqlalchemy.or_(
+                    URLEntity.url.contains('thomasnet.com'),
+                    URLEntity.url.contains('go4worldbusiness.com')
+                )
+            ) \
             .limit(512)
         # print("Query is: ", query_list)
         query_list = query_list.all()
