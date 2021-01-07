@@ -18,9 +18,10 @@ class CrawlAsyncTask:
         Similar to a thread, but modeled as an async task
     """
 
-    def __init__(self, proxy_list, url):
+    def __init__(self, proxy_list, url, depth):
         self.proxy_list = proxy_list
-        self.url= url
+        self.url = url
+        self.depth = depth
 
         # Remove the sleeptime. Or no, actually, keep it
         self.headers = {

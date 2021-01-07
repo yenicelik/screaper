@@ -114,7 +114,7 @@ class Main:
         for target_url in target_urls:
             # TODO: Add the success items up here, or delete the crawl frontier logic?
             target_url, referrer_url, skip = self.crawl_frontier.add(target_url=target_url, referrer_url=async_crawl_task.url)
-            self.buffer_queue_and_referrer_triplet.append((target_url, referrer_url, skip, score))
+            self.buffer_queue_and_referrer_triplet.append((target_url, referrer_url, skip, score, async_crawl_task.depth))
 
         # Finally, verify successful execution of task
         self.buffer_queue_entry_completed.append(async_crawl_task.url)
@@ -138,7 +138,7 @@ class Main:
 
             print("Populating queue")
             # Populate crawl tasks queue
-            urls_to_crawl = self.crawl_frontier.pop_start_list()
+            urls_to_crawl, url_depths = self.crawl_frontier.pop_start_list()
             self.resource_database.commit()
 
             # For all the urls, make sure the markup does not exist yet
@@ -147,9 +147,9 @@ class Main:
             # Let them both run
             # These will never have any outputs, as they both run forever!
             tasks = []
-            for url in urls_to_crawl:
+            for url, depth in zip(urls_to_crawl, url_depths):
                 # Spawn a AsyncCrawlTask object
-                task = asyncio.create_task(self.task(CrawlAsyncTask(self.proxy_list, url=url)))
+                task = asyncio.create_task(self.task(CrawlAsyncTask(self.proxy_list, url=url, depth=depth + 1)))
                 tasks.append(task)
 
             if tasks:
@@ -169,7 +169,7 @@ class Main:
             # self.resource_database.commit()
 
             # Add to queue
-            self.resource_database.create_url_queue_entity(url_skip_score_tuple_dict=dict((x[0], (x[2], x[3])) for x in self.buffer_queue_and_referrer_triplet))
+            self.resource_database.create_url_queue_entity(url_skip_score_depth_tuple_dict=dict((x[0], (x[2], x[3], x[4])) for x in self.buffer_queue_and_referrer_triplet))
             # self.resource_database.commit()
 
             # Add to referrer graph
