@@ -9,7 +9,7 @@ database = Database()
 
 # TODO: Move this into some underlying function somewhere
 
-@application.route('/get-actor-candidate-entities')
+@application.route('/get-actor-candidate-entities', methods=["GET", "POST"])
 def get_actor_candidate_entities():
     """
         Example request could look as follows:
