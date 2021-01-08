@@ -21,6 +21,7 @@ class CrawlAsyncTask:
     def __init__(self, proxy_list, url, depth):
         self.proxy_list = proxy_list
         self.url = url
+        # print("Fetching the following URL is: ", self.url)
         self.depth = depth
 
         # Remove the sleeptime. Or no, actually, keep it

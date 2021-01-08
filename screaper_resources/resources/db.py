@@ -14,7 +14,7 @@ from sqlalchemy.orm import sessionmaker, scoped_session, aliased
 # poolclass=NullPool
 
 from screaper_resources.resources.entities import URLQueueEntity, URLEntity, URLReferralsEntity, RawMarkup, \
-    NamedEntities
+    NamedEntities, ActorEntityCandidates
 
 load_dotenv()
 
@@ -384,6 +384,20 @@ class Database:
             named_entity_obj = NamedEntities(**obj)
             self.session.add(named_entity_obj)
 
+    def create_actor_entity_candidate(self, objs):
+        for obj in objs:
+            print("Inserting: ", obj)
+            # Get URL id
+            actor_entity_candidate = ActorEntityCandidates(**obj)
+            self.session.add(actor_entity_candidate)
+
+    def get_all_actor_entity_candidates(self):
+        query = self.session.query(URLEntity.url, ActorEntityCandidates)\
+            .filter(URLEntity.id == ActorEntityCandidates.url_id)\
+            .limit(100)\
+            .all()
+        urls, actor_entity_candidates = [x[0] for x in query], [x[1] for x in query]
+        return urls, actor_entity_candidates
 
 if __name__ == "__main__":
     print("Handle all I/O")

@@ -105,6 +105,8 @@ class ProcessedMarkup(Base):
     updated_at = Column(DateTime(), default=datetime.utcnow(), onupdate=datetime.utcnow(), nullable=False)
 
 
+# Should probably not be a database object. Just do this, and save the finally extracted entities into a database table
+# "EntityCandidates", which are then supposed to be double-checked by humans
 class NamedEntities(Base):
     """
         The index of entities which includes
@@ -124,6 +126,24 @@ class NamedEntities(Base):
     external_link = Column(Integer(), ForeignKey('url.id'), nullable=True)
     heuristic = Column(String(), nullable=False)
 
+class ActorEntityCandidates(Base):
+    """
+        The index which includes potential Actors.
+        Actors can be one of (Supplier, Distributor, Manufacturer, Chamber of Commerce, Public Institution, Ministry, etc. ...)
+    """
+
+    __tablename__ = 'actor_entity_candidates'
+
+    url_id = Column(Integer(), ForeignKey('url.id'), primary_key=True, nullable=False)
+    title = Column(String(), nullable=False)
+    description = Column(String(), nullable=False)
+
+    # possible other items
+    # location
+    # neustahl_score -> should be determined by personal score
+
+    def as_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
 if __name__ == "__main__":
     print("Model files")
