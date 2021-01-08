@@ -29,8 +29,6 @@ class CrawlFrontier:
         with open(os.getenv("PopularWebsitesYaml"), 'r') as file:
             self.popular_websites = yaml.load(file)["websites"]
             # print("Popular websites are: ", self.popular_websites)
-        # self.popular_websites_filter_query = [sqlalchemy.not_(URLEntity.url.contains(popular_website)) for popular_website in self.popular_websites]
-        self.popular_websites = self.pop_start_list()
 
         self.populat_websites_processor = KeywordProcessor()
         self.populat_websites_processor.add_keywords_from_list(self.popular_websites)
@@ -39,8 +37,8 @@ class CrawlFrontier:
         self.outdate_timedelta = None
 
     def pop_start_list(self):
-        objs = self.resource_database.get_url_task_queue_record_start_list()
-        return objs
+        queue_uris, queue_uri_depths = self.resource_database.get_url_task_queue_record_start_list()
+        return queue_uris, queue_uri_depths
 
     def add(self, target_url, referrer_url):
         """

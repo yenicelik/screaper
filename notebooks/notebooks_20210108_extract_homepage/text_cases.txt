@@ -1,0 +1,29 @@
+check test cases on: https://regex101.com/
+using
+regex: (https:\/\/|http:\/\/)?[-a-zA-Z0-9+&@#%~_|!:,.;]*(\.com)(\/)?
+
+http://thomasnet.com
+
+http://thomasnet.com/
+
+https://thomasnet.com
+
+http://www.thomasnet.com/
+
+http://www.business.thomasnet.com/
+
+www.thomasnet.com/
+
+www.thomasnet.com
+
+thomasnet.com/hello
+
+thomasnet.com/browsecom
+
+http://thomasnet.com/hello?getParam1=True
+
+https://www.thomasnet.com/local.html?cert=115&cov=CN&heading=15730807&location=Menlo+Park%7CCA&searchsource=https://www.thomasnet.com/
+
+https://weld-stud.midwestfasteners.com/www.midwestfasteners.com
+
+[-a-zA-Z0-9+&@#\/%=~_|]
