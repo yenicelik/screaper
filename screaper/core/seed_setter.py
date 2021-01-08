@@ -20,6 +20,8 @@ class Seed:
             # "https://www.thomasnet.com/products/roller-bearings-4221206-1.html",  # category listing (with multiple pages)
             # "https://www.thomasnet.com/profile/01150392/bdi.html?cov=NA&what=Roller+Bearings&heading=4221206&cid=1150392&searchpos=1",  # example distributor website
             # "https://www.bdiexpress.com/us/en/",  # example distributor website
+            # "https://www.dtr-ihk.de/mitgliedschaft/mitgliederverzeichnis",
+            # "https://www.wlw.ch/"
         ]
 
         add_seed_urls = False or (self.resource_database.get_number_of_queued_urls() == 0)

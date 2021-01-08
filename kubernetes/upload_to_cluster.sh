@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Uploads everything to externbob
-rsync --exclude 'venv/' --exclude 'venv38/' --exclude '.env' --exclude '.git/' --recursive -e 'ssh -p 2223' $HOME/screaper/ david@77.59.149.134:'~/screaper/' -v --progress
+rsync --exclude 'venv/' --exclude 'venv38/' --exclude 'web-app' --exclude '.env' --exclude '.git/' --recursive -e 'ssh -p 2223' $HOME/screaper/ david@77.59.149.134:'~/screaper/' -v --progress
 
 #def upload_to_davids_cluster():
 #    q = "rsync "
