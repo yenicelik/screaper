@@ -60,7 +60,7 @@ class Main:
         """
         start_time = time.time()
         crawl_object = await async_crawl_task.fetch()
-        self.buffer.append(crawl_object)
+        self.crawl_objects_buffer.add_to_buffer(crawl_object)
         self.task_durations.append(time.time() - start_time)
 
     async def dispatch_crawl_objects(self, crawl_object):
@@ -102,27 +102,24 @@ class Main:
                 await asyncio.gather(*tasks)
                 print("Time until gather took: ", time.time() - start_time)
 
-            # TODO: Make all the flush operations now
 
             # "Flush" the database in one go
             print("Flushing records: Markups {} -- Failed {} -- Completed {} -- Total {}".format(self.crawl_objects_buffer.calculate_collected_markups(), self.crawl_objects_buffer.calculate_failed(), self.crawl_objects_buffer.calculate_successful(), self.crawl_objects_buffer.calculate_total()))
             flush_start_time = time.time()
-            self.resource_database.create_markup_record(self.buffer_markup_records)
-            self.resource_database.get_url_task_queue_record_completed(urls=self.buffer_queue_entry_completed)
-            # self.resource_database.commit()
 
+            # Add into the database
+            self.resource_database.create_markup_record(self.crawl_objects_buffer.get_successful_items())
             # Create URL entity
-            self.resource_database.create_url_entity(urls=[x[0] for x in self.buffer_queue_and_referrer_triplet])
-            # self.resource_database.commit()
-
+            self.resource_database.insert_url_entity(self.crawl_objects_buffer.get_all_items())
             # Add to queue
-            self.resource_database.create_url_queue_entity(url_skip_score_depth_tuple_dict=dict((x[0], (x[2], x[3], x[4])) for x in self.buffer_queue_and_referrer_triplet))
-            # self.resource_database.commit()
-
+            self.resource_database.create_url_queue_entity(self.crawl_objects_buffer.get_all_items())  # We put in all items, to mark retries for the failed ones
             # Add to referrer graph
-            self.resource_database.create_referral_entity(target_url_referrer_url_tuple_list=[(x[0], x[1]) for x in self.buffer_queue_and_referrer_triplet])
+            self.resource_database.create_referral_entity(self.crawl_objects_buffer.get_successful_items())
             print("Flushing took {:.3f} second".format(time.time() - flush_start_time))
-            # self.resource_database.commit()
+
+            # Mark the failed items as failed in the database
+            self.resource_database.get_url_task_queue_record_completed(self.crawl_objects_buffer.get_successful_items())
+            self.resource_database.get_url_task_queue_record_failed(self.crawl_objects_buffer.get_failed_items())
 
             # Flush all buffers
             self.crawl_objects_buffer.flush_buffer()

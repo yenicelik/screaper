@@ -6,8 +6,7 @@ from aiohttp_requests import requests
 from flashtext import KeywordProcessor
 from requests.exceptions import ProxyError, ConnectTimeout
 
-from screaper.engine.markup_processor import markup_processor
-
+from screaper.engine.markup_processor import markup_processor, LinkProcessor
 
 # TODO: Implement Caching requests.
 # DNS Cache
@@ -61,7 +60,16 @@ class CrawlAsyncTask:
             )
             self.crawl_object.markup = await response.text()
             self.crawl_object.status_code = response.status
-            self.crawl_object.target_urls = markup_processor.get_links(self.url, self.crawl_object.markup)
+            found_urls = markup_processor.get_links(self.url, self.crawl_object.markup)
+
+            # Calculate the score otherwise by measuring how many tokens in the markup match with the dictionary
+            self.crawl_object.score = self.score(self.crawl_object.markup)
+
+            # Process all the links # Propogate the score onwards
+            for found_url in found_urls:
+                target_url, referrer_url, skip = self.link_processor.process(found_url, self.crawl_object.url)
+                self.crawl_object.insert_crawl_next_object(original_crawl_obj=self.crawl_object, target_url=target_url, skip=skip, score=self.crawl_object.score)
+
 
         except ProxyError as e:
             # print("Connection Timeout Exception 1!", e)
@@ -85,27 +93,4 @@ class CrawlAsyncTask:
         if not (self.crawl_object.status_code == requests.codes.ok):
             self.crawl_object.add_error(self.crawl_object.markup)
 
-        # Calculate the score otherwise by measuring how many tokens in the markup match with the dictionary
-        self.crawl_object.score = self.score(self.crawl_object.markup)
-
-        # Process all the links
-        self.crawl_object.target_urls = list(set([self.link_processor.process(x, self.crawl_object.url) for x in self.crawl_object.target_urls]))
-
         return self.crawl_object
-
-
-if __name__ == "__main__":
-    print("Making an example request with the async crawl task")
-
-    from screaper_resources.resources.resouces_proxylist import ProxyList
-    from screaper.crawl_frontier.crawl_frontier import CrawlFrontier, LinkProcessor
-    from screaper_resources.resources.db import Database
-
-    proxy_list = ProxyList()
-    database = Database()
-    queue_obj = CrawlFrontier(database).pop_start_list()[0]
-
-    print("Queue obj is: ", queue_obj)
-
-    single_execution = CrawlAsyncTask(proxy_list, url=queue_obj.url)
-    print(asyncio.run(single_execution.fetch()))

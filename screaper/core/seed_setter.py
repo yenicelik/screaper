@@ -39,9 +39,9 @@ class Seed:
 
             for x in seed_urls:
                 print("Adding: ", x)
-                self.resource_database.create_url_entity(urls=["/"])
+                self.resource_database.insert_url_entity(urls=["/"])
 
-                self.resource_database.create_url_entity(urls=[x])
+                self.resource_database.insert_url_entity(urls=[x])
                 self.resource_database.create_url_queue_entity(url_skip_score_depth_tuple_dict=dict([(x, (False, 0, 0))]))
                 self.resource_database.create_referral_entity(target_url_referrer_url_tuple_list=[(x, "/")])
 

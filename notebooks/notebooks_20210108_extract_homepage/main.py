@@ -95,7 +95,7 @@ def fetch_nonexistent_url_markups(url_list):
         UPDATE url_queue SET crawler_skip = FALSE WHERE url_queue.url_id IN (SELECT url_queue.url_id FROM url, url_queue WHERE url.url ~ '((https:\/\/|http:\/\/)?[-a-zA-Z0-9+&#%~_|!:,.;]*(\.com)(\/)?)$' AND url_queue.url_id = url.id);
     """
 
-    database.create_url_entity(url_list)
+    database.insert_url_entity(url_list)
     query_input_triplet_dict = dict((x, ("/", 0, 0)) for x in url_list)
     referral_input_triplet_dict = dict((x, "/") for x in url_list)
     print("Queue Input triplet dict is: ", list(query_input_triplet_dict.items())[:3])

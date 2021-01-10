@@ -28,9 +28,6 @@ class Database:
         Wrapper to handle all I/O with the database.
 
         Implements basic CRUD operations
-
-        Actually, let's not implement CRUD, but the actual operations that are used.
-        The CRUD is already implemented by the ORM
     """
 
     # For session placement, check code examples here:
@@ -38,11 +35,10 @@ class Database:
 
     def __init__(self):
         db_url = os.getenv('DatabaseUrl')
-        self.engine = create_engine(db_url, encoding='utf8', pool_size=5, max_overflow=10)  # pool_timeout=1
+        self.engine = create_engine(db_url, encoding='utf8')  # pool_timeout=1 # pool_size=5, max_overflow=10
 
         # self.engine = screaper.resources.entities.engine
-        Session = scoped_session(
-            sessionmaker(autocommit=False, autoflush=True, expire_on_commit=False, bind=self.engine))
+        Session = scoped_session(sessionmaker(autocommit=False, autoflush=True, expire_on_commit=False, bind=self.engine))
         # Session.configure()
         self.session = Session()
 
@@ -52,144 +48,122 @@ class Database:
     def commit(self):
         self.session.commit()
 
-    def create_url_entity(self, urls):
-
-        ############################################
-        #
-        #   Check which URLs were already created
-        #
-        ############################################        urls = set(urls)
+    def get_url_entity_not_inserted(self, urls):
+        """
+            Returns (1) a list of urls that are in the database, and (2) a list of urls that is not in the database
+        """
         existing_urls = self.session.query(URLEntity.url).filter(URLEntity.url.in_(urls)).all()
         existing_urls = [x[0] for x in existing_urls]
-        print("Existent urls: ", existing_urls)
-        # print("Existing urls are: ", existing_urls)
         missing_urls = [x for x in urls if x not in existing_urls]
-        # print("Missing urls are: ", missing_urls)
         assert len(set(missing_urls)) == len(missing_urls), ("create URL entities not unique!", len(set(missing_urls)), len(missing_urls))
+        return missing_urls
 
-        ############################################
-        #
-        #   Create a new URL entity for the ones that don't exist yet
-        #
-        ############################################
+    def insert_url_entity(self, urls):
+        """
+            Inserts the list of urls into the database
+        """
         to_insert = []
-        for url in missing_urls:
-            url_entity_obj = URLEntity(
-                url=url,
-                engine_version=self.engine_version
-            )
-            print("Inserting urls: ", url)
+        for url in urls:
+            url_entity_obj = URLEntity(url=url, engine_version=self.engine_version)
             to_insert.append(url_entity_obj)
 
         # Apply a bulk insert
         self.session.bulk_save_objects(to_insert)
 
-    def create_url_queue_entity(self, url_skip_score_depth_tuple_dict):
+    def get_url_queue_inserted_and_missing(self, urls):
         """
-            Assumes that the URL was already input into the URL queue!!
+            Returns (1) a list of urls that is enqueued, and (2) a list of urls that is not enqueued
+            and still needs to be inserted into the queue
         """
+        existing_urls = self.session.query(URLEntity.url)\
+            .filter(URLEntity.url.in_(urls))\
+            .filter(URLEntity.id == URLQueueEntity.url_id)\
+            .all()
+        existing_urls = [x[0] for x in existing_urls]
+        missing_urls = [x for x in urls if x not in existing_urls]
+        assert len(existing_urls) + len(missing_urls) == len(set(urls)), ("Mismatch in the number of URLs to be inputted!", len(existing_urls), len(missing_urls), len(set(urls)))
+        return existing_urls, missing_urls
 
-        ############################################
-        #
-        #   Check which URLs were already created
-        #
-        ############################################
-
-        print("URL skip score depth tuple is: ", url_skip_score_depth_tuple_dict)
-        urls = list(set([x for x in url_skip_score_depth_tuple_dict.keys()]))
-        urls_id_url_tuples = self.session.query(URLEntity.id, URLEntity.url).filter(URLEntity.url.in_(urls)).all()
-        assert len(urls_id_url_tuples) == len(url_skip_score_depth_tuple_dict), ("You must first insert a URL before you can add it to the queue!", len(urls_id_url_tuples), len(url_skip_score_depth_tuple_dict))
-
-        ############################################
-        #
-        #   Check which URLs were already inputted to the queue and which ones were not
-        #
-        ############################################
-        queued_urls = self.session.query(URLEntity.url) \
-            .filter(URLEntity.id == URLQueueEntity.url_id) \
-            .filter(URLEntity.url.in_(urls)).all()
-
-        existent_queue_elements = [x for x in urls_id_url_tuples if x[1] in queued_urls]
-        to_be_inserted_queue_elements = [x for x in urls_id_url_tuples if x[1] not in queued_urls]
-        assert len(existent_queue_elements) + len(to_be_inserted_queue_elements) == len(set(urls)), ("Mismatch in the number of URLs to be inputted!", len(existent_queue_elements), len(to_be_inserted_queue_elements), len(set(urls)))
-
-        ############################################
-        #
-        #   For the urls that are already in the queue, increment the occurrences counter
-        #
-        ############################################
+    def update_existent_queue_items_visited_again(self, urls):
+        """
+            Marks the urls
+        """
         query = self.session.query(URLQueueEntity).filter(URLQueueEntity.url_id == URLEntity.id) \
-            .filter(URLEntity.id.in_([x[0] for x in existent_queue_elements]))
-        query.update({URLQueueEntity.occurrences: URLQueueEntity.occurrences + 1}, synchronize_session=False)
+            .filter(URLEntity.url.in_(urls))
+        query.update({
+            URLQueueEntity.occurrences: URLQueueEntity.occurrences + 1
+        }, synchronize_session=False)
 
-        ############################################
-        #
-        #   For the urls that are not in the queue, insert it into the queue
-        #
-        ############################################
+    def insert_missing_queue_items(self, crawl_next_objects):
+        """
+            Inserts URLs into the queue
+        """
         to_insert = []
-        for url_id, queue_url in to_be_inserted_queue_elements:
+        for crawl_next_object in crawl_next_objects:
             url_queue_obj = URLQueueEntity(
-                url_id=url_id,
+                url_id=crawl_next_object.target_url,
                 crawler_processing_sentinel=False,
                 crawler_processed_sentinel=False,
-                crawler_skip=url_skip_score_depth_tuple_dict[queue_url][0],
+                crawler_skip=crawl_next_object.skip,
                 version_crawl_frontier=self.engine_version,
-                score=url_skip_score_depth_tuple_dict[queue_url][1],
-                depth=url_skip_score_depth_tuple_dict[queue_url][2]
+                score=crawl_next_object.score,
+                depth=crawl_next_object.depth
             )
             to_insert.append(url_queue_obj)
 
         self.session.bulk_save_objects(to_insert)
 
-    def create_referral_entity(self, target_url_referrer_url_tuple_list):
+    def get_duplicate_referral_pairs(self, crawl_next_objects):
+        """
+            Returns a list of tuples that were already inserted into the referral / adjacency graph
+        """
+        target_urls = [x.target_url for x in crawl_next_objects]
+        referrer_urls = [x.original_url for x in crawl_next_objects]
 
-        ############################################
-        #
-        #   Check which URLs were already created
-        #
-        ############################################
-
-        target_urls = [x[0] for x in target_url_referrer_url_tuple_list]
-        referrer_urls = [x[1] for x in target_url_referrer_url_tuple_list]
-
-        # Make sure target urls are entered as URLs
-        # Retrieve the URL ids. These must already have been inserted!:
         target_url_ids = self.session.query(URLEntity.id).filter(URLEntity.url.in_(target_urls)).all()
-        assert len(target_urls) == len(target_url_referrer_url_tuple_list), ("You must first insert a URL before you can add it to the queue!", len(target_url_referrer_url_tuple_list), len(target_urls))
-
+        target_urls = [x[0] for x in target_url_ids]
+        assert len(target_urls) == len(target_url_ids), ("You must first insert a URL before you can add it to the queue!", len(target_url_ids), len(target_urls))
         referrer_url_ids = self.session.query(URLEntity.id, URLEntity.url).filter(URLEntity.url.in_(referrer_urls)).all()
-        assert len(referrer_urls) == len(target_url_referrer_url_tuple_list), ("You must first insert a URL before you can add it to the queue!", len(target_url_referrer_url_tuple_list), len(referrer_urls))
+        referrer_urls = [x[0] for x in referrer_url_ids]
+        assert len(referrer_urls) == len(referrer_url_ids), ("You must first insert a URL before you can add it to the queue!", len(referrer_url_ids), len(referrer_urls))
 
-        ############################################
-        #
-        #   Check which referral pairs (target_url, original_url) are already input, and skip those
-        #
-        ############################################
-
+        # Manifests the (to, from) syntax
+        all_adjacency_id_pairs = list(zip(target_url_ids, referrer_url_ids))
         already_inserted_referral_pairs = self.session.query(URLReferralsEntity.target_url_id, URLReferralsEntity.referrer_url_id) \
             .filter(
+                sqlalchemy.tuple_(URLReferralsEntity.target_url_id, URLReferralsEntity.referrer_url_id).in_(
+                    all_adjacency_id_pairs
+                )
+            ).all()
+
+        not_inserted_referral_pairs = [x for x in all_adjacency_id_pairs if x not in already_inserted_referral_pairs]
+        assert len(already_inserted_referral_pairs) + len(not_inserted_referral_pairs) <= len(all_adjacency_id_pairs), ("You should have received less items after checking if an item was inserted already!", len(already_inserted_referral_pairs), len(not_inserted_referral_pairs), len(all_adjacency_id_pairs))
+
+        return already_inserted_referral_pairs, not_inserted_referral_pairs
+
+    def update_visited_referral_entities(self, adjacency_tuples):
+        """
+            Updates visited adjacency entries by incrementing the occurrences record
+            The tuples consist of (to, from) url_id pairs
+        """
+        visited_referral_entities = self.session.query(URLReferralsEntity.target_url_id, URLReferralsEntity.referrer_url_id) \
+            .filter(
             sqlalchemy.tuple_(URLReferralsEntity.target_url_id, URLReferralsEntity.referrer_url_id).in_(
-                list(zip(target_url_ids, referrer_url_ids)))
+                adjacency_tuples
+            )
         ).all()
+        visited_referral_entities.update({visited_referral_entities.occurrences: visited_referral_entities.occurrences + 1}, synchronize_session=False)
 
-        # Skip the ones that were already inserted
-        originally_to_be_input_items = list(zip(target_url_ids, referrer_url_ids))
-        target_url_id_referrer_url_id_tuple_list = [x for x in originally_to_be_input_items if x not in already_inserted_referral_pairs]
-        assert len(target_url_id_referrer_url_id_tuple_list) <= len(originally_to_be_input_items), ("You should have received less items after checking if an item was inserted already!", len(target_url_id_referrer_url_id_tuple_list), len(originally_to_be_input_items))
-
-        ############################################
-        #
-        #   For the url-pairs that are not in the adjacency graph, insert it
-        #
-        ############################################
-        # Create and insert the referral pair
+    def insert_referral_entity(self, adjacency_tuples):
+        """
+            Creates a referral entity / Inserts an item into the web-adjacency graph.
+            The tuples consist of (to, from) url_id pairs
+        """
         to_insert = []
-        for x in target_url_id_referrer_url_id_tuple_list:
-            target_url_id, referrer_url_id = x
+        for to_url_id, from_url_id in adjacency_tuples:
             url_referral_entity_obj = URLReferralsEntity(
-                target_url_id=target_url_id,
-                referrer_url_id=referrer_url_id
+                target_url_id=to_url_id,
+                referrer_url_id=from_url_id
             )
             to_insert.append(url_referral_entity_obj)
 
