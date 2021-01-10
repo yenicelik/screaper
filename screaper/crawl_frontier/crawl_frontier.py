@@ -5,8 +5,6 @@ import time
 
 from dotenv import load_dotenv
 
-from screaper_resources.resources.db import Database
-
 load_dotenv()
 
 
@@ -17,7 +15,7 @@ class CrawlFrontier:
 
     def __init__(self, database, crawl_objects_buffer):
         self.crawl_objects_buffer: CrawlObjectsBuffer = crawl_objects_buffer
-        self.database: Database = database
+        self.database = database
 
     def get_next_urls_to_crawl(self):
         """
@@ -61,8 +59,8 @@ class CrawlFrontier:
         """
             Insert the markup if the crawl_object successfully scraped a page
         """
-        crawl_objects = self.crawl_objects_buffer.buffer
-        self.database.create_markup_record(crawl_objects)
+        crawl_objects = self.crawl_objects_buffer.get_successful_items()
+        self.database.insert_markup_record(crawl_objects)
 
     def mark_crawl_objects_as_done(self):
         """
@@ -73,7 +71,7 @@ class CrawlFrontier:
         self.database.update_url_task_queue_record_failed(self.crawl_objects_buffer.get_failed_items())
 
 
-class CrawlObjectsBuffer():
+class CrawlObjectsBuffer:
 
     def __init__(self):
         self.buffer = set()
@@ -116,14 +114,13 @@ class CrawlObjectsBuffer():
         out = [x for crawl_object in self.buffer for x in crawl_object.crawl_next_objects]
         return out
 
-
 class CrawlObject:
 
     def __init__(self, url, queue_id, depth):
         # Do a bunch of more asserts on the type
-        assert url, url
-        assert queue_id, queue_id
-        assert depth, depth
+        assert url or url == "", url
+        assert queue_id or queue_id == 0, queue_id
+        assert depth or depth == 0, depth
 
         # Could probably even make this more string by applying a regex on the url
         assert isinstance(url, str), (url, type(url))
@@ -140,16 +137,18 @@ class CrawlObject:
         self.markup = None
         self.score = None
         self.url_id = None
+        self.ok = None
 
         self.not_successful = False
         self.errors = []
 
-    def insert_crawl_next_object(self, original_crawl_obj, target_url, skip):
+    def insert_crawl_next_object(self, original_crawl_obj, target_url, skip, score):
         obj = CrawlNextObject(
             original_url=original_crawl_obj.url,
             target_url=target_url,
             skip=skip,
-            depth=original_crawl_obj.depth + 1
+            depth=original_crawl_obj.depth + 1,
+            score=score
         )
         self.crawl_next_objects.append(obj)
 

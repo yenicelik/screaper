@@ -44,14 +44,14 @@ class ProxyList:
         # TODO: Replace with environment variable
         proxies = [(x["ip"], x["port"]) for x in proxies if x["google_status"] == 200]
         self._proxies = set(("http://" + str(x[0]) + ":" + str(x[1])) for x in proxies)
-        self._proxies.update(None)
+        self._proxies.update({None})
 
         # Add no proxy to self proxy-list
         self._bad_proxy_counter = dict((x, 0) for x in self._proxies)
 
         self._proxies_blacklist = set()
 
-        self.max_retries_per_proxy = 5
+        self.max_retries_per_proxy = 20
         self.total_tries = 1
         self.total_bad_tries = 1
 

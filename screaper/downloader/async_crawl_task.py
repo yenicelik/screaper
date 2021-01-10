@@ -60,6 +60,7 @@ class CrawlAsyncTask:
             )
             self.crawl_object.markup = await response.text()
             self.crawl_object.status_code = response.status
+            self.crawl_object.ok = response.ok
             found_urls = markup_processor.get_links(self.url, self.crawl_object.markup)
 
             # Calculate the score otherwise by measuring how many tokens in the markup match with the dictionary
@@ -87,10 +88,11 @@ class CrawlAsyncTask:
             self.crawl_object.add_error(e)
 
         except Exception as e:
+            self.proxy_list.warn_proxy(proxy, harsh=True)
             print("Encountered exception: ", e)
             self.crawl_object.add_error(e)
 
-        if not (self.crawl_object.status_code == requests.codes.ok):
+        if not (self.crawl_object.ok):
             self.crawl_object.add_error(self.crawl_object.markup)
 
         return self.crawl_object

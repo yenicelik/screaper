@@ -63,14 +63,15 @@ class URLReferralsEntity(Base):
 
     id = Column(Integer(), primary_key=True, autoincrement=True, nullable=False)
     target_url_id = Column(Integer(), ForeignKey('url.id'), index=True, nullable=False)  # Make this an index
-    referrer_url_id = Column(Integer(), ForeignKey('url.id'), primary_key=True, nullable=False)
-    created_at = Column(DateTime(), default=datetime.utcnow(),
-                        nullable=False)  # Timestamp when the query is added to the queue
-    occurrences = Column(Integer, nullable=False, default=1)
+    referrer_url_id = Column(Integer(), ForeignKey('url.id'), index=True, nullable=False)
+    created_at = Column(DateTime(), default=datetime.utcnow(), nullable=False)  # Timestamp when the query is added to the queue
+    occurrences = Column(Integer(), nullable=False, default=1)
 
     __table_args__ = (
-        Index('target_url_id', 'referrer_url_id'),
-        {},
+        (
+        # Index('target_url_id', 'referrer_url_id'),
+        PrimaryKeyConstraint('target_url_id', 'referrer_url_id'),
+        )
     )
 
 

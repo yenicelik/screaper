@@ -7,12 +7,10 @@ import string
 import time
 import numpy as np
 
-from screaper.crawl_frontier.crawl_frontier import CrawlFrontier, CrawlObjectsBuffer
-
-from screaper.downloader.async_crawl_task import CrawlAsyncTask
 from screaper_resources.resources.db import Database
+from screaper.crawl_frontier.crawl_frontier import CrawlFrontier, CrawlObjectsBuffer
+from screaper.downloader.async_crawl_task import CrawlAsyncTask
 from screaper_resources.resources.resouces_proxylist import ProxyList
-
 
 class Main:
 
@@ -66,6 +64,8 @@ class Main:
 
         while True:
 
+            start_time = time.time()
+
             crawled_sites = self.resource_database.get_number_of_crawled_sites()
             queued_sites = self.resource_database.get_number_of_queued_urls()
             sites_per_minute = self.calculate_sites_per_minute(crawled_sites)
@@ -85,6 +85,9 @@ class Main:
                 task = self.dispatch_crawl_objects(crawl_object)
                 tasks.append(task)
 
+            # Such that it doesn't spam
+            await asyncio.sleep(2)
+
             # Wait until all tasks are handled
             if tasks:
                 await asyncio.gather(*tasks)
@@ -95,8 +98,8 @@ class Main:
 
             # Flush all items into the database
             self.crawl_frontier.insert_markups_for_successul_crawl_objects()
-            self.crawl_frontier.mark_crawl_objects_as_done()
             self.crawl_frontier.extend_frontier()
+            self.crawl_frontier.mark_crawl_objects_as_done()
             print("Flushing took {:.3f} second".format(time.time() - flush_start_time))
 
             # Re-iniate all buffers

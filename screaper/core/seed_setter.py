@@ -1,17 +1,17 @@
 """
     File to set a set of seeds
 """
-from screaper.crawl_frontier.crawl_frontier import CrawlFrontier
+from screaper.crawl_frontier.crawl_frontier import CrawlNextObject
 from screaper_resources.resources.db import Database
+from screaper_resources.resources.entities import URLEntity
 
 
 class Seed:
 
-    def __init__(self, resource_database, crawl_frontier):
+    def __init__(self, resource_database):
         # establish a database connection
 
         self.resource_database = resource_database
-        self.crawl_frontier = crawl_frontier
 
         seed_urls = [
             # "https://www.thomasnet.com/browse/",  # entire database
@@ -39,19 +39,54 @@ class Seed:
 
             for x in seed_urls:
                 print("Adding: ", x)
-                self.resource_database.insert_url_entity(urls=[""])
 
-                self.resource_database.insert_url_entity(urls=[x])
-                self.resource_database.create_url_queue_entity(url_skip_score_depth_tuple_dict=dict([(x, (False, 0, 0))]))
-                self.resource_database.create_referral_entity(target_url_referrer_url_tuple_list=[(x, "/")])
+                missing = self.resource_database.get_url_entity_not_inserted(urls=[""])
+                if missing:
+                    print("Missing is: ", missing)
+                    self.resource_database.insert_url_entity(urls=[""])
+                    self.resource_database.commit()
 
-            self.resource_database.commit()
+            for x in seed_urls:
+                print("Adding: ", x)
+
+                missing = self.resource_database.get_url_entity_not_inserted(urls=[x])
+                if missing:
+                    print("Missing is: ", missing)
+                    self.resource_database.insert_url_entity(urls=[x])
+                    self.resource_database.commit()
+
+            for x in seed_urls:
+                print("Adding: ", x)
+
+                crawl_next_objects = [CrawlNextObject(original_url="", target_url=x, skip=False, depth=0, score=0)]
+
+                _, missing = self.resource_database.get_url_queue_inserted_and_missing([x.target_url for x in crawl_next_objects])
+                if missing:
+                    print("Missing is: ", missing)
+                    self.resource_database.insert_missing_queue_items(crawl_next_objects)
+                    self.resource_database.commit()
+
+            for x in seed_urls:
+                print("Adding: ", x)
+
+                crawl_next_objects = [CrawlNextObject(original_url="", target_url=x, skip=False, depth=0, score=0)]
+
+                # Need to convert this to url ids first
+                not_inserted = self.resource_database.get_duplicate_referral_pairs(crawl_next_objects)
+
+                if not_inserted:
+                    print("Not inserted is: ", not_inserted)
+                    from_id = self.resource_database.session.query(URLEntity.id).filter(URLEntity.url == "").one_or_none()
+                    to_id = self.resource_database.session.query(URLEntity.id).filter(URLEntity.url == x).one_or_none()
+
+                    adjacency_tuples = [(to_id, from_id), ]
+                    self.resource_database.insert_referral_entity(adjacency_tuples)
+                    self.resource_database.commit()
+
 
 if __name__ == "__main__":
     print("Adding seed items")
 
     database = Database()
-    crawl_frontier = CrawlFrontier(database)
-
-    seed_generator = Seed(database, crawl_frontier)
+    seed_generator = Seed(database)
 
