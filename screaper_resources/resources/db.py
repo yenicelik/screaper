@@ -7,12 +7,10 @@ import sqlalchemy
 import pandas as pd
 
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, false, func, tablesample
-from sqlalchemy.orm import sessionmaker, scoped_session, aliased
+from sqlalchemy import create_engine, false
+from sqlalchemy.orm import sessionmaker, scoped_session
 
-# from sqlalchemy.pool import NullPool
-# poolclass=NullPool
-
+from screaper.crawl_frontier.crawl_frontier import CrawlObject
 from screaper_resources.resources.entities import URLQueueEntity, URLEntity, URLReferralsEntity, RawMarkup, \
     NamedEntities, ActorEntityCandidates
 
@@ -56,64 +54,81 @@ class Database:
 
     def create_url_entity(self, urls):
 
-        # Weed-out duplicate urls
-        urls = set(urls)
+        ############################################
+        #
+        #   Check which URLs were already created
+        #
+        ############################################        urls = set(urls)
         existing_urls = self.session.query(URLEntity.url).filter(URLEntity.url.in_(urls)).all()
         existing_urls = [x[0] for x in existing_urls]
+        print("Existent urls: ", existing_urls)
         # print("Existing urls are: ", existing_urls)
         missing_urls = [x for x in urls if x not in existing_urls]
         # print("Missing urls are: ", missing_urls)
+        assert len(set(missing_urls)) == len(missing_urls), ("create URL entities not unique!", len(set(missing_urls)), len(missing_urls))
 
-        assert len(set(missing_urls)) == len(missing_urls), (
-        "create URL entities not unique!", len(set(missing_urls)), len(missing_urls))
-
-        # Create a new URL object
+        ############################################
+        #
+        #   Create a new URL entity for the ones that don't exist yet
+        #
+        ############################################
         to_insert = []
         for url in missing_urls:
             url_entity_obj = URLEntity(
                 url=url,
                 engine_version=self.engine_version
             )
+            print("Inserting urls: ", url)
             to_insert.append(url_entity_obj)
 
         # Apply a bulk insert
         self.session.bulk_save_objects(to_insert)
 
-    # Perhaps a bulk operation instead?
     def create_url_queue_entity(self, url_skip_score_depth_tuple_dict):
         """
             Assumes that the URL was already input into the URL queue!!
         """
 
-        # TODO: Test this function?
+        ############################################
+        #
+        #   Check which URLs were already created
+        #
+        ############################################
 
-        urls = [x for x in url_skip_score_depth_tuple_dict.keys()]
+        print("URL skip score depth tuple is: ", url_skip_score_depth_tuple_dict)
+        urls = list(set([x for x in url_skip_score_depth_tuple_dict.keys()]))
+        urls_id_url_tuples = self.session.query(URLEntity.id, URLEntity.url).filter(URLEntity.url.in_(urls)).all()
+        assert len(urls_id_url_tuples) == len(url_skip_score_depth_tuple_dict), ("You must first insert a URL before you can add it to the queue!", len(urls_id_url_tuples), len(url_skip_score_depth_tuple_dict))
 
-        # Check which URLs were already submitted
-        query = self.session.query(URLEntity.id, URLEntity.url) \
+        ############################################
+        #
+        #   Check which URLs were already inputted to the queue and which ones were not
+        #
+        ############################################
+        queued_urls = self.session.query(URLEntity.url) \
             .filter(URLEntity.id == URLQueueEntity.url_id) \
             .filter(URLEntity.url.in_(urls)).all()
 
-        queued_url_ids = [x[0] for x in query]
-        queue_url_urls = [x[1] for x in query]
+        existent_queue_elements = [x for x in urls_id_url_tuples if x[1] in queued_urls]
+        to_be_inserted_queue_elements = [x for x in urls_id_url_tuples if x[1] not in queued_urls]
+        assert len(existent_queue_elements) + len(to_be_inserted_queue_elements) == len(set(urls)), ("Mismatch in the number of URLs to be inputted!", len(existent_queue_elements), len(to_be_inserted_queue_elements), len(set(urls)))
 
-        existent_queue_elements = [x for x in zip(queued_url_ids, queue_url_urls) if x[1] in urls]
-        to_be_inserted_queue_elements = [x for x in zip(queued_url_ids, queue_url_urls) if x[1] not in urls]
-
-        # assert len(url_ids) == len(urls), ("Not same size!", len(url_ids), len(urls), url_ids, urls)
-
-        # Increment occurrences count for existing url_queue_objects
+        ############################################
+        #
+        #   For the urls that are already in the queue, increment the occurrences counter
+        #
+        ############################################
         query = self.session.query(URLQueueEntity).filter(URLQueueEntity.url_id == URLEntity.id) \
             .filter(URLEntity.id.in_([x[0] for x in existent_queue_elements]))
         query.update({URLQueueEntity.occurrences: URLQueueEntity.occurrences + 1}, synchronize_session=False)
 
-        # Filter out url_ids which were already input
-
-        # Create queue objects for non-existing url_queue_objects
-        # Create URL objects for all urls that were not included already
+        ############################################
+        #
+        #   For the urls that are not in the queue, insert it into the queue
+        #
+        ############################################
         to_insert = []
         for url_id, queue_url in to_be_inserted_queue_elements:
-            # Add to the queue if not already within the queue
             url_queue_obj = URLQueueEntity(
                 url_id=url_id,
                 crawler_processing_sentinel=False,
@@ -129,30 +144,46 @@ class Database:
 
     def create_referral_entity(self, target_url_referrer_url_tuple_list):
 
+        ############################################
+        #
+        #   Check which URLs were already created
+        #
+        ############################################
+
         target_urls = [x[0] for x in target_url_referrer_url_tuple_list]
         referrer_urls = [x[1] for x in target_url_referrer_url_tuple_list]
 
-        query = self.session.query(URLEntity.id, URLEntity.url).filter(URLEntity.url.in_(target_urls)).all()
-        target_url_ids = [x[0] for x in query]
-        target_urls = [x[1] for x in query]
-        query = self.session.query(URLEntity.id, URLEntity.url).filter(URLEntity.url.in_(referrer_urls)).all()
-        referrer_url_ids = [x[0] for x in query]
-        referrer_urls = [x[1] for x in query]
+        # Make sure target urls are entered as URLs
+        # Retrieve the URL ids. These must already have been inserted!:
+        target_url_ids = self.session.query(URLEntity.id).filter(URLEntity.url.in_(target_urls)).all()
+        assert len(target_urls) == len(target_url_referrer_url_tuple_list), ("You must first insert a URL before you can add it to the queue!", len(target_url_referrer_url_tuple_list), len(target_urls))
 
-        # Skip items that were already added
-        # Just update items that were already added (this has low repercussions, also duplicates here just enforce the graph, which is fine)
-        query = self.session.query(URLReferralsEntity.target_url_id, URLReferralsEntity.referrer_url_id) \
+        referrer_url_ids = self.session.query(URLEntity.id, URLEntity.url).filter(URLEntity.url.in_(referrer_urls)).all()
+        assert len(referrer_urls) == len(target_url_referrer_url_tuple_list), ("You must first insert a URL before you can add it to the queue!", len(target_url_referrer_url_tuple_list), len(referrer_urls))
+
+        ############################################
+        #
+        #   Check which referral pairs (target_url, original_url) are already input, and skip those
+        #
+        ############################################
+
+        already_inserted_referral_pairs = self.session.query(URLReferralsEntity.target_url_id, URLReferralsEntity.referrer_url_id) \
             .filter(
             sqlalchemy.tuple_(URLReferralsEntity.target_url_id, URLReferralsEntity.referrer_url_id).in_(
                 list(zip(target_url_ids, referrer_url_ids)))
         ).all()
 
-        # Filter out the items of
-        # Remove all items that were already added
+        # Skip the ones that were already inserted
         originally_to_be_input_items = list(zip(target_url_ids, referrer_url_ids))
-        target_url_id_referrer_url_id_tuple_list = [x for x in originally_to_be_input_items if x not in query]
+        target_url_id_referrer_url_id_tuple_list = [x for x in originally_to_be_input_items if x not in already_inserted_referral_pairs]
+        assert len(target_url_id_referrer_url_id_tuple_list) <= len(originally_to_be_input_items), ("You should have received less items after checking if an item was inserted already!", len(target_url_id_referrer_url_id_tuple_list), len(originally_to_be_input_items))
 
-        # Create the entity
+        ############################################
+        #
+        #   For the url-pairs that are not in the adjacency graph, insert it
+        #
+        ############################################
+        # Create and insert the referral pair
         to_insert = []
         for x in target_url_id_referrer_url_id_tuple_list:
             target_url_id, referrer_url_id = x
@@ -173,115 +204,42 @@ class Database:
     # Write bulk operation instead?
     def get_url_task_queue_record_start_list(self):
         """
-            Retrieve a list of URL sites to retrieve
+            Retrieve a list of URL sites to scrape next
+            # TODO: Make it mixed, such that there is a limit of how many urls from one domain can be picked
+            # TODO: Prebuild queries ?
         :return:
         """
 
-        # TODO: Make it mixed,
-        # such that there is a limit of how many urls from one domain can be picked
-
         start_time = time.time()
-        # Get the one inserted most recently,
-        # which is not processing
-        # and is not included in the index already
+        # Such that there is some sort of non-overlap mechanism across processes
+        random_prime = random.choice([1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29])
 
-        # .filter(URLQueueEntity.crawler_skip == false()) \
-
-        # TODO: Prebuild queries ?
-
-        # filter out any sites which are over-proportionally visited
-        # .filter(sqlalchemy.and_(*self.popular_websites_filter_query))
-
-        # .filter(sqlalchemy.not_(URLEntity.url.contains('tel://'))) \
-        # .filter(sqlalchemy.not_(URLEntity.url.contains('javascript'))) \
-        # .filter(sqlalchemy.not_(URLEntity.url.contains('doi.org'))) \
-        # .filter(sqlalchemy.not_(URLEntity.url.contains('wikimedia.org'))) \
-        # .filter(sqlalchemy.not_(URLEntity.url.contains('news'))) \
-        # .filter(sqlalchemy.not_(URLEntity.url.contains('microsoft'))) \
-        # .filter(sqlalchemy.not_(URLEntity.url.contains('wiki'))) \
-        # .filter(sqlalchemy.not_(URLEntity.url.contains('ftp:'))) \
-        # .filter(sqlalchemy.not_(URLEntity.url.contains('help'))) \
-        # .filter(sqlalchemy.not_(URLEntity.url.contains('media'))) \
-        # .filter(sqlalchemy.not_(URLEntity.url.contains('.hp.com'))) \
-        # .filter(sqlalchemy.not_(URLEntity.url.contains('google'))) \
-        # .filter(sqlalchemy.not_(URLEntity.url.contains('archive'))) \
-        # .filter(sqlalchemy.not_(URLEntity.url.contains('.se.com'))) \
-        # .filter(sqlalchemy.not_(URLEntity.url.contains('go4worldbusiness.com'))) \
-
-        # .join(RawMarkup, isouter=True) \
-        # .filter(RawMarkup.id == None) \
-
-        # .order_by(
-        #     URLQueueEntity.occurrences.desc(),
-        #     # URLQueueEntity.created_at.asc()
-        #     # func.random()
-        #     # Gotta do random takeout as we use multiprocessing
-        # )\
-
-        # Make sure markup does not exist yet?s
-        # TODO: Implement priority logic into this function.
-        # Doesnt make much sense to retrieve and set a sentinel for this, I think
-        # Also include that markup should not be included
-
-        # TODO: Don't forget to add these back up!!!
-
-        # .join(RawMarkup, isouter=True) \
-        # .filter(RawMarkup.id == None) \
-        # .offset(random_offset) \
-        # .filter(
-        #     sqlalchemy.or_(
-        #         URLEntity.url.contains('thomasnet.com'),
-        #         URLEntity.url.contains('go4worldbusiness.com')
-        #     )
-        # ) \
-
-        # .order_by(URLQueueEntity.depth.asc()) \
-
-        # Pick one where the id is divisible by a prime number
-        random_prime = 1
-        # .filter(URLQueueEntity.id % random_prime == 0) \
-            # random.choice(
-        #     [1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101,
-        #      103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199])
-        # Some pseudo-randomness lol. We include 1 such that there is a chance that all items are chosen
-
-        # Get all raw markup items
         raw_markup_items = self.session.query(RawMarkup.url_id)
-
-        # TODO: Select random subquery and order by depth
         query_list = self.session.query(URLEntity.url, URLQueueEntity.id, URLQueueEntity.depth) \
             .filter(URLQueueEntity.crawler_skip == false()) \
             .filter(sqlalchemy.not_(URLQueueEntity.url_id.in_(raw_markup_items))) \
             .filter(URLQueueEntity.crawler_processing_sentinel == false()) \
             .filter(URLQueueEntity.retries < self.max_retries) \
             .filter(URLQueueEntity.depth != -1) \
+            .filter(URLQueueEntity.id % random_prime == 0) \
             .order_by(URLQueueEntity.depth.asc()) \
             .limit(512)
 
-        # Make sure no duplicate entries ...
-
         query_list = query_list.all()
 
-        # TODO: Filter out markups that are not included
+        out = []
+        for x in query_list:
+            out.append(CrawlObject(url=x[0], queue_id=x[1], depth=x[2]))
 
-        # TODO: Possibility to yield
-
-        # TODO: Make sure the ids don't exist in the markup table yet!
-
-        # Python unzip function?
-        queue_uris = [x[0] for x in query_list]
-        queue_uri_ids = [x[1] for x in query_list]
-        queue_uri_depths = [x[2] for x in query_list]
+        # Make sure no duplicate entries ...
+        assert len([x.url for x in out]) == len(set([x.url for x in out])), ("Non-unique uris found!", len([x.url for x in out]), len(set([x.url for x in out])))
 
         print("Getting queue (1) takes {:.3f} seconds".format(time.time() - start_time))
-
-        # Bulk update
-        query = self.session.query(URLQueueEntity).filter(URLQueueEntity.id.in_(queue_uri_ids))
+        query = self.session.query(URLQueueEntity).filter(URLQueueEntity.id.in_([x.queue_id for x in out]))
         query.update({"crawler_processing_sentinel": True}, synchronize_session=False)
-
         print("Getting queue (2) takes {:.3f} seconds".format(time.time() - start_time))
 
-        return queue_uris, queue_uri_depths
+        return out
 
     def get_url_task_queue_record_completed(self, urls):
         """
@@ -290,7 +248,10 @@ class Database:
         """
         query = self.session.query(URLQueueEntity).filter(URLQueueEntity.url_id == URLEntity.id).filter(
             URLEntity.url.in_(urls))
+        print("Number of items before processed: ", query.filter(URLQueueEntity.crawler_processed_sentinel == false()).count())
         query.update({"crawler_processed_sentinel": True}, synchronize_session=False)
+        print("Number of items now processed: ", query.filter(URLQueueEntity.crawler_processed_sentinel == false()).count())
+
 
     def get_url_task_queue_record_failed(self, urls):
         """
@@ -323,10 +284,12 @@ class Database:
             .all()
 
         to_insert = []
+        c = 0
         for obj in query:
             url_id, url, markup_id = obj
             # If existent, just create a new entry. The timestamps will differentiate anyways
             if markup_id is not None:
+                c += 1
                 continue
             obj = RawMarkup(
                 url_id=url_id,
@@ -340,8 +303,7 @@ class Database:
 
         assert len(to_insert) <= len(url_markup_tuple_dict), ("Lengths are weird!", len(to_insert), len(url_markup_tuple_dict))
 
-
-        print("Bulk inserting", len(to_insert))
+        print("Bulk inserting raw_markup {} skipping {}".format(len(to_insert), c))
         # Bulk save all the markups that were fetched
 
         # sqlalchemy.exc.IntegrityError: (psycopg2.errors.UniqueViolation) duplicate key value violates unique constraint "raw_markup_pkey"

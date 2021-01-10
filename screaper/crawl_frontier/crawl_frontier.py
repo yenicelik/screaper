@@ -2,7 +2,11 @@
     Implements a crawl frontier
 """
 import os
-from re import search
+import re
+from urllib.parse import urlparse, urljoin
+
+from url_normalize import url_normalize
+from w3lib.url import url_query_cleaner, canonicalize_url
 
 import yaml
 
@@ -12,18 +16,72 @@ from url_parser import get_base_url
 
 load_dotenv()
 
+class CrawlObjectsBuffer():
 
-class CrawlFrontier:
+    def __init__(self):
+        self.buffer = set()
 
-    def __init__(self, resource_database):
-        self.resource_database = resource_database
+    def flush_buffer(self):
+        self.buffer = set()
+
+    def add_to_buffer(self, crawl_object):
+        assert isinstance(crawl_object, CrawlObject)
+        self.buffer.add(crawl_object)
+
+    def calculate_successful(self):
+        return len({x for x in self.buffer if not x.not_successful})
+
+    def calculate_failed(self):
+        return len({x for x in self.buffer if x.not_successful})
+
+    def calculate_collected_markups(self):
+        return len({x for x in self.buffer if x.markup})
+
+    def calculate_total(self):
+        return len(self.buffer)
+
+    def get_markups(self):
+        pass
+
+
+class CrawlObject:
+
+    def __init__(self, url, queue_id, depth):
+
+        # Do a bunch of more asserts on the type
+        assert url, url
+        assert queue_id, queue_id
+        assert depth, depth
+
+        # Could probably even make this more string by applying a regex on the url
+        assert isinstance(url, str), (url, type(url))
+        assert isinstance(queue_id, int), (queue_id, type(queue_id))
+        assert isinstance(depth, int), (depth, type(depth))
+
+        self.url = url
+        self.queue_id = queue_id
+        self.depth = depth
+
+        # Items that will be assigned during the runtime
+        self.status_code = None
+        self.target_urls = []
+        self.markup = None
+        self.score = None
+
+        self.not_successful = False
+        self.errors = []
+
+    def add_error(self, err):
+        self.errors.append(err)
+        self.not_successful = True
+
+        self.score = 0
+
+class LinkProcessor:
+
+    def __init__(self):
         self.blacklist = []
-        self.whitelist = [
-            # "https://www.thomasnet.com",
-            # "https://www.go4worldbusiness.com",
-            # "https://www.thomasnet.com/products/roller-bearings-4221206",
-            # "https://www.thomasnet.com/products/roller-bearings-4221206"
-        ]
+        self.whitelist = []
 
         self.popular_websites = []
         with open(os.getenv("PopularWebsitesYaml"), 'r') as file:
@@ -35,12 +93,12 @@ class CrawlFrontier:
 
         # Later on implement when a website is considered outdated
         self.outdate_timedelta = None
+        self.regex = re.compile("(?i)\b((?:(https|https)?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))")
 
-    def pop_start_list(self):
-        queue_uris, queue_uri_depths = self.resource_database.get_url_task_queue_record_start_list()
-        return queue_uris, queue_uri_depths
+    def is_absolute(self, url):
+        return bool(urlparse(url).netloc)
 
-    def add(self, target_url, referrer_url):
+    def process(self, target_url, referrer_url):
         """
             Adds an item to be scraped to the persistent queue
         """
@@ -63,33 +121,29 @@ class CrawlFrontier:
             # if link starts with slash, then this is a relative link. We append the domain to the url
             basic_url = get_base_url(referrer_url)  # Returns just the main url
             target_url = basic_url + target_url
-        # if "http" not in target_url:
-        #     return
 
-        # remove all anchors if existent
-        target_url = target_url.split('#')[0]
+        if self.is_absolute(target_url):
+            basic_url = get_base_url(referrer_url)  # Returns just the main url
+            target_url = urljoin(basic_url, target_url)
 
         # Bring target URL into unified format
         if target_url.endswith('/'):
             target_url = target_url[-1]
 
-        # TODO: Make sure that if https is crawled, then don't recrawl the http (and vica versa)
+        # Finally, apply url_normalization
+        target_url = url_normalize(target_url)
+        target_url = url_query_cleaner(target_url, parameterlist=['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'], remove=True)
+        target_url = canonicalize_url(target_url)
 
-        # Other ways to check if link is valid?
-        # Should already be checked elsewhere!
-        # # TODO: Implement contents to also be exported
-        # if self.resource_database.get_markup_exists(url=target_url):
-        #     # If the url's markup was already crawled, do not ping this again
-        #     return
+        if target_url.endswith("/"):
+            target_url = target_url[:-1]
+
+        target_url = target_url.split('#')[0]
+
+        # TODO: Implement contents to also be parsed and links added
 
         # Add more cases why one would skip here
         skip = False
-        # print("Skipping any: ", [x not in target_url for x in self.whitelist])
-        # print("Skipping any: ", any([x not in target_url for x in self.whitelist]))
-        # print("Skipping any: ", all([x not in target_url for x in self.whitelist]))
-        # if all([x not in target_url for x in self.whitelist]):
-        #     # if the link is not whitelisted, do not look for this further
-        #     skip = True
         if self.populat_websites_processor.extract_keywords(target_url):
             skip = True
 
@@ -97,9 +151,6 @@ class CrawlFrontier:
         # (Or just keep them, because we don't read from here anyways...?
         # Do profiling before pushing these up the hierarchy
         return target_url, referrer_url, skip
-
-    # TODO: When getting, always prioritize the thomasnet pages before spanning out!
-
 
 if __name__ == "__main__":
     print("Check the crawl frontier")

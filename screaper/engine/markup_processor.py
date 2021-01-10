@@ -1,6 +1,7 @@
 """
     Implements a markup processor
 """
+import re
 from pyquery import PyQuery as pq
 from url_normalize import url_normalize
 from url_parser import get_base_url
@@ -9,7 +10,10 @@ from url_parser import get_base_url
 class MarkupProcessor:
 
     def __init__(self):
-        pass
+        self.regex = re.compile("(?i)\b((?:(https|https)?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))")
+
+    def find_link_in_fulltext(self, markup):
+        return re.findall(self.regex, markup)
 
     def get_links(self, url, markup):
 
@@ -36,13 +40,10 @@ class MarkupProcessor:
                 link = basic_url + link
 
             # Other ways to check if link is valid?
-            # TODO: Implement contents to also be exported
             link = url_normalize(link)
 
             # Normalize URL to common format
-
             out.append(link)
-            # print(link)
 
         return out
 
