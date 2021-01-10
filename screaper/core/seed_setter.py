@@ -16,9 +16,9 @@ class Seed:
         seed_urls = [
             # "https://www.thomasnet.com/browse/",  # entire database
             # "https://www.thomasnet.com/browse/machinery-tools-supplies-1.html",  # category depth 1
-            # "https://www.thomasnet.com/browse/machinery-tools-supplies/bearings-1.html",  # category depth 2
+            "https://www.thomasnet.com/browse/machinery-tools-supplies/bearings-1.html",  # category depth 2
             # "https://www.thomasnet.com/catalogs/mechanical-components-and-assemblies/bearings/",
-            # "https://www.go4worldbusiness.com/suppliers/bearing.html?region=worldwide",
+            "https://www.go4worldbusiness.com/suppliers/bearing.html?region=worldwide",
             # "https://www.thomasnet.com/browse/machinery-tools-supplies/bearings/roller-1.html",  # category depth 3
             # "https://www.thomasnet.com/products/roller-bearings-4221206-1.html",  # category listing (with multiple pages)
             # "https://www.thomasnet.com/profile/01150392/bdi.html?cov=NA&what=Roller+Bearings&heading=4221206&cid=1150392&searchpos=1",  # example distributor website
@@ -39,7 +39,7 @@ class Seed:
 
             for x in seed_urls:
                 print("Adding: ", x)
-                self.resource_database.insert_url_entity(urls=["/"])
+                self.resource_database.insert_url_entity(urls=[""])
 
                 self.resource_database.insert_url_entity(urls=[x])
                 self.resource_database.create_url_queue_entity(url_skip_score_depth_tuple_dict=dict([(x, (False, 0, 0))]))

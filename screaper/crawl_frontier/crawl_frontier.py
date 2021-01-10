@@ -1,6 +1,7 @@
 """
     Implements a crawl frontier
 """
+import time
 
 from dotenv import load_dotenv
 
@@ -8,11 +9,24 @@ from screaper_resources.resources.db import Database
 
 load_dotenv()
 
-class CrawlObjectsDatabaseMiddleware:
+
+class CrawlFrontier:
+    """
+        Poses as a middleware between the Database, and the Buffer accumulated
+    """
 
     def __init__(self, database, crawl_objects_buffer):
         self.crawl_objects_buffer: CrawlObjectsBuffer = crawl_objects_buffer
         self.database: Database = database
+
+    def get_next_urls_to_crawl(self):
+        """
+            Pops a list of 512 items which will be scraped next
+        """
+        start_time = time.time()
+        crawl_objects = self.database.get_url_task_queue_record_start_list()
+        print("Time to populate queue took: ", time.time() - start_time)
+        return crawl_objects
 
     def extend_frontier(self):
         """
@@ -37,11 +51,26 @@ class CrawlObjectsDatabaseMiddleware:
         self.database.insert_missing_queue_items(missing_crawl_next_objects)
 
         # Insert as a referral pair, if not yet existent
-        already_inserted_referral_pairs, not_inserted_referral_pairs = self.database.get_duplicate_referral_pairs(crawl_next_objects)
-        self.database.update_visited_referral_entities(already_inserted_referral_pairs)  # Need to apply the database migration first
+        already_inserted_referral_pairs, not_inserted_referral_pairs = self.database.get_duplicate_referral_pairs(
+            crawl_next_objects)
+        self.database.update_visited_referral_entities(
+            already_inserted_referral_pairs)  # Need to apply the database migration first
         self.database.insert_referral_entity(not_inserted_referral_pairs)
 
+    def insert_markups_for_successul_crawl_objects(self):
+        """
+            Insert the markup if the crawl_object successfully scraped a page
+        """
+        crawl_objects = self.crawl_objects_buffer.buffer
+        self.database.create_markup_record(crawl_objects)
 
+    def mark_crawl_objects_as_done(self):
+        """
+            Depending on the crawl object, marks them as completed (if markup was successfully received), or failed (if no markup was fetched, or a bad status is returned)
+        """
+        # Mark the failed items as failed in the database
+        self.database.update_url_task_queue_record_completed(self.crawl_objects_buffer.get_successful_items())
+        self.database.update_url_task_queue_record_failed(self.crawl_objects_buffer.get_failed_items())
 
 
 class CrawlObjectsBuffer():
@@ -91,7 +120,6 @@ class CrawlObjectsBuffer():
 class CrawlObject:
 
     def __init__(self, url, queue_id, depth):
-
         # Do a bunch of more asserts on the type
         assert url, url
         assert queue_id, queue_id
@@ -118,11 +146,11 @@ class CrawlObject:
 
     def insert_crawl_next_object(self, original_crawl_obj, target_url, skip):
         obj = CrawlNextObject(
-                        original_url=original_crawl_obj.url,
-                        target_url=target_url,
-                        skip=skip,
-                        depth=original_crawl_obj.depth + 1
-                    )
+            original_url=original_crawl_obj.url,
+            target_url=target_url,
+            skip=skip,
+            depth=original_crawl_obj.depth + 1
+        )
         self.crawl_next_objects.append(obj)
 
     def add_error(self, err):
@@ -140,6 +168,7 @@ class CrawlNextObject:
         self.skip = skip
         self.depth = depth
         self.score = score
+
 
 if __name__ == "__main__":
     print("Check the crawl frontier")

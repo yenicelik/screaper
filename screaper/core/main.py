@@ -7,9 +7,6 @@ import string
 import time
 import numpy as np
 
-import requests
-from flashtext import KeywordProcessor
-
 from screaper.crawl_frontier.crawl_frontier import CrawlFrontier, CrawlObjectsBuffer
 
 from screaper.downloader.async_crawl_task import CrawlAsyncTask
@@ -26,8 +23,8 @@ class Main:
 
         assert database
         self.resource_database = database
-        self.crawl_frontier = CrawlFrontier(resource_database=self.resource_database)
         self.crawl_objects_buffer = CrawlObjectsBuffer()
+        self.crawl_frontier = CrawlFrontier(database=self.resource_database, crawl_objects_buffer=self.crawl_objects_buffer)
 
         # Implement an async-queue
 
@@ -38,8 +35,6 @@ class Main:
     def calculate_sites_per_minute(self, crawled_sites):
         """
             Calculates how many sites we can crawl per hour
-        :param crawled_sites:
-        :return:
         """
         self.timestamps.insert(0, (time.time(), crawled_sites))
 
@@ -56,7 +51,6 @@ class Main:
     async def task(self, async_crawl_task):
         """
             Consumes the CrawlAsyncTasks produced into the queue above
-        :return:
         """
         start_time = time.time()
         crawl_object = await async_crawl_task.fetch()
@@ -72,8 +66,6 @@ class Main:
 
         while True:
 
-            start_time = time.time()
-
             crawled_sites = self.resource_database.get_number_of_crawled_sites()
             queued_sites = self.resource_database.get_number_of_queued_urls()
             sites_per_minute = self.calculate_sites_per_minute(crawled_sites)
@@ -82,46 +74,32 @@ class Main:
             print("Process {} :: Global Sites per s/m/h: {:.2f}/{:.1f}/{:.1f} -- Crawled sites: {} -- Available proxies: {}".format(self.name, sites_per_minute / 60, sites_per_minute, sites_per_minute * 60, crawled_sites, len(self.proxy_list._proxies.difference(self.proxy_list._proxies_blacklist))))
             print("Process {} :: AVG Time per Task: {:.2f} -- Proxy success rate: {:.1f} -- Queue sites in DB: {}".format(self.name, average_time_per_task, proxy_success_rate, queued_sites))
 
-            print("Populating queue")
-            # Populate crawl tasks queue
-            crawl_objects = self.resource_database.get_url_task_queue_record_start_list()
+            # Fetch next items to be worked on
+            crawl_objects = self.crawl_frontier.get_next_urls_to_crawl()
             self.resource_database.commit()
 
-            # For all the urls, make sure the markup does not exist yet
-            print("Time to populate queue took: ", time.time() - start_time)
-
-            # Let them both run
-            # These will never have any outputs, as they both run forever!
+            # Run the tasks
             tasks = []
             for crawl_object in crawl_objects:
                 # Spawn a AsyncCrawlTask object
                 task = self.dispatch_crawl_objects(crawl_object)
                 tasks.append(task)
 
+            # Wait until all tasks are handled
             if tasks:
                 await asyncio.gather(*tasks)
                 print("Time until gather took: ", time.time() - start_time)
 
-
-            # "Flush" the database in one go
             print("Flushing records: Markups {} -- Failed {} -- Completed {} -- Total {}".format(self.crawl_objects_buffer.calculate_collected_markups(), self.crawl_objects_buffer.calculate_failed(), self.crawl_objects_buffer.calculate_successful(), self.crawl_objects_buffer.calculate_total()))
             flush_start_time = time.time()
 
-            # Add into the database
-            self.resource_database.create_markup_record(self.crawl_objects_buffer.get_successful_items())
-            # Create URL entity
-            self.resource_database.insert_url_entity(self.crawl_objects_buffer.get_all_items())
-            # Add to queue
-            self.resource_database.create_url_queue_entity(self.crawl_objects_buffer.get_all_items())  # We put in all items, to mark retries for the failed ones
-            # Add to referrer graph
-            self.resource_database.create_referral_entity(self.crawl_objects_buffer.get_successful_items())
+            # Flush all items into the database
+            self.crawl_frontier.insert_markups_for_successul_crawl_objects()
+            self.crawl_frontier.mark_crawl_objects_as_done()
+            self.crawl_frontier.extend_frontier()
             print("Flushing took {:.3f} second".format(time.time() - flush_start_time))
 
-            # Mark the failed items as failed in the database
-            self.resource_database.get_url_task_queue_record_completed(self.crawl_objects_buffer.get_successful_items())
-            self.resource_database.get_url_task_queue_record_failed(self.crawl_objects_buffer.get_failed_items())
-
-            # Flush all buffers
+            # Re-iniate all buffers
             self.crawl_objects_buffer.flush_buffer()
             self.resource_database.commit()
 

@@ -122,10 +122,12 @@ class NamedEntities(Base):
     # location = Column(Integer(), nullable=False)  # Overkill for now, will have to manually search for this string
     entity_type = Column(
         Enum("PERSON", "NORP", "FACILITY", "ORGANIZATION", "GPE", "LOCATION", "PRODUCT", "EVENT", "WORK OF ART", "LAW",
-             "LANGUAGE", "DATE", "TIME", "PERCENT", "MONEY", "QUANTITY", "ORDINAL", "CARDINAL", "OTHER", name="ner_types_enum"), nullable=False)
+             "LANGUAGE", "DATE", "TIME", "PERCENT", "MONEY", "QUANTITY", "ORDINAL", "CARDINAL", "OTHER",
+             name="ner_types_enum"), nullable=False)
     label = Column(String(), nullable=False)
     external_link = Column(Integer(), ForeignKey('url.id'), nullable=True)
     heuristic = Column(String(), nullable=False)
+
 
 class ActorEntityCandidates(Base):
     """
@@ -145,6 +147,7 @@ class ActorEntityCandidates(Base):
 
     def as_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
 
 if __name__ == "__main__":
     print("Model files")

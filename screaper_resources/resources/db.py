@@ -215,7 +215,7 @@ class Database:
 
         return out
 
-    def get_url_task_queue_record_completed(self, urls):
+    def update_url_task_queue_record_completed(self, urls):
         """
             implements part of the pop operation for queue,
             indicating that a crawler has processed the request successfully
@@ -227,7 +227,7 @@ class Database:
         print("Number of items now processed: ", query.filter(URLQueueEntity.crawler_processed_sentinel == false()).count())
 
 
-    def get_url_task_queue_record_failed(self, urls):
+    def update_url_task_queue_record_failed(self, urls):
         """
             implements the pop operation for queue
             indicating that a crawler has processed the request successfully
@@ -245,24 +245,24 @@ class Database:
             synchronize_session=False
         )
 
-    def create_markup_record(self, url_markup_tuple_dict):
+    def create_markup_record(self, crawl_objects):
         """
         :param url_markup_tuple_dict: Dictionary of url -> markup
         """
-        print("URL Markup tuple dict is: ", len(url_markup_tuple_dict))
-        urls = [x for x in url_markup_tuple_dict.keys()]
+        print("URL Markup tuple dict is: ", len(crawl_objects))
+        urls = [x.url for x in crawl_objects]
 
-        query = self.session.query(URLEntity.id, URLEntity.url, RawMarkup.id) \
+        inserted_markup_urls = self.session.query(URLEntity.url) \
             .filter(URLEntity.url.in_(urls)) \
-            .join(RawMarkup, isouter=True) \
+            .join(RawMarkup) \
             .all()
+        inserted_markup_urls = [x[0] for x in inserted_markup_urls]
 
+        # Only keep items that are not inserted yet
         to_insert = []
         c = 0
-        for obj in query:
-            url_id, url, markup_id = obj
-            # If existent, just create a new entry. The timestamps will differentiate anyways
-            if markup_id is not None:
+        for crawl_object in crawl_objects:
+            if crawl_object.url in inserted_markup_urls:
                 c += 1
                 continue
             obj = RawMarkup(
@@ -275,17 +275,12 @@ class Database:
             )
             to_insert.append(obj)
 
-        assert len(to_insert) <= len(url_markup_tuple_dict), ("Lengths are weird!", len(to_insert), len(url_markup_tuple_dict))
+        assert inserted_markup_urls + len(to_insert) == len(crawl_objects), ("Lengths are weird!", inserted_markup_urls, len(to_insert), len(crawl_objects))
 
         print("Bulk inserting raw_markup {} skipping {}".format(len(to_insert), c))
         # Bulk save all the markups that were fetched
 
-        # sqlalchemy.exc.IntegrityError: (psycopg2.errors.UniqueViolation) duplicate key value violates unique constraint "raw_markup_pkey"
-        # DETAIL:  Key (id)=(3540) already exists.
-
         self.session.bulk_save_objects(to_insert)
-
-        # Do not update anything to processed, this will be done in one of the next steps anyways
 
     #####################################################
     #                                                   #
