@@ -25,3 +25,4 @@ aiohttp-client-cache==0.1.2
 flashtext==2.7
 url_normalize==1.15.0
 w3lib==1.22.0
+validators==0.18.2

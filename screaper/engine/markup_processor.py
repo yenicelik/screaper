@@ -6,6 +6,7 @@ import re
 from urllib.parse import urlparse, urljoin
 
 import yaml
+import validators
 from flashtext import KeywordProcessor
 from pyquery import PyQuery as pq
 from url_normalize import url_normalize
@@ -75,12 +76,15 @@ class LinkProcessor:
             "(?i)\b((?:(https|https)?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))")
 
     def is_absolute(self, url):
+        assert url or url == "", url
         return bool(urlparse(url).netloc)
 
     def process(self, target_url, referrer_url):
         """
             Adds an item to be scraped to the persistent queue
         """
+        assert target_url or target_url == "", target_url
+        assert referrer_url or referrer_url == "", referrer_url
 
         # TODO: Add URL normalization here
 
@@ -111,9 +115,7 @@ class LinkProcessor:
 
         # Finally, apply url_normalization
         target_url = url_normalize(target_url)
-        target_url = url_query_cleaner(target_url,
-                                       parameterlist=['utm_source', 'utm_medium', 'utm_campaign', 'utm_term',
-                                                      'utm_content'], remove=True)
+        target_url = url_query_cleaner(target_url, parameterlist=['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'], remove=True)
         target_url = canonicalize_url(target_url)
 
         if target_url.endswith("/"):
@@ -126,6 +128,10 @@ class LinkProcessor:
         # Add more cases why one would skip here
         skip = False
         if self.populat_websites_processor.extract_keywords(target_url):
+            skip = True
+
+        # If still not a valid URL, skip:
+        if not validators.url(target_url):
             skip = True
 
         # Also return these, rather than commiting these immediately

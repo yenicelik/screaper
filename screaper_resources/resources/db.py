@@ -52,6 +52,7 @@ class Database:
         """
             Returns (1) a list of urls that are in the database, and (2) a list of urls that is not in the database
         """
+        urls = list(set(urls))
         existing_urls = self.session.query(URLEntity.url).filter(URLEntity.url.in_(urls)).all()
         existing_urls = [x[0] for x in existing_urls]
         missing_urls = [x for x in urls if x not in existing_urls]
@@ -62,6 +63,7 @@ class Database:
         """
             Inserts the list of urls into the database
         """
+        urls = list(set(urls))
         to_insert = []
         for url in urls:
             url_entity_obj = URLEntity(url=url, engine_version=self.engine_version)
@@ -75,13 +77,15 @@ class Database:
             Returns (1) a list of urls that is enqueued, and (2) a list of urls that is not enqueued
             and still needs to be inserted into the queue
         """
+        urls = list(set(urls))
         existing_urls = self.session.query(URLEntity.url)\
             .filter(URLEntity.url.in_(urls))\
             .filter(URLEntity.id == URLQueueEntity.url_id)\
             .all()
+        # TODO: This means that there is not a unique key constraint!
         existing_urls = [x[0] for x in existing_urls]
         missing_urls = [x for x in urls if x not in existing_urls]
-        assert len(existing_urls) + len(missing_urls) == len(set(urls)), ("Mismatch in the number of URLs to be inputted!", len(existing_urls), len(missing_urls), len(set(urls)))
+        assert len(existing_urls) + len(missing_urls) == len(set(urls)), ("Mismatch in the number of URLs to be inputted!", len(existing_urls), len(missing_urls), len(set(urls)), len(urls), existing_urls, missing_urls, urls)
         return existing_urls, missing_urls
 
     def update_existent_queue_items_visited_again(self, urls):
@@ -103,20 +107,26 @@ class Database:
         query = self.session.query(URLEntity.id, URLEntity.url).filter(URLEntity.url.in_(all_target_urls))
         url2id = dict((x[1], x[0]) for x in query)
 
-        print("url2id dict is: ", url2id)
+        # Sort crawl-next-objects by depth
+        crawl_next_objects = sorted(crawl_next_objects, key=lambda x: x.depth)
 
-        to_insert = []
+        to_insert = dict()
         for crawl_next_object in crawl_next_objects:
-            url_queue_obj = URLQueueEntity(
-                url_id=url2id[crawl_next_object.target_url],
-                crawler_processing_sentinel=False,
-                crawler_processed_sentinel=False,
-                crawler_skip=crawl_next_object.skip,
-                version_crawl_frontier=self.engine_version,
-                score=crawl_next_object.score,
-                depth=crawl_next_object.depth
-            )
-            to_insert.append(url_queue_obj)
+            if crawl_next_object.target_url not in to_insert:
+                to_insert[crawl_next_object.target_url] = URLQueueEntity(
+                    url_id=url2id[crawl_next_object.target_url],
+                    crawler_processing_sentinel=False,
+                    crawler_processed_sentinel=False,
+                    crawler_skip=crawl_next_object.skip,
+                    version_crawl_frontier=self.engine_version,
+                    score=crawl_next_object.score,
+                    depth=crawl_next_object.depth,
+                    occurrences=1
+                )
+            else:
+                to_insert[crawl_next_object.target_url].occurrences += 1
+
+        to_insert = [x for idx, x in to_insert.items()]
 
         self.session.bulk_save_objects(to_insert)
 
@@ -127,16 +137,29 @@ class Database:
         target_urls = [x.target_url for x in crawl_next_objects]
         referrer_urls = [x.original_url for x in crawl_next_objects]
 
-        target_url_ids = self.session.query(URLEntity.id).filter(URLEntity.url.in_(target_urls)).all()
-        target_url_ids = [x[0] for x in target_url_ids]
-        assert len(target_urls) == len(target_url_ids), ("You must first insert a URL before you can add it to the queue!", len(target_url_ids), len(target_urls))
-        referrer_url_ids = self.session.query(URLEntity.id).filter(URLEntity.url.in_(referrer_urls)).all()
-        referrer_url_ids = [x[0] for x in referrer_url_ids]
-        assert len(referrer_urls) == len(referrer_url_ids), ("You must first insert a URL before you can add it to the queue!", len(referrer_url_ids), len(referrer_urls))
+        id_url_pairs = self.session.query(URLEntity.id, URLEntity.url)\
+            .filter(
+                sqlalchemy.or_(
+                    URLEntity.url.in_(target_urls),
+                    URLEntity.url.in_(referrer_urls))
+            )\
+            .all()
+        url2id = dict((x[1], x[0]) for x in id_url_pairs)
+
+        for url in target_urls:
+            assert url in url2id, ("You must first insert a target URL before you can add it to the queue!", url)
+        for url in referrer_urls:
+            assert url in url2id, ("You must first insert a referrer URL before you can add it to the queue!", url)
+
+        all_adjacency_id_pairs = []
+        for crawl_next_object in crawl_next_objects:
+            # Apply to_from syntax
+            all_adjacency_id_pairs.append((
+                url2id[crawl_next_object.target_url],
+                url2id[crawl_next_object.original_url]
+            ))
 
         # Manifests the (to, from) syntax
-        all_adjacency_id_pairs = list(zip(target_url_ids, referrer_url_ids))
-        print("All adjacency ids are: ", all_adjacency_id_pairs)
         already_inserted_referral_pairs = self.session.query(URLReferralsEntity.target_url_id, URLReferralsEntity.referrer_url_id) \
             .filter(
                 sqlalchemy.tuple_(URLReferralsEntity.target_url_id, URLReferralsEntity.referrer_url_id).in_(
@@ -211,6 +234,10 @@ class Database:
 
         out = []
         for x in query_list:
+            if x[0].startswith("tel://"):
+                continue
+            if x[0].startswith("javascript:"):
+                continue
             out.append(CrawlObject(url=x[0], queue_id=x[1], depth=x[2]))
 
         # Make sure no duplicate entries ...
@@ -230,10 +257,9 @@ class Database:
         """
         query = self.session.query(URLQueueEntity).filter(URLQueueEntity.url_id == URLEntity.id).filter(
             URLEntity.url.in_(urls))
-        print("Number of items before processed: ", query.filter(URLQueueEntity.crawler_processed_sentinel == false()).count())
+        # print("Number of items before processed: ", query.filter(URLQueueEntity.crawler_processed_sentinel == false()).count())
         query.update({"crawler_processed_sentinel": True}, synchronize_session=False)
-        print("Number of items now processed: ", query.filter(URLQueueEntity.crawler_processed_sentinel == false()).count())
-
+        # print("Number of items now processed: ", query.filter(URLQueueEntity.crawler_processed_sentinel == false()).count())
 
     def update_url_task_queue_record_failed(self, urls):
         """

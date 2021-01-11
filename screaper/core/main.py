@@ -74,37 +74,47 @@ class Main:
             print("Process {} :: Global Sites per s/m/h: {:.2f}/{:.1f}/{:.1f} -- Crawled sites: {} -- Available proxies: {}".format(self.name, sites_per_minute / 60, sites_per_minute, sites_per_minute * 60, crawled_sites, len(self.proxy_list._proxies.difference(self.proxy_list._proxies_blacklist))))
             print("Process {} :: AVG Time per Task: {:.2f} -- Proxy success rate: {:.1f} -- Queue sites in DB: {}".format(self.name, average_time_per_task, proxy_success_rate, queued_sites))
 
-            # Fetch next items to be worked on
-            crawl_objects = self.crawl_frontier.get_next_urls_to_crawl()
-            self.resource_database.commit()
+            try:
+                # Fetch next items to be worked on
+                crawl_objects = self.crawl_frontier.get_next_urls_to_crawl()
+                if not crawl_objects:
+                    print("No crawl objects left", crawl_objects)
+                    raise Exception
+                self.resource_database.commit()
 
-            # Run the tasks
-            tasks = []
-            for crawl_object in crawl_objects:
-                # Spawn a AsyncCrawlTask object
-                task = self.dispatch_crawl_objects(crawl_object)
-                tasks.append(task)
+                # Run the tasks
+                tasks = []
+                for crawl_object in crawl_objects:
+                    # Spawn a AsyncCrawlTask object
+                    task = self.dispatch_crawl_objects(crawl_object)
+                    tasks.append(task)
 
-            # Such that it doesn't spam
-            await asyncio.sleep(2)
+                # Such that it doesn't spam
+                await asyncio.sleep(1)
 
-            # Wait until all tasks are handled
-            if tasks:
-                await asyncio.gather(*tasks)
-                print("Time until gather took: ", time.time() - start_time)
+                # Wait until all tasks are handled
+                if tasks:
+                    await asyncio.gather(*tasks)
+                    print("Time until gather took: ", time.time() - start_time)
 
-            print("Flushing records: Markups {} -- Failed {} -- Completed {} -- Total {}".format(self.crawl_objects_buffer.calculate_collected_markups(), self.crawl_objects_buffer.calculate_failed(), self.crawl_objects_buffer.calculate_successful(), self.crawl_objects_buffer.calculate_total()))
-            flush_start_time = time.time()
+                print("Flushing records: Markups {} -- Failed {} -- Completed {} -- Total {}".format(self.crawl_objects_buffer.calculate_collected_markups(), self.crawl_objects_buffer.calculate_failed(), self.crawl_objects_buffer.calculate_successful(), self.crawl_objects_buffer.calculate_total()))
+                flush_start_time = time.time()
 
-            # Flush all items into the database
-            self.crawl_frontier.insert_markups_for_successul_crawl_objects()
-            self.crawl_frontier.extend_frontier()
-            self.crawl_frontier.mark_crawl_objects_as_done()
-            print("Flushing took {:.3f} second".format(time.time() - flush_start_time))
+                # Flush all items into the database
+                self.crawl_frontier.insert_markups_for_successul_crawl_objects()
+                self.crawl_frontier.extend_frontier()
+                self.crawl_frontier.mark_crawl_objects_as_done()
+                print("Flushing took {:.3f} second".format(time.time() - flush_start_time))
+                self.crawl_objects_buffer.flush_buffer()
 
-            # Re-iniate all buffers
-            self.crawl_objects_buffer.flush_buffer()
-            self.resource_database.commit()
+            except Exception as e:
+                print("Exception occurred in main loop: ", repr(e))
+                self.crawl_frontier.rollback()
+                raise e
+
+            finally:
+                # Re-iniate all buffers
+                self.resource_database.commit()
 
 
 if __name__ == "__main__":

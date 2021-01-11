@@ -4,6 +4,7 @@
     - The task queue
 """
 import uuid
+from random import randint
 
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Text, Boolean, PrimaryKeyConstraint, ForeignKey, Index, Enum
@@ -14,6 +15,12 @@ from sqlalchemy_utils import URLType
 
 Base = declarative_base()
 
+def random_integer():
+    min_ = 0
+    max_ = 2_140_000_000
+    rand = randint(min_, max_)
+    return rand
+
 
 class URLEntity(Base):
     """
@@ -21,7 +28,7 @@ class URLEntity(Base):
     """
     __tablename__ = 'url'
 
-    id = Column(Integer(), primary_key=True, autoincrement=True, nullable=False)
+    id = Column(Integer(), primary_key=True, autoincrement=True, unique=True, nullable=False)
 
     url = Column(URLType, unique=True, index=True)  # Make this an index
     engine_version = Column(String(), nullable=False)  # Indicates the version under which the link was scraped for
@@ -45,7 +52,7 @@ class URLQueueEntity(Base):
     crawler_skip = Column(Boolean(), nullable=False)  # Indicates whether or not to skip scraping this website
     retries = Column(Integer(), nullable=False, default=0)  # Indicates the version under which the link was scraped for
     occurrences = Column(Integer(), nullable=False,
-                         default=0)  # Indicates how often this link was found, s.t. a priority queue can be managed through this
+                         default=1)  # Indicates how often this link was found, s.t. a priority queue can be managed through this
     version_crawl_frontier = Column(String(),
                                     nullable=False)  # Indicates the version under which the link was scraped for
     score = Column(Integer(), nullable=False, default=0, index=True)

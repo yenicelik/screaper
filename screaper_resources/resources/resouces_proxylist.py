@@ -44,10 +44,11 @@ class ProxyList:
         # TODO: Replace with environment variable
         proxies = [(x["ip"], x["port"]) for x in proxies if x["google_status"] == 200]
         self._proxies = set(("http://" + str(x[0]) + ":" + str(x[1])) for x in proxies)
-        self._proxies.update({None})
+        # self._proxies.update({None})
 
         # Add no proxy to self proxy-list
         self._bad_proxy_counter = dict((x, 0) for x in self._proxies)
+        self._bad_proxy_counter[""] = None
 
         self._proxies_blacklist = set()
 
@@ -62,7 +63,9 @@ class ProxyList:
     @property
     def proxies(self):
         self.total_tries += 1
-        return list(self._proxies.difference(self._proxies_blacklist))
+        out = list(self._proxies.difference(self._proxies_blacklist))
+        assert len(out) >= 1, ("Ran out of proxies to try!", len(out), out)
+        return out
 
     def warn_proxy(self, proxy, harsh=False):
         """
@@ -75,6 +78,9 @@ class ProxyList:
         """
         if harsh:
             self._proxies_blacklist.add(proxy)
+
+        if proxy is None:
+            return
 
         self._bad_proxy_counter[proxy] += 1
         self.total_bad_tries += 1

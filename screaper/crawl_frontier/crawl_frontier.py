@@ -70,6 +70,9 @@ class CrawlFrontier:
         self.database.update_url_task_queue_record_completed(self.crawl_objects_buffer.get_successful_items())
         self.database.update_url_task_queue_record_failed(self.crawl_objects_buffer.get_failed_items())
 
+    def rollback(self):
+        self.database.update_url_task_queue_record_failed(self.crawl_objects_buffer.buffer)
+
 
 class CrawlObjectsBuffer:
 
@@ -100,7 +103,7 @@ class CrawlObjectsBuffer:
         return len(self.buffer)
 
     def get_successful_items(self):
-        self._successful_items = [x for x in self.buffer if x.markup]
+        self._successful_items = [x for x in self.buffer if not x.not_successful]
         return self._successful_items
 
     def get_failed_items(self):
