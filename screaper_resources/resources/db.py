@@ -225,8 +225,8 @@ class Database:
         assert isinstance(adjacency_tuples, list), adjacency_tuples
         for x in adjacency_tuples:
             assert len(x) == 2, x
-            assert isinstance(x[0], int), x
-            assert isinstance(x[1], int), x
+            assert isinstance(x[0], int), (x[0], type(x[0]))
+            assert isinstance(x[1], int), (x[1], type(x[1]))
 
         to_insert = []
         for to_url_id, from_url_id in adjacency_tuples:
@@ -304,8 +304,6 @@ class Database:
         for url in urls:
             assert url or url == "", (url)
             assert isinstance(url, str), type(url)
-
-        print("All url entities are: ", urls)
 
         query = self.session.query(URLQueueEntity).filter(URLQueueEntity.url_id == URLEntity.id).filter(
             URLEntity.url.in_(urls))

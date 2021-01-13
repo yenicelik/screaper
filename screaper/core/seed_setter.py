@@ -80,8 +80,11 @@ class SeedSetter:
 
                 if not_inserted:
                     print("Not inserted is: ", not_inserted)
-                    from_id = self.resource_database.session.query(URLEntity.id).filter(URLEntity.url == "").one_or_none()
-                    to_id = self.resource_database.session.query(URLEntity.id).filter(URLEntity.url == x).one_or_none()
+                    from_id = self.resource_database.session.query(URLEntity.id).filter(URLEntity.url == "").one_or_none()[0]
+                    # from_id = [x[0] for x in from_id]
+                    to_id = self.resource_database.session.query(URLEntity.id).filter(URLEntity.url == x).one_or_none()[0]
+                    # to_id = [x[0] for x in to_id]
+
 
                     adjacency_tuples = [(to_id, from_id), ]
                     self.resource_database.insert_referral_entity(adjacency_tuples)

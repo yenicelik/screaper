@@ -82,7 +82,7 @@ class CrawlFrontier:
             Depending on the crawl object, marks them as completed (if markup was successfully received), or failed (if no markup was fetched, or a bad status is returned)
         """
         # Mark the failed items as failed in the database
-        failed_urls = [x.url for x in self.crawl_objects_buffer.get_successful_items()]
+        failed_urls = [x.url for x in self.crawl_objects_buffer.get_failed_items()]
         self.database.update_url_task_queue_record_failed(failed_urls)
         successful_urls = [x.url for x in self.crawl_objects_buffer.get_successful_items()]
         self.database.update_url_task_queue_record_completed(successful_urls)

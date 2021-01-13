@@ -318,6 +318,7 @@ class PostgresTests:
         )
 
         self.crawl_frontier.mark_crawl_objects_as_done()
+        self.database.commit()
         self._test_crawl_objects_are_successfully_marked(newly_inserted_urls=["www.google.com/", "www.facebook.com/"])
 
         self.crawl_objects_buffer.flush_buffer()
