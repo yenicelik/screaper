@@ -62,6 +62,8 @@ class Main:
 
         self.crawl_objects_buffer.flush_buffer()
 
+        bad_crawl_time = None
+
         while True:
 
             start_time = time.time()
@@ -77,9 +79,10 @@ class Main:
             try:
                 # Fetch next items to be worked on
                 crawl_objects = self.crawl_frontier.get_next_urls_to_crawl()
+                dispatched = True
                 if not crawl_objects:
+                    dispatched = False
                     print("No crawl objects left", crawl_objects)
-                    raise Exception
                 self.resource_database.commit()
 
                 # Run the tasks
@@ -90,7 +93,7 @@ class Main:
                     tasks.append(task)
 
                 # Such that it doesn't spam
-                await asyncio.sleep(1)
+                await asyncio.sleep(self.ping_interval)
 
                 # Wait until all tasks are handled
                 if tasks:
@@ -100,12 +103,13 @@ class Main:
                 print("Flushing records: Markups {} -- Failed {} -- Completed {} -- Total {}".format(self.crawl_objects_buffer.calculate_collected_markups(), self.crawl_objects_buffer.calculate_failed(), self.crawl_objects_buffer.calculate_successful(), self.crawl_objects_buffer.calculate_total()))
                 flush_start_time = time.time()
 
-                # Flush all items into the database
-                self.crawl_frontier.insert_markups_for_successul_crawl_objects()
-                self.crawl_frontier.extend_frontier()
-                self.crawl_frontier.mark_crawl_objects_as_done()
-                print("Flushing took {:.3f} second".format(time.time() - flush_start_time))
-                self.crawl_objects_buffer.flush_buffer()
+                if dispatched:
+                    # Flush all items into the database
+                    self.crawl_frontier.insert_markups_for_successful_crawl_objects()
+                    self.crawl_frontier.extend_frontier()
+                    self.crawl_frontier.mark_crawl_objects_as_done()
+                    print("Flushing took {:.3f} second".format(time.time() - flush_start_time))
+                    self.crawl_objects_buffer.flush_buffer()
 
             except Exception as e:
                 print("Exception occurred in main loop: ", repr(e))

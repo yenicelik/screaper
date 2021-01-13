@@ -10,17 +10,11 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine, false
 from sqlalchemy.orm import sessionmaker, scoped_session
 
-from screaper.crawl_frontier.crawl_frontier import CrawlObject
+from screaper.crawl_frontier.crawl_frontier import CrawlObject, CrawlNextObject
 from screaper_resources.resources.entities import URLQueueEntity, URLEntity, URLReferralsEntity, RawMarkup, \
     NamedEntities, ActorEntityCandidates
 
 load_dotenv()
-
-
-# Perhaps try python 3.9?
-
-
-# TODO: Add query normalization
 
 # TODO: Replace all by the entity objects? probably better to operate with enums anyways
 class Database:
@@ -33,8 +27,9 @@ class Database:
     # For session placement, check code examples here:
     # https://docs.sqlalchemy.org/en/13/orm/session_basics.html#when-do-i-construct-a-session-when-do-i-commit-it-and-when-do-i-close-it
 
-    def __init__(self):
-        db_url = os.getenv('DatabaseUrl')
+    def __init__(self, db_url=None):
+        if db_url is None:
+            db_url = os.getenv('DatabaseUrl')
         self.engine = create_engine(db_url, encoding='utf8')  # pool_timeout=1 # pool_size=5, max_overflow=10
 
         # self.engine = screaper.resources.entities.engine
@@ -52,6 +47,11 @@ class Database:
         """
             Returns (1) a list of urls that are in the database, and (2) a list of urls that is not in the database
         """
+        assert urls, urls
+        for url in urls:
+            assert url or url=="", url
+            assert isinstance(url, str), (url, type(url))
+
         urls = list(set(urls))
         existing_urls = self.session.query(URLEntity.url).filter(URLEntity.url.in_(urls)).all()
         existing_urls = [x[0] for x in existing_urls]
@@ -63,6 +63,11 @@ class Database:
         """
             Inserts the list of urls into the database
         """
+        assert urls, urls
+        for url in urls:
+            assert url or url=="", url
+            assert isinstance(url, str), (url, type(url))
+
         urls = list(set(urls))
         to_insert = []
         for url in urls:
@@ -77,6 +82,11 @@ class Database:
             Returns (1) a list of urls that is enqueued, and (2) a list of urls that is not enqueued
             and still needs to be inserted into the queue
         """
+        assert urls, urls
+        for url in urls:
+            assert url or url=="", url
+            assert isinstance(url, str), (url, type(url))
+
         urls = list(set(urls))
         existing_urls = self.session.query(URLEntity.url)\
             .filter(URLEntity.url.in_(urls))\
@@ -92,6 +102,11 @@ class Database:
         """
             Marks the urls
         """
+        assert urls, urls
+        for url in urls:
+            assert url or url=="", url
+            assert isinstance(url, str), (url, type(url))
+
         query = self.session.query(URLQueueEntity).filter(URLQueueEntity.url_id == URLEntity.id) \
             .filter(URLEntity.url.in_(urls))
         query.update({
@@ -102,6 +117,10 @@ class Database:
         """
             Inserts URLs into the queue
         """
+        assert crawl_next_objects, crawl_next_objects
+        for x in crawl_next_objects:
+            assert isinstance(x, CrawlNextObject), (x, type(x))
+
         # Fetch URL ids:
         all_target_urls = [x.target_url for x in crawl_next_objects]
         query = self.session.query(URLEntity.id, URLEntity.url).filter(URLEntity.url.in_(all_target_urls))
@@ -134,6 +153,10 @@ class Database:
         """
             Returns a list of tuples that were already inserted into the referral / adjacency graph
         """
+        assert crawl_next_objects, crawl_next_objects
+        for x in crawl_next_objects:
+            assert isinstance(x, CrawlNextObject), (x, type(x))
+
         target_urls = [x.target_url for x in crawl_next_objects]
         referrer_urls = [x.original_url for x in crawl_next_objects]
 
@@ -159,6 +182,9 @@ class Database:
                 url2id[crawl_next_object.original_url]
             ))
 
+        assert all_adjacency_id_pairs, all_adjacency_id_pairs
+        assert len(all_adjacency_id_pairs) == len(crawl_next_objects), (len(all_adjacency_id_pairs), len(crawl_next_objects))
+
         # Manifests the (to, from) syntax
         already_inserted_referral_pairs = self.session.query(URLReferralsEntity.target_url_id, URLReferralsEntity.referrer_url_id) \
             .filter(
@@ -177,6 +203,12 @@ class Database:
             Updates visited adjacency entries by incrementing the occurrences record
             The tuples consist of (to, from) url_id pairs
         """
+        assert isinstance(adjacency_tuples, list), adjacency_tuples
+        for x in adjacency_tuples:
+            assert len(x) == 2, x
+            assert isinstance(x[0], int), x
+            assert isinstance(x[1], int), x
+
         visited_referral_entities = self.session.query(URLReferralsEntity.target_url_id, URLReferralsEntity.referrer_url_id) \
             .filter(
             sqlalchemy.tuple_(URLReferralsEntity.target_url_id, URLReferralsEntity.referrer_url_id).in_(
@@ -190,6 +222,12 @@ class Database:
             Creates a referral entity / Inserts an item into the web-adjacency graph.
             The tuples consist of (to, from) url_id pairs
         """
+        assert isinstance(adjacency_tuples, list), adjacency_tuples
+        for x in adjacency_tuples:
+            assert len(x) == 2, x
+            assert isinstance(x[0], int), x
+            assert isinstance(x[1], int), x
+
         to_insert = []
         for to_url_id, from_url_id in adjacency_tuples:
             url_referral_entity_obj = URLReferralsEntity(
@@ -207,7 +245,7 @@ class Database:
     #####################################################
 
     # Write bulk operation instead?
-    def get_url_task_queue_record_start_list(self):
+    def get_url_task_queue_record_start_list(self, n=512):
         """
             Retrieve a list of URL sites to scrape next
             # TODO: Make it mixed, such that there is a limit of how many urls from one domain can be picked
@@ -217,35 +255,42 @@ class Database:
 
         start_time = time.time()
         # Such that there is some sort of non-overlap mechanism across processes
-        random_prime = random.choice([1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29])
+        random_prime = random.choice([1])  # , 2, 3, 5, 7, 11, 13, 17, 19, 23, 29])
 
         raw_markup_items = self.session.query(RawMarkup.url_id)
-        query_list = self.session.query(URLEntity.url, URLQueueEntity.id, URLQueueEntity.depth) \
+        query_list = self.session.query(URLEntity.id, URLEntity.url, URLQueueEntity.id, URLQueueEntity.depth) \
             .filter(URLQueueEntity.crawler_skip == false()) \
             .filter(sqlalchemy.not_(URLQueueEntity.url_id.in_(raw_markup_items))) \
             .filter(URLQueueEntity.crawler_processing_sentinel == false()) \
             .filter(URLQueueEntity.retries < self.max_retries) \
             .filter(URLQueueEntity.depth != -1) \
             .filter(URLQueueEntity.id % random_prime == 0) \
+            .filter(URLEntity.id == URLQueueEntity.url_id) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('tel://'))) \
+            .filter(sqlalchemy.not_(URLEntity.url.contains('javascript'))) \
             .order_by(URLQueueEntity.depth.asc()) \
-            .limit(512)
+            .limit(n)
 
         query_list = query_list.all()
 
         out = []
+        # to_skip = []
         for x in query_list:
-            if x[0].startswith("tel://"):
-                continue
-            if x[0].startswith("javascript:"):
-                continue
-            out.append(CrawlObject(url=x[0], queue_id=x[1], depth=x[2]))
+            # if x[0].startswith("tel://"):
+            #     to_skip.append(x[0])
+            #     continue
+            # if x[0].startswith("javascript:"):
+            #     to_skip.append(x[0])
+            #     continue
+            out.append(CrawlObject(url_id=x[0], url=x[1], queue_id=x[2], depth=x[3]))
 
         # Make sure no duplicate entries ...
         assert len([x.url for x in out]) == len(set([x.url for x in out])), ("Non-unique uris found!", len([x.url for x in out]), len(set([x.url for x in out])))
 
         print("Getting queue (1) takes {:.3f} seconds".format(time.time() - start_time))
         query = self.session.query(URLQueueEntity).filter(URLQueueEntity.id.in_([x.queue_id for x in out]))
-        query.update({"crawler_processing_sentinel": True}, synchronize_session=False)
+        query.update({URLQueueEntity.crawler_processing_sentinel: True}, synchronize_session=False)
+
         print("Getting queue (2) takes {:.3f} seconds".format(time.time() - start_time))
 
         return out
@@ -255,10 +300,19 @@ class Database:
             implements part of the pop operation for queue,
             indicating that a crawler has processed the request successfully
         """
+        assert urls or urls == [], urls
+        for url in urls:
+            assert url or url == "", (url)
+            assert isinstance(url, str), type(url)
+
+        print("All url entities are: ", urls)
+
         query = self.session.query(URLQueueEntity).filter(URLQueueEntity.url_id == URLEntity.id).filter(
             URLEntity.url.in_(urls))
         # print("Number of items before processed: ", query.filter(URLQueueEntity.crawler_processed_sentinel == false()).count())
-        query.update({"crawler_processed_sentinel": True}, synchronize_session=False)
+        query.update({
+            URLQueueEntity.crawler_processed_sentinel: True
+        }, synchronize_session=False)
         # print("Number of items now processed: ", query.filter(URLQueueEntity.crawler_processed_sentinel == false()).count())
 
     def update_url_task_queue_record_failed(self, urls):
@@ -266,9 +320,15 @@ class Database:
             implements the pop operation for queue
             indicating that a crawler has processed the request successfully
         """
+        assert urls or urls == [], urls
+        for url in urls:
+            assert url or url == "", (url)
+            assert isinstance(url, str), type(url)
 
-        query = self.session.query(URLQueueEntity).filter(URLQueueEntity.url_id == URLEntity.id).filter(
-            URLEntity.url.in_(urls))
+        query = self.session.query(URLQueueEntity)\
+            .filter(URLQueueEntity.url_id == URLEntity.id)\
+            .filter(URLEntity.url.in_(urls))
+        print("Number of items to be updated query: ", query.count())
         query.update(
             values={
                 URLQueueEntity.retries: URLQueueEntity.retries + 1,
@@ -284,6 +344,8 @@ class Database:
         :param url_markup_tuple_dict: Dictionary of url -> markup
         """
         print("URL Markup tuple dict is: ", len(crawl_objects))
+        for x in crawl_objects:
+            assert (isinstance(x, CrawlObject)), (x, type(x))
         urls = [x.url for x in crawl_objects]
 
         inserted_markup_urls = self.session.query(URLEntity.url) \
@@ -348,12 +410,18 @@ class Database:
         return df
 
     def add_named_entity_candidate(self, objs):
+        for x in objs:
+            assert (isinstance(x, dict)), (x, type(x))
+
         for obj in objs:
             print("Inserting: ", obj)
             named_entity_obj = NamedEntities(**obj)
             self.session.add(named_entity_obj)
 
     def create_actor_entity_candidate(self, objs):
+        for x in objs:
+            assert (isinstance(x, dict)), (x, type(x))
+
         for obj in objs:
             print("Inserting: ", obj)
             # Get URL id

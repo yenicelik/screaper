@@ -3,11 +3,10 @@
     - The scraped files
     - The task queue
 """
-import uuid
 from random import randint
 
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Text, Boolean, PrimaryKeyConstraint, ForeignKey, Index, Enum
+from sqlalchemy import Text, Boolean, PrimaryKeyConstraint, ForeignKey, Enum, Index
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, DateTime
 
@@ -33,8 +32,7 @@ class URLEntity(Base):
     url = Column(URLType, unique=True, index=True)  # Make this an index
     engine_version = Column(String(), nullable=False)  # Indicates the version under which the link was scraped for
 
-    created_at = Column(DateTime(), default=datetime.utcnow(),
-                        nullable=False)  # Timestamp when the query is added to the queue
+    created_at = Column(DateTime(), default=datetime.utcnow(), nullable=False)  # Timestamp when the query is added to the queue
 
 
 class URLQueueEntity(Base):
@@ -45,21 +43,16 @@ class URLQueueEntity(Base):
 
     id = Column(Integer(), primary_key=True, autoincrement=True, nullable=False)
     url_id = Column(Integer(), ForeignKey('url.id'), unique=True, index=True, nullable=False)  # Make this an index
-    crawler_processing_sentinel = Column(Boolean(),
-                                         nullable=False)  # Indicates if a worker is currently processing this
-    crawler_processed_sentinel = Column(Boolean(),
-                                        nullable=False)  # Indicates if the URLTypeas been successfully crawled
+    crawler_processing_sentinel = Column(Boolean(), nullable=False)  # Indicates if a worker is currently processing this
+    crawler_processed_sentinel = Column(Boolean(), nullable=False)  # Indicates if the URLTypeas been successfully crawled
     crawler_skip = Column(Boolean(), nullable=False)  # Indicates whether or not to skip scraping this website
     retries = Column(Integer(), nullable=False, default=0)  # Indicates the version under which the link was scraped for
-    occurrences = Column(Integer(), nullable=False,
-                         default=1)  # Indicates how often this link was found, s.t. a priority queue can be managed through this
-    version_crawl_frontier = Column(String(),
-                                    nullable=False)  # Indicates the version under which the link was scraped for
+    occurrences = Column(Integer(), nullable=False, default=1)  # Indicates how often this link was found, s.t. a priority queue can be managed through this
+    version_crawl_frontier = Column(String(), nullable=False)  # Indicates the version under which the link was scraped for
     score = Column(Integer(), nullable=False, default=0, index=True)
     depth = Column(Integer(), nullable=False, default=-1, index=True)
 
-    created_at = Column(DateTime(), default=datetime.utcnow(),
-                        nullable=False)  # Timestamp when the query is added to the queue
+    created_at = Column(DateTime(), default=datetime.utcnow(), nullable=False)  # Timestamp when the query is added to the queue
 
 
 class URLReferralsEntity(Base):
@@ -76,8 +69,8 @@ class URLReferralsEntity(Base):
 
     __table_args__ = (
         (
-        # Index('target_url_id', 'referrer_url_id'),
-        PrimaryKeyConstraint('target_url_id', 'referrer_url_id'),
+        Index('target_url_id', 'referrer_url_id'),
+        # PrimaryKeyConstraint('target_url_id', 'referrer_url_id'),
         )
     )
 
@@ -92,10 +85,8 @@ class RawMarkup(Base):
     id = Column(Integer(), primary_key=True, autoincrement=True, nullable=False)
     url_id = Column(Integer(), ForeignKey('url.id'), index=True, nullable=False)  # Make this an index
     markup = Column(Text(), nullable=False)
-    spider_processing_sentinel = Column(Boolean(),
-                                        nullable=False)  # Indicates if a spider worker is currently processing this
-    spider_processed_sentinel = Column(Boolean(),
-                                       nullable=False)  # Indicates if a spider worker has been successfully processed
+    spider_processing_sentinel = Column(Boolean(), nullable=False)  # Indicates if a spider worker is currently processing this
+    spider_processed_sentinel = Column(Boolean(), nullable=False)  # Indicates if a spider worker has been successfully processed
     spider_skip = Column(Boolean(), nullable=False)  # Indicates if a spider worker has been successfully processed
     version_spider = Column(String(), nullable=False)  # Indicates the version under which the link was scraped for
     updated_at = Column(DateTime(), default=datetime.utcnow(), onupdate=datetime.utcnow(), nullable=False)
@@ -166,9 +157,9 @@ if __name__ == "__main__":
 
     load_dotenv()
 
-    db_url = os.getenv('DatabaseUrl')
-    engine = create_engine(db_url, encoding='utf8')
+    # db_url = os.getenv('DatabaseUrl')
+    # engine = create_engine(db_url, encoding='utf8')
     # create all tables
-    Base.metadata.create_all(engine)
+    # Base.metadata.create_all(engine)
 
     print("Done creating the tables")

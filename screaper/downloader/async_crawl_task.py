@@ -46,15 +46,14 @@ class CrawlAsyncTask:
         return len(self.keyword_processor.extract_keywords(markup))
 
     async def fetch(self):
-        # proxy = random.choice(self.proxy_list.proxies)
-        proxy = None
+        proxy = random.choice(self.proxy_list.proxies)
+        # proxy = None
 
         # Add the markup to the database
         # Ping the contents of the website
         await asyncio.sleep(self.sleeptime)
         await asyncio.sleep(random.random() * self.sleeptime)
-
-        print("Fetching :", self.url)
+        # print("Fetching :", self.url)
 
         try:
 
@@ -133,6 +132,9 @@ class CrawlAsyncTask:
 
         if not (self.crawl_object.ok):
             self.crawl_object.add_error(self.crawl_object.markup)
+
+        if not (self.crawl_object.markup):
+            self.crawl_object.add_error((self.crawl_object.status_code, self.crawl_object.markup))
 
         # Calculate the score otherwise by measuring how many tokens in the markup match with the dictionary
         self.crawl_object.score = self.score(self.crawl_object.markup)

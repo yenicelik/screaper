@@ -7,12 +7,14 @@ from urllib.parse import urlparse, urljoin
 
 import yaml
 import validators
+from dotenv import load_dotenv
 from flashtext import KeywordProcessor
 from pyquery import PyQuery as pq
 from url_normalize import url_normalize
 from url_parser import get_base_url
 from w3lib.url import url_query_cleaner, canonicalize_url
 
+load_dotenv()
 
 class MarkupProcessor:
 
@@ -75,8 +77,7 @@ class LinkProcessor:
         self.regex = re.compile(
             "(?i)\b((?:(https|https)?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))")
 
-    def is_absolute(self, url):
-        assert url or url == "", url
+    def is_relative(self, url):
         return bool(urlparse(url).netloc)
 
     def process(self, target_url, referrer_url):
@@ -86,11 +87,8 @@ class LinkProcessor:
         assert target_url or target_url == "", target_url
         assert referrer_url or referrer_url == "", referrer_url
 
-        # TODO: Add URL normalization here
-
         # Very hacky now, which is fine
         if target_url is None:
-            # TODO: Log a warning that some url is none!
             return
         target_url = target_url.strip()
         # apply whitelisting
@@ -105,25 +103,26 @@ class LinkProcessor:
             basic_url = get_base_url(referrer_url)  # Returns just the main url
             target_url = basic_url + target_url
 
-        if self.is_absolute(target_url):
-            basic_url = get_base_url(referrer_url)  # Returns just the main url
-            target_url = urljoin(basic_url, target_url)
+        if self.is_relative(target_url):
+            # basic_url = get_base_url(referrer_url)  # Returns just the main url
+            base_url = urlparse(referrer_url).netloc
+            target_url = urljoin(base_url, target_url)
 
         # Bring target URL into unified format
         if target_url.endswith('/'):
-            target_url = target_url[-1]
+            target_url = target_url[:-1]
 
         # Finally, apply url_normalization
         target_url = url_normalize(target_url)
         target_url = url_query_cleaner(target_url, parameterlist=['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'], remove=True)
         target_url = canonicalize_url(target_url)
 
-        if target_url.endswith("/"):
-            target_url = target_url[:-1]
-
         target_url = target_url.split('#')[0]
-
-        # TODO: Implement contents to also be parsed and links added
+        # Remove the scheme part (as this will be auto-resolved when the request is sent
+        if target_url[:7] == "http://":
+            target_url = target_url[7:]
+        elif target_url[:8] == "https://":
+            target_url = target_url[8:]
 
         # Add more cases why one would skip here
         skip = False

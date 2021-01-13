@@ -6,14 +6,14 @@ from screaper_resources.resources.db import Database
 from screaper_resources.resources.entities import URLEntity
 
 
-class Seed:
+class SeedSetter:
 
-    def __init__(self, resource_database):
+    def __init__(self, resource_database, seed_urls=None):
         # establish a database connection
 
         self.resource_database = resource_database
 
-        seed_urls = [
+        _seed_urls = [
             # "https://www.thomasnet.com/browse/",  # entire database
             # "https://www.thomasnet.com/browse/machinery-tools-supplies-1.html",  # category depth 1
             "https://www.thomasnet.com/browse/machinery-tools-supplies/bearings-1.html",  # category depth 2
@@ -28,6 +28,10 @@ class Seed:
             # "https://www.europages.com/?__hstc=80469576.14de7e5c17b732441ca7b7db9be17ae3.1610191905892.1610219319699.1610224238499.7&__hssc=80469576.1.1610224238499&__hsfp=105719331",
             "https://www.europages.de/Maschinenbau%20und%20Industrie%20-%20Ausr%C3%BCstungen.html"
         ]
+        if seed_urls is None:
+            seed_urls = _seed_urls
+
+        print("Seed urls are: ", seed_urls)
 
         add_seed_urls = True or (self.resource_database.get_number_of_queued_urls() == 0)
         print("Number of sites: ", self.resource_database.get_number_of_queued_urls(), add_seed_urls)
@@ -88,5 +92,5 @@ if __name__ == "__main__":
     print("Adding seed items")
 
     database = Database()
-    seed_generator = Seed(database)
+    seed_generator = SeedSetter(database)
 
