@@ -37,7 +37,7 @@ class Database:
         # Session.configure()
         self.session = Session()
 
-        self.max_retries = 4
+        self.max_retries = 1000
         self.engine_version = "0.0.1"
 
     def commit(self):
@@ -257,18 +257,18 @@ class Database:
         # Such that there is some sort of non-overlap mechanism across processes
         random_prime = random.choice([1])  # , 2, 3, 5, 7, 11, 13, 17, 19, 23, 29])
 
+        # .filter(URLQueueEntity.id % random_prime == 0) \
+
         raw_markup_items = self.session.query(RawMarkup.url_id)
         query_list = self.session.query(URLEntity.id, URLEntity.url, URLQueueEntity.id, URLQueueEntity.depth) \
             .filter(URLQueueEntity.crawler_skip == false()) \
-            .filter(sqlalchemy.not_(URLQueueEntity.url_id.in_(raw_markup_items))) \
+            .filter(~URLQueueEntity.url_id.in_(raw_markup_items)) \
             .filter(URLQueueEntity.crawler_processing_sentinel == false()) \
-            .filter(URLQueueEntity.retries < self.max_retries) \
             .filter(URLQueueEntity.depth != -1) \
-            .filter(URLQueueEntity.id % random_prime == 0) \
             .filter(URLEntity.id == URLQueueEntity.url_id) \
             .filter(sqlalchemy.not_(URLEntity.url.contains('tel://'))) \
             .filter(sqlalchemy.not_(URLEntity.url.contains('javascript'))) \
-            .order_by(URLQueueEntity.depth.asc()) \
+            .order_by(URLQueueEntity.depth.asc(), URLQueueEntity.retries.asc()) \
             .limit(n)
 
         query_list = query_list.all()
@@ -307,11 +307,9 @@ class Database:
 
         query = self.session.query(URLQueueEntity).filter(URLQueueEntity.url_id == URLEntity.id).filter(
             URLEntity.url.in_(urls))
-        # print("Number of items before processed: ", query.filter(URLQueueEntity.crawler_processed_sentinel == false()).count())
         query.update({
             URLQueueEntity.crawler_processed_sentinel: True
         }, synchronize_session=False)
-        # print("Number of items now processed: ", query.filter(URLQueueEntity.crawler_processed_sentinel == false()).count())
 
     def update_url_task_queue_record_failed(self, urls):
         """

@@ -24,6 +24,10 @@ class CrawlAsyncTask:
     """
 
     def __init__(self, proxy_list, crawl_object):
+
+        assert crawl_object, crawl_object
+        assert proxy_list, proxy_list
+
         self.proxy_list = proxy_list
         self.crawl_object = crawl_object
 

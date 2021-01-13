@@ -16,6 +16,7 @@ from w3lib.url import url_query_cleaner, canonicalize_url
 
 load_dotenv()
 
+
 class MarkupProcessor:
 
     def __init__(self):
@@ -71,6 +72,7 @@ class LinkProcessor:
 
         self.populat_websites_processor = KeywordProcessor()
         self.populat_websites_processor.add_keywords_from_list(self.popular_websites)
+        self.popular_websites = set(self.popular_websites)
 
         # Later on implement when a website is considered outdated
         self.outdate_timedelta = None
@@ -86,6 +88,8 @@ class LinkProcessor:
         """
         assert target_url or target_url == "", target_url
         assert referrer_url or referrer_url == "", referrer_url
+
+        base_url = urlparse(referrer_url).netloc
 
         # Very hacky now, which is fine
         if target_url is None:
@@ -105,7 +109,6 @@ class LinkProcessor:
 
         if self.is_relative(target_url):
             # basic_url = get_base_url(referrer_url)  # Returns just the main url
-            base_url = urlparse(referrer_url).netloc
             target_url = urljoin(base_url, target_url)
 
         # Bring target URL into unified format
@@ -114,7 +117,9 @@ class LinkProcessor:
 
         # Finally, apply url_normalization
         target_url = url_normalize(target_url)
-        target_url = url_query_cleaner(target_url, parameterlist=['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'], remove=True)
+        target_url = url_query_cleaner(target_url,
+                                       parameterlist=['utm_source', 'utm_medium', 'utm_campaign', 'utm_term',
+                                                      'utm_content'], remove=True)
         target_url = canonicalize_url(target_url)
 
         target_url = target_url.split('#')[0]
@@ -126,11 +131,14 @@ class LinkProcessor:
 
         # Add more cases why one would skip here
         skip = False
-        if self.populat_websites_processor.extract_keywords(target_url):
-            skip = True
 
         # If still not a valid URL, skip:
-        if not validators.url(target_url):
+        if not base_url:
+            print("Not a valid URL!", target_url)
+            skip = True
+
+        if self.populat_websites_processor.extract_keywords(target_url):
+            print("Too popular of a website!", target_url)
             skip = True
 
         # Also return these, rather than commiting these immediately

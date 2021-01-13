@@ -37,6 +37,23 @@ class TestMarkupProcessor(unittest.TestCase):
         target_url, _, _ = self.link_processor.process(test7, referrer_url="google.com/")
         assert target_url == "www.europages.de/Maschinenbau%20und%20Industrie%20-%20Ausr%C3%BCstungen.html", target_url
 
+    def test_link_processor_skip(self):
+
+        test = "www.europages.de/unternehmen/Tabakindustrie%20-%20Maschinen%20und%20Ger%C3%A4te.html"
+
+        test = "www.facebook.com/werliefertwas"
+
+        test = "apps.apple.com/de/app/wlw/id1531873496"
+
+        test = "twitter.com/Thomasnet"
+
+        test = "in.linkedin.com/company/go4worldbusiness.com"
+
+
+
+
+
+
 if __name__ == "__main__":
     print("Check what URL returns")
     test = TestMarkupProcessor()

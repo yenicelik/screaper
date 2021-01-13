@@ -36,12 +36,9 @@ class CrawlFrontier:
             This makes extensive use of the CrawlNextObjects Class
         """
         crawl_next_objects = self.crawl_objects_buffer.generate_crawl_next_objects()
-        print("Crawl next objects are")
-        for x in crawl_next_objects:
-            print("crawl next obj (..)", x.depth, x.target_url, x.original_url)
 
         if not crawl_next_objects:
-            print("No crawl next objects found: ", [x.markup for x in self.crawl_objects_buffer.buffer])
+            print("No crawl next objects found: ", [x.url for x in self.crawl_objects_buffer.buffer])
             return
 
         newly_found_urls = [x.target_url for x in crawl_next_objects]
@@ -88,7 +85,7 @@ class CrawlFrontier:
         self.database.update_url_task_queue_record_completed(successful_urls)
 
     def rollback(self):
-        self.database.update_url_task_queue_record_failed(self.crawl_objects_buffer.buffer)
+        self.database.update_url_task_queue_record_failed(list(self.crawl_objects_buffer.buffer))
 
 
 class CrawlNextObject:
@@ -162,7 +159,10 @@ class CrawlObjectsBuffer:
 
     def add_to_buffer(self, crawl_object):
         assert isinstance(crawl_object, CrawlObject)
+        assert crawl_object, crawl_object
+        len_buffer = len(self.buffer)
         self.buffer.add(crawl_object)
+        assert len(self.buffer) == len_buffer + 1, (len(self.buffer), len_buffer + 1)
 
     def calculate_successful(self):
         return len({x for x in self.buffer if not x.not_successful})
@@ -188,7 +188,10 @@ class CrawlObjectsBuffer:
         return self.buffer
 
     def generate_crawl_next_objects(self):
-        out = [x for crawl_object in self.buffer for x in crawl_object.crawl_next_objects]
+        out = []
+        for crawl_object in self.buffer:
+            for crawl_next_object in crawl_object.crawl_next_objects:
+                out.append(crawl_next_object)
         return out
 
 

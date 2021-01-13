@@ -80,6 +80,7 @@ class Main:
                 # Fetch next items to be worked on
                 crawl_objects = self.crawl_frontier.get_next_urls_to_crawl()
                 dispatched = True
+                print("Fetched: ", crawl_objects)
                 if not crawl_objects:
                     dispatched = False
                     print("No crawl objects left", crawl_objects)
@@ -89,18 +90,18 @@ class Main:
                 tasks = []
                 for crawl_object in crawl_objects:
                     # Spawn a AsyncCrawlTask object
-                    task = self.dispatch_crawl_objects(crawl_object)
+                    task = await self.dispatch_crawl_objects(crawl_object)
                     tasks.append(task)
 
                 # Such that it doesn't spam
                 await asyncio.sleep(self.ping_interval)
 
                 # Wait until all tasks are handled
-                if tasks:
-                    await asyncio.gather(*tasks)
-                    print("Time until gather took: ", time.time() - start_time)
+                await asyncio.gather(*tasks)
+                print("Time until gather took: ", time.time() - start_time)
 
                 print("Flushing records: Markups {} -- Failed {} -- Completed {} -- Total {}".format(self.crawl_objects_buffer.calculate_collected_markups(), self.crawl_objects_buffer.calculate_failed(), self.crawl_objects_buffer.calculate_successful(), self.crawl_objects_buffer.calculate_total()))
+                assert self.crawl_objects_buffer.calculate_total() == len(crawl_objects), (self.crawl_objects_buffer.calculate_total(), len(crawl_objects))
                 flush_start_time = time.time()
 
                 if dispatched:

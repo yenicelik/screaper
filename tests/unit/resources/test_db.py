@@ -1,6 +1,9 @@
 """
     Any tests related to the database
 """
+import os
+
+from dotenv import load_dotenv
 from flashtext import KeywordProcessor
 
 from screaper.core.seed_setter import SeedSetter
@@ -19,6 +22,9 @@ class PostgresTests:
 
     def setUp(self):
         db_url = "postgresql://postgres@localhost:5432/test_database"
+
+        load_dotenv()
+        db_url = os.getenv("DatabaseUrl")
 
         # Generate database if not existent yet
         self.database = Database(db_url)
@@ -58,6 +64,8 @@ class PostgresTests:
 
         # Insert seed URLs
         seed_setter = SeedSetter(self.database)
+
+        exit(0)
 
         # Check if inserted URLs items correspond exactly
         inserted_urls = self.database.session.query(URLEntity.url).all()
@@ -318,7 +326,6 @@ class PostgresTests:
         )
 
         self.crawl_frontier.mark_crawl_objects_as_done()
-        self.database.commit()
         self._test_crawl_objects_are_successfully_marked(newly_inserted_urls=["www.google.com/", "www.facebook.com/"])
 
         self.crawl_objects_buffer.flush_buffer()
