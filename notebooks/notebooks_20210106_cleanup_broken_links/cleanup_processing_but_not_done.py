@@ -32,11 +32,7 @@ def remove_duplicate_markups():
     AS row_num FROM raw_markup) t WHERE t.row_num > 1);
     :return:
     """
-
     # Create a unique index (each link only has one markup saved)
-    """
-        
-    """
 
 if __name__ == "__main__":
     print("Cleaning data a bit more because of broke threads etc.")

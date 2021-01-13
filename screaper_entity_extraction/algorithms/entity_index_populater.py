@@ -64,7 +64,7 @@ class EntityIndexPopulator:
 
                     # Input into url table if not in url table
                     url = url_normalize(node.attrs["href"]) if "href" in node.attrs else None
-                    url_obj = self.db.create_url_entity(url)
+                    url_obj = self.db.insert_url_entity(url)
 
                     for ner_pair in eval(node.attrs["ner"]):
                         token, ner_label = ner_pair
@@ -136,7 +136,7 @@ class EntityIndexPopulator:
 
             # Select any meta title, meta description, or title tags
             url = url_normalize(urls[i])
-            url_obj = self.db.create_url_entity(url)
+            url_obj = self.db.insert_url_entity(url)
 
             # Make the homepage selector somewhere further down the pipeline, not here
             # Homepage should be a separate attribute somewhere else
@@ -228,7 +228,7 @@ class EntityIndexPopulator:
 
                 # Input into url table if not in url table
                 url = url_normalize(node.attrs["href"]) if "href" in node.attrs else None
-                url_obj = self.db.create_url_entity(url)
+                url_obj = self.db.insert_url_entity(url)
 
                 tmp = {
                     "label": token,

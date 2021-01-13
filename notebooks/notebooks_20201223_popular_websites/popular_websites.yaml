@@ -499,3 +499,20 @@ websites:
 - mystrikingly.com
 - springer.com
 - allrecipes.com
+- tel://
+- javascript
+- doi.org
+- ftp:/
+# .filter(sqlalchemy.not_(URLEntity.url.contains('javascript'))) \
+# .filter(sqlalchemy.not_(URLEntity.url.contains('wikimedia.org'))) \
+# .filter(sqlalchemy.not_(URLEntity.url.contains('news'))) \
+# .filter(sqlalchemy.not_(URLEntity.url.contains('microsoft'))) \
+# .filter(sqlalchemy.not_(URLEntity.url.contains('wiki'))) \
+# .filter(sqlalchemy.not_(URLEntity.url.contains('ftp:'))) \
+# .filter(sqlalchemy.not_(URLEntity.url.contains('help'))) \
+# .filter(sqlalchemy.not_(URLEntity.url.contains('media'))) \
+# .filter(sqlalchemy.not_(URLEntity.url.contains('.hp.com'))) \
+# .filter(sqlalchemy.not_(URLEntity.url.contains('google'))) \
+# .filter(sqlalchemy.not_(URLEntity.url.contains('archive'))) \
+# .filter(sqlalchemy.not_(URLEntity.url.contains('.se.com'))) \
+# .filter(sqlalchemy.not_(URLEntity.url.contains('go4worldbusiness.com'))) \

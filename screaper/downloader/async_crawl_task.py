@@ -1,11 +1,16 @@
 import asyncio
 import random
+import traceback
+from _ssl import SSLCertVerificationError
 
-from aiohttp import ClientHttpProxyError
+from aiohttp import ClientHttpProxyError, ClientProxyConnectionError, ServerDisconnectedError, InvalidURL, \
+    TooManyRedirects
 from aiohttp_requests import requests
+from flashtext import KeywordProcessor
 from requests.exceptions import ProxyError, ConnectTimeout
 
-from screaper.engine.markup_processor import markup_processor
+from screaper.engine.markup_processor import markup_processor, LinkProcessor
+
 
 # TODO: Implement Caching requests.
 # DNS Cache
@@ -18,84 +23,127 @@ class CrawlAsyncTask:
         Similar to a thread, but modeled as an async task
     """
 
-    def __init__(self, proxy_list, url, depth):
+    def __init__(self, proxy_list, crawl_object):
         self.proxy_list = proxy_list
-        self.url = url
-        self.depth = depth
+        self.crawl_object = crawl_object
 
-        # Remove the sleeptime. Or no, actually, keep it
+        self.url = crawl_object.url
+        self.depth = crawl_object.depth
+
+        # Select at random some header
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36",
-        # (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)
+            # (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)
         }
         self.sleeptime = 0.35  # 0.35
 
-    async def fetch(self):
-        if "thomasnet" in self.url or "go4worldbusiness" in self.url:
-            proxy = random.choice(self.proxy_list.proxies)
-        else:
-            proxy = None
-        # proxy = None
+        self.keyword_processor = KeywordProcessor()
+        self.keyword_processor.add_keywords_from_list(['bearing'])
 
-        # print("Proxy is now: ", proxy)
-        # Make the asyncronous request
-        # Fetch the request
+        self.link_processor = LinkProcessor()
+
+    def score(self, markup):
+        return len(self.keyword_processor.extract_keywords(markup))
+
+    async def fetch(self):
+        proxy = random.choice(self.proxy_list.proxies)
+        # proxy = None
 
         # Add the markup to the database
         # Ping the contents of the website
         await asyncio.sleep(self.sleeptime)
         await asyncio.sleep(random.random() * self.sleeptime)
+        # print("Fetching :", self.url)
 
         try:
 
-            # Make the asyncio request
-            response = await requests.get(
-                self.url,
-                headers=self.headers,
-                proxy=proxy,
-                timeout=15.0
-            )
-            markup = await response.text()
-            status_code = response.status
-            target_urls = markup_processor.get_links(self.url, markup)
+            # Make the async request
+            if proxy is None:
+                response = await requests.get(
+                    self.url,
+                    headers=self.headers,
+                    timeout=20.0
+                )
+            else:
+                response = await requests.get(
+                    self.url,
+                    headers=self.headers,
+                    proxy=proxy,
+                    timeout=20.0
+                )
+            self.crawl_object.markup = await response.text()
+            self.crawl_object.status_code = response.status
+            self.crawl_object.ok = response.ok
 
         except ProxyError as e:
-            # TODO: Log
             # print("Connection Timeout Exception 1!", e)
             self.proxy_list.warn_proxy(proxy)
-            return None, e, []
-
-        except ConnectTimeout as e:
-            # TODO: Log
-            # print("Connection Timeout Exception 2!", e)
-            self.proxy_list.warn_proxy(proxy)
-            return None, e, []
+            self.crawl_object.add_error(e)
+            return self.crawl_object
 
         except ClientHttpProxyError as e:
-            # TODO: Log
             # print("Connection Timeout Exception 3!", e)
-            self.proxy_list.warn_proxy(proxy, harsh=True)
-            return None, e, []
+            self.proxy_list.warn_proxy(proxy)
+            self.crawl_object.add_error(e)
+            return self.crawl_object
+
+        except ClientProxyConnectionError as e:
+            self.proxy_list.warn_proxy(proxy)
+            self.crawl_object.add_error(e)
+            return self.crawl_object
+
+        except ConnectTimeout as e:
+            # print("Connection Timeout Exception 2!", e)
+            self.proxy_list.warn_proxy(proxy)
+            self.crawl_object.add_error(e)
+            return self.crawl_object
+
+        except asyncio.TimeoutError as e:
+            self.proxy_list.warn_proxy(proxy)
+            self.crawl_object.add_error(e)
+            return self.crawl_object
+
+        except ConnectionRefusedError as e:
+            self.crawl_object.add_error(e)
+            return self.crawl_object
+
+        except ServerDisconnectedError as e:
+            self.crawl_object.add_error(e)
+            return self.crawl_object
+
+        except InvalidURL as e:
+            self.crawl_object.add_error(e)
+            return self.crawl_object
+
+        except SSLCertVerificationError as e:
+            self.crawl_object.add_error(e)
+            return self.crawl_object
+
+        except TooManyRedirects as e:
+            self.crawl_object.add_error(e)
+            return self.crawl_object
 
         except Exception as e:
-            # print("Encountered exception: ", e)
-            self.proxy_list.total_bad_tries += 1
-            return None, e, []
+            print("Encountered exception: ", repr(e))
+            # traceback.print_exc()
+            self.crawl_object.add_error(e)
+            print(proxy, self.url)
+            return self.crawl_object
 
-        return status_code, markup, target_urls
+        if not (self.crawl_object.ok):
+            self.crawl_object.add_error(self.crawl_object.markup)
 
-if __name__ == "__main__":
-    print("Making an example request with the async crawl task")
+        if not (self.crawl_object.markup):
+            self.crawl_object.add_error((self.crawl_object.status_code, self.crawl_object.markup))
 
-    from screaper_resources.resources.resouces_proxylist import ProxyList
-    from screaper.crawl_frontier.crawl_frontier import CrawlFrontier
-    from screaper_resources.resources.db import Database
+        # Calculate the score otherwise by measuring how many tokens in the markup match with the dictionary
+        self.crawl_object.score = self.score(self.crawl_object.markup)
 
-    proxy_list = ProxyList()
-    database = Database()
-    queue_obj = CrawlFrontier(database).pop_start_list()[0]
+        found_urls = markup_processor.get_links(self.url, self.crawl_object.markup)
+        # Process all the links # Propagate the score onwards
+        for found_url in found_urls:
+            target_url, referrer_url, skip = self.link_processor.process(found_url, self.crawl_object.url)
+            self.crawl_object.insert_crawl_next_object(original_crawl_obj=self.crawl_object, target_url=target_url,
+                                                       skip=skip, score=self.crawl_object.score)
 
-    print("Queue obj is: ", queue_obj)
-
-    single_execution = CrawlAsyncTask(proxy_list, url=queue_obj.url)
-    print(asyncio.run(single_execution.fetch()))
+        return self.crawl_object

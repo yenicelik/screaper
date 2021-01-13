@@ -44,13 +44,20 @@ class ProxyList:
         # TODO: Replace with environment variable
         proxies = [(x["ip"], x["port"]) for x in proxies if x["google_status"] == 200]
         self._proxies = set(("http://" + str(x[0]) + ":" + str(x[1])) for x in proxies)
+        # self._proxies.update({None})
+
+        # Add no proxy to self proxy-list
         self._bad_proxy_counter = dict((x, 0) for x in self._proxies)
+        self._bad_proxy_counter[""] = 0
+        self._proxy_counter = dict((x, 0) for x in self._proxies)
+        self._proxy_counter[""] = 0
 
         self._proxies_blacklist = set()
 
-        self.max_retries_per_proxy = 5
         self.total_tries = 1
         self.total_bad_tries = 1
+        self.max_retries_per_proxy = max(50, self.total_tries / 100)
+        self.ratio_proxy_is_bad = 0.91
 
     @property
     def proxy_list_success_rate(self):
@@ -59,7 +66,9 @@ class ProxyList:
     @property
     def proxies(self):
         self.total_tries += 1
-        return list(self._proxies.difference(self._proxies_blacklist))
+        out = list(self._proxies.difference(self._proxies_blacklist))
+        assert len(out) >= 1, ("Ran out of proxies to try!", len(out), out)
+        return out
 
     def warn_proxy(self, proxy, harsh=False):
         """
@@ -73,10 +82,15 @@ class ProxyList:
         if harsh:
             self._proxies_blacklist.add(proxy)
 
+        if proxy is None:
+            return
+
         self._bad_proxy_counter[proxy] += 1
+        self._proxy_counter[proxy] += 1
         self.total_bad_tries += 1
         # Remove proxy if it repeatedly turns out to be a bad one
-        if self._bad_proxy_counter[proxy] > self.max_retries_per_proxy:
+        if self._bad_proxy_counter[proxy] > self.max_retries_per_proxy and \
+                (self._bad_proxy_counter[proxy] / self._proxy_counter[proxy]) > self.ratio_proxy_is_bad:
             self._proxies_blacklist.add(proxy)
             # del self._bad_proxy_counter[proxy]
         if len(self._proxies) < 5:
