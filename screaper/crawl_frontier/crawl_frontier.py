@@ -24,6 +24,7 @@ class CrawlFrontier:
         """
         start_time = time.time()
         crawl_objects = self.database.get_url_task_queue_record_start_list(n=n)
+        self.database.commit()
         print("Time to populate queue took: ", time.time() - start_time)
         return crawl_objects
 
@@ -37,7 +38,7 @@ class CrawlFrontier:
         """
         crawl_next_objects = self.crawl_objects_buffer.generate_crawl_next_objects()
 
-        if not crawl_next_objects:
+        if crawl_next_objects == []:
             print("No crawl next objects found: ", [x.url for x in self.crawl_objects_buffer.buffer])
             return
 
@@ -45,27 +46,30 @@ class CrawlFrontier:
 
         # Insert into the database if not existent yet
         to_be_inserted_urls = self.database.get_url_entity_not_inserted(newly_found_urls)
+
         self.database.insert_url_entity(to_be_inserted_urls)
 
         # Update all items in the queue by incrementing the retry and occurrence counter
         existing_urls, missing_urls = self.database.get_url_queue_inserted_and_missing(newly_found_urls)
+
         assert len(existing_urls) + len(missing_urls) == len(set(newly_found_urls)), (
             len(existing_urls), len(missing_urls), len(set(newly_found_urls)))
-        if existing_urls:
-            existing_crawl_object_urls = [x.target_url for x in crawl_next_objects if x.target_url in existing_urls]
-            self.database.update_existent_queue_items_visited_again(existing_crawl_object_urls)
+
         # Insert into the queue if not yet existent
         if missing_urls:
             missing_crawl_objects = [x for x in crawl_next_objects if x.target_url in missing_urls]
             self.database.insert_missing_queue_items(missing_crawl_objects)
 
+        if existing_urls:
+            existing_crawl_object_urls = [x.target_url for x in crawl_next_objects if x.target_url in existing_urls]
+            self.database.update_existent_queue_items_visited_again(existing_crawl_object_urls)
+
         # Insert as a referral pair, if not yet existent
         # If crawl-next-objects exist, continue:
-        already_inserted_referral_pairs, not_inserted_referral_pairs = self.database.get_duplicate_referral_pairs(
-            crawl_next_objects)
-        self.database.update_visited_referral_entities(
-            already_inserted_referral_pairs)  # Need to apply the database migration first
+        already_inserted_referral_pairs, not_inserted_referral_pairs = self.database.get_duplicate_referral_pairs(crawl_next_objects)
         self.database.insert_referral_entity(not_inserted_referral_pairs)
+        self.database.update_visited_referral_entities(already_inserted_referral_pairs)  # Need to apply the database migration first
+        self.database.commit()
 
     def insert_markups_for_successful_crawl_objects(self):
         """
@@ -73,19 +77,23 @@ class CrawlFrontier:
         """
         crawl_objects = self.crawl_objects_buffer.get_successful_items()
         self.database.insert_markup_record(crawl_objects)
+        self.database.commit()
 
     def mark_crawl_objects_as_done(self):
         """
             Depending on the crawl object, marks them as completed (if markup was successfully received), or failed (if no markup was fetched, or a bad status is returned)
         """
         # Mark the failed items as failed in the database
-        failed_urls = [x.url for x in self.crawl_objects_buffer.get_failed_items()]
-        self.database.update_url_task_queue_record_failed(failed_urls)
         successful_urls = [x.url for x in self.crawl_objects_buffer.get_successful_items()]
         self.database.update_url_task_queue_record_completed(successful_urls)
+        self.database.commit()
+        failed_urls = [x.url for x in self.crawl_objects_buffer.get_failed_items()]
+        self.database.update_url_task_queue_record_failed(failed_urls)
+        self.database.commit()
 
     def rollback(self):
-        self.database.update_url_task_queue_record_failed(list(self.crawl_objects_buffer.buffer))
+        self.database.update_url_task_queue_record_failed([x.url for x in self.crawl_objects_buffer.buffer])
+        self.database.commit()
 
 
 class CrawlNextObject:

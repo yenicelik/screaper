@@ -107,9 +107,10 @@ class Database:
             assert url or url=="", url
             assert isinstance(url, str), (url, type(url))
 
-        query = self.session.query(URLQueueEntity).filter(URLQueueEntity.url_id == URLEntity.id) \
+        query = self.session.query(URLQueueEntity)\
+            .filter(URLQueueEntity.url_id == URLEntity.id) \
             .filter(URLEntity.url.in_(urls))
-        query.update({
+        query.update(values={
             URLQueueEntity.occurrences: URLQueueEntity.occurrences + 1
         }, synchronize_session=False)
 
@@ -215,7 +216,7 @@ class Database:
                 adjacency_tuples
             )
         )
-        visited_referral_entities.update({URLReferralsEntity.occurrences: URLReferralsEntity.occurrences + 1}, synchronize_session=False)
+        visited_referral_entities.update(values={URLReferralsEntity.occurrences: URLReferralsEntity.occurrences + 1}, synchronize_session=False)
 
     def insert_referral_entity(self, adjacency_tuples):
         """
@@ -245,7 +246,7 @@ class Database:
     #####################################################
 
     # Write bulk operation instead?
-    def get_url_task_queue_record_start_list(self, n=512):
+    def get_url_task_queue_record_start_list(self, n=32):
         """
             Retrieve a list of URL sites to scrape next
             # TODO: Make it mixed, such that there is a limit of how many urls from one domain can be picked
@@ -289,7 +290,7 @@ class Database:
 
         print("Getting queue (1) takes {:.3f} seconds".format(time.time() - start_time))
         query = self.session.query(URLQueueEntity).filter(URLQueueEntity.id.in_([x.queue_id for x in out]))
-        query.update({URLQueueEntity.crawler_processing_sentinel: True}, synchronize_session=False)
+        query.update(values={URLQueueEntity.crawler_processing_sentinel: True}, synchronize_session=False)
 
         print("Getting queue (2) takes {:.3f} seconds".format(time.time() - start_time))
 
@@ -305,9 +306,10 @@ class Database:
             assert url or url == "", (url)
             assert isinstance(url, str), type(url)
 
-        query = self.session.query(URLQueueEntity).filter(URLQueueEntity.url_id == URLEntity.id).filter(
-            URLEntity.url.in_(urls))
-        query.update({
+        query = self.session.query(URLQueueEntity)\
+            .filter(URLQueueEntity.url_id == URLEntity.id)\
+            .filter(URLEntity.url.in_(urls))
+        query.update(values={
             URLQueueEntity.crawler_processed_sentinel: True
         }, synchronize_session=False)
 
@@ -324,7 +326,6 @@ class Database:
         query = self.session.query(URLQueueEntity)\
             .filter(URLQueueEntity.url_id == URLEntity.id)\
             .filter(URLEntity.url.in_(urls))
-        print("Number of items to be updated query: ", query.count())
         query.update(
             values={
                 URLQueueEntity.retries: URLQueueEntity.retries + 1,

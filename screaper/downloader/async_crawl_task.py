@@ -50,8 +50,8 @@ class CrawlAsyncTask:
         return len(self.keyword_processor.extract_keywords(markup))
 
     async def fetch(self):
-        proxy = random.choice(self.proxy_list.proxies)
-        # proxy = None
+        # proxy = random.choice(self.proxy_list.proxies)
+        proxy = None
 
         # Add the markup to the database
         # Ping the contents of the website

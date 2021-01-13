@@ -117,28 +117,26 @@ class LinkProcessor:
 
         # Finally, apply url_normalization
         target_url = url_normalize(target_url)
-        target_url = url_query_cleaner(target_url,
-                                       parameterlist=['utm_source', 'utm_medium', 'utm_campaign', 'utm_term',
-                                                      'utm_content'], remove=True)
+        target_url = url_query_cleaner(target_url, parameterlist=['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'], remove=True)
         target_url = canonicalize_url(target_url)
 
         target_url = target_url.split('#')[0]
         # Remove the scheme part (as this will be auto-resolved when the request is sent
-        if target_url[:7] == "http://":
-            target_url = target_url[7:]
-        elif target_url[:8] == "https://":
-            target_url = target_url[8:]
+        # if target_url[:7] == "http://":
+        #     target_url = target_url[7:]
+        # elif target_url[:8] == "https://":
+        #     target_url = target_url[8:]
 
         # Add more cases why one would skip here
         skip = False
 
         # If still not a valid URL, skip:
         if not base_url:
-            print("Not a valid URL!", target_url)
+            # print("Not a valid URL!", target_url)
             skip = True
 
         if self.populat_websites_processor.extract_keywords(target_url):
-            print("Too popular of a website!", target_url)
+            # print("Too popular of a website!", target_url)
             skip = True
 
         # Also return these, rather than commiting these immediately

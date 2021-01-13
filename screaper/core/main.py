@@ -12,6 +12,7 @@ from screaper.crawl_frontier.crawl_frontier import CrawlFrontier, CrawlObjectsBu
 from screaper.downloader.async_crawl_task import CrawlAsyncTask
 from screaper_resources.resources.resouces_proxylist import ProxyList
 
+
 class Main:
 
     def __init__(self, name="", database=None):
@@ -22,13 +23,15 @@ class Main:
         assert database
         self.resource_database = database
         self.crawl_objects_buffer = CrawlObjectsBuffer()
-        self.crawl_frontier = CrawlFrontier(database=self.resource_database, crawl_objects_buffer=self.crawl_objects_buffer)
+        self.crawl_frontier = CrawlFrontier(database=self.resource_database,
+                                            crawl_objects_buffer=self.crawl_objects_buffer)
 
         # Implement an async-queue
 
         self.ping_interval = 5  # How many seconds to run the ping interval for
         self.timestamps = []
-        self.task_durations = [30., ] # Adding as an initial starting point s.t. we don't have division by zero or nan ops
+        self.task_durations = [
+            30., ]  # Adding as an initial starting point s.t. we don't have division by zero or nan ops
 
     def calculate_sites_per_minute(self, crawled_sites):
         """
@@ -62,8 +65,6 @@ class Main:
 
         self.crawl_objects_buffer.flush_buffer()
 
-        bad_crawl_time = None
-
         while True:
 
             start_time = time.time()
@@ -73,18 +74,26 @@ class Main:
             sites_per_minute = self.calculate_sites_per_minute(crawled_sites)
             average_time_per_task = np.median(self.task_durations)
             proxy_success_rate = self.proxy_list.proxy_list_success_rate
-            print("Process {} :: Global Sites per s/m/h: {:.2f}/{:.1f}/{:.1f} -- Crawled sites: {} -- Available proxies: {}".format(self.name, sites_per_minute / 60, sites_per_minute, sites_per_minute * 60, crawled_sites, len(self.proxy_list._proxies.difference(self.proxy_list._proxies_blacklist))))
-            print("Process {} :: AVG Time per Task: {:.2f} -- Proxy success rate: {:.1f} -- Queue sites in DB: {}".format(self.name, average_time_per_task, proxy_success_rate, queued_sites))
+            print(
+                "Process {} :: Global Sites per s/m/h: {:.2f}/{:.1f}/{:.1f} -- Crawled sites: {} -- Available proxies: {}".format(
+                    self.name, sites_per_minute / 60, sites_per_minute, sites_per_minute * 60, crawled_sites,
+                    len(self.proxy_list._proxies.difference(self.proxy_list._proxies_blacklist))))
+            print(
+                "Process {} :: AVG Time per Task: {:.2f} -- Proxy success rate: {:.1f} -- Queue sites in DB: {}".format(
+                    self.name, average_time_per_task, proxy_success_rate, queued_sites))
+
+            print("Number of items in buffer: ", len(self.crawl_objects_buffer.buffer))
 
             try:
                 # Fetch next items to be worked on
-                crawl_objects = self.crawl_frontier.get_next_urls_to_crawl()
+                n = 16
+                crawl_objects = self.crawl_frontier.get_next_urls_to_crawl(n=n)
+                assert len(crawl_objects) <= n, (len(crawl_objects), n)
                 dispatched = True
-                print("Fetched: ", crawl_objects)
-                if not crawl_objects:
+                # print("Fetched: ", crawl_objects)
+                if crawl_objects == []:
                     dispatched = False
                     print("No crawl objects left", crawl_objects)
-                self.resource_database.commit()
 
                 # Run the tasks
                 tasks = []
@@ -93,16 +102,19 @@ class Main:
                     task = await self.dispatch_crawl_objects(crawl_object)
                     tasks.append(task)
 
-                # Such that it doesn't spam
-                await asyncio.sleep(self.ping_interval)
-
                 # Wait until all tasks are handled
                 await asyncio.gather(*tasks)
                 print("Time until gather took: ", time.time() - start_time)
 
-                print("Flushing records: Markups {} -- Failed {} -- Completed {} -- Total {}".format(self.crawl_objects_buffer.calculate_collected_markups(), self.crawl_objects_buffer.calculate_failed(), self.crawl_objects_buffer.calculate_successful(), self.crawl_objects_buffer.calculate_total()))
-                assert self.crawl_objects_buffer.calculate_total() == len(crawl_objects), (self.crawl_objects_buffer.calculate_total(), len(crawl_objects))
+                print("Flushing records: Markups {} -- Failed {} -- Completed {} -- Total {}".format(
+                    self.crawl_objects_buffer.calculate_collected_markups(),
+                    self.crawl_objects_buffer.calculate_failed(), self.crawl_objects_buffer.calculate_successful(),
+                    self.crawl_objects_buffer.calculate_total()))
+                assert self.crawl_objects_buffer.calculate_total() == len(crawl_objects), (
+                self.crawl_objects_buffer.calculate_total(), len(crawl_objects))
                 flush_start_time = time.time()
+
+                print("Number of items in buffer: ", len(self.crawl_objects_buffer.buffer))
 
                 if dispatched:
                     # Flush all items into the database
@@ -110,7 +122,10 @@ class Main:
                     self.crawl_frontier.extend_frontier()
                     self.crawl_frontier.mark_crawl_objects_as_done()
                     print("Flushing took {:.3f} second".format(time.time() - flush_start_time))
-                    self.crawl_objects_buffer.flush_buffer()
+
+                assert len(self.crawl_objects_buffer.buffer) <= n, (len(self.crawl_objects_buffer.buffer), n)
+
+                self.crawl_objects_buffer.flush_buffer()
 
             except Exception as e:
                 print("Exception occurred in main loop: ", repr(e))
