@@ -5,6 +5,19 @@ from flask import Flask, request, jsonify
 
 application = Flask(__name__)
 
+@application.route('/')
+def healthcheckpoint():
+    """
+        Example request could look as follows:
+        {
+            "search_query": "bearings"
+        }
+
+    """
+    return jsonify({
+        "response": "API is up and running!"
+    }), 200
+
 @application.route('/get-actor-candidate-entities', methods=["GET", "POST"])
 def get_actor_candidate_entities():
     """
