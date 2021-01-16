@@ -86,7 +86,7 @@ class Main:
 
             try:
                 # Fetch next items to be worked on
-                n = 16
+                n = 4
                 crawl_objects = self.crawl_frontier.get_next_urls_to_crawl(n=n)
                 assert len(crawl_objects) <= n, (len(crawl_objects), n)
                 dispatched = True
@@ -116,12 +116,11 @@ class Main:
 
                 print("Number of items in buffer: ", len(self.crawl_objects_buffer.buffer))
 
-                if dispatched:
-                    # Flush all items into the database
-                    self.crawl_frontier.insert_markups_for_successful_crawl_objects()
-                    self.crawl_frontier.extend_frontier()
-                    self.crawl_frontier.mark_crawl_objects_as_done()
-                    print("Flushing took {:.3f} second".format(time.time() - flush_start_time))
+                # Flush all items into the database
+                self.crawl_frontier.insert_markups_for_successful_crawl_objects()
+                self.crawl_frontier.extend_frontier()
+                self.crawl_frontier.mark_crawl_objects_as_done()
+                print("Flushing took {:.3f} second".format(time.time() - flush_start_time))
 
                 assert len(self.crawl_objects_buffer.buffer) <= n, (len(self.crawl_objects_buffer.buffer), n)
 
@@ -129,7 +128,7 @@ class Main:
 
             except Exception as e:
                 print("Exception occurred in main loop: ", repr(e))
-                self.crawl_frontier.rollback()
+                # self.crawl_frontier.rollback()
                 raise e
 
             finally:

@@ -6,7 +6,6 @@ import re
 from urllib.parse import urlparse, urljoin
 
 import yaml
-import validators
 from dotenv import load_dotenv
 from flashtext import KeywordProcessor
 from pyquery import PyQuery as pq

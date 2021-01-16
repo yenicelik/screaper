@@ -85,11 +85,13 @@ class CrawlFrontier:
         """
         # Mark the failed items as failed in the database
         successful_urls = [x.url for x in self.crawl_objects_buffer.get_successful_items()]
-        self.database.update_url_task_queue_record_completed(successful_urls)
-        self.database.commit()
+        if successful_urls:
+            self.database.update_url_task_queue_record_completed(successful_urls)
+            self.database.commit()
         failed_urls = [x.url for x in self.crawl_objects_buffer.get_failed_items()]
-        self.database.update_url_task_queue_record_failed(failed_urls)
-        self.database.commit()
+        if failed_urls:
+            self.database.update_url_task_queue_record_failed(failed_urls)
+            self.database.commit()
 
     def rollback(self):
         self.database.update_url_task_queue_record_failed([x.url for x in self.crawl_objects_buffer.buffer])

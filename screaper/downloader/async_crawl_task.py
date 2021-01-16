@@ -4,7 +4,7 @@ import traceback
 from _ssl import SSLCertVerificationError
 
 from aiohttp import ClientHttpProxyError, ClientProxyConnectionError, ServerDisconnectedError, InvalidURL, \
-    TooManyRedirects
+    TooManyRedirects, ClientOSError
 from aiohttp_requests import requests
 from flashtext import KeywordProcessor
 from requests.exceptions import ProxyError, ConnectTimeout
@@ -124,6 +124,10 @@ class CrawlAsyncTask:
             return self.crawl_object
 
         except TooManyRedirects as e:
+            self.crawl_object.add_error(e)
+            return self.crawl_object
+
+        except ClientOSError as e:
             self.crawl_object.add_error(e)
             return self.crawl_object
 

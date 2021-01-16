@@ -260,16 +260,19 @@ class Database:
 
         # .filter(URLQueueEntity.id % random_prime == 0) \
 
-        raw_markup_items = self.session.query(RawMarkup.url_id)
+        # raw_markup_items = self.session.query(RawMarkup.url_id)
+        # .filter(~URLQueueEntity.url_id.in_(raw_markup_items)) \
+        # URLQueueEntity.retries.asc()
+        #
+        # .filter(sqlalchemy.not_(URLEntity.url.contains('tel://'))) \
+        #     .filter(sqlalchemy.not_(URLEntity.url.contains('javascript'))) \
+
         query_list = self.session.query(URLEntity.id, URLEntity.url, URLQueueEntity.id, URLQueueEntity.depth) \
             .filter(URLQueueEntity.crawler_skip == false()) \
-            .filter(~URLQueueEntity.url_id.in_(raw_markup_items)) \
             .filter(URLQueueEntity.crawler_processing_sentinel == false()) \
             .filter(URLQueueEntity.depth != -1) \
             .filter(URLEntity.id == URLQueueEntity.url_id) \
-            .filter(sqlalchemy.not_(URLEntity.url.contains('tel://'))) \
-            .filter(sqlalchemy.not_(URLEntity.url.contains('javascript'))) \
-            .order_by(URLQueueEntity.depth.asc(), URLQueueEntity.retries.asc()) \
+            .order_by(URLQueueEntity.depth.asc()) \
             .limit(n)
 
         query_list = query_list.all()
@@ -328,9 +331,19 @@ class Database:
             .filter(URLEntity.url.in_(urls))
         query.update(
             values={
-                URLQueueEntity.retries: URLQueueEntity.retries + 1,
                 URLQueueEntity.crawler_processed_sentinel: False,
                 URLQueueEntity.crawler_processing_sentinel: False,
+            },
+            synchronize_session=False
+        )
+        query.update(
+            values={
+                URLQueueEntity.retries: URLQueueEntity.retries + 1,
+            },
+            synchronize_session=False
+        )
+        query.update(
+            values={
                 URLQueueEntity.crawler_skip: URLQueueEntity.retries + 1 >= self.max_retries,
             },
             synchronize_session=False

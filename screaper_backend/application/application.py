@@ -1,13 +1,9 @@
 import json
 
+import yaml
 from flask import Flask, request, jsonify
 
-from screaper_resources.resources.db import Database
-
 application = Flask(__name__)
-database = Database()
-
-# TODO: Move this into some underlying function somewhere
 
 @application.route('/get-actor-candidate-entities', methods=["GET", "POST"])
 def get_actor_candidate_entities():
@@ -50,22 +46,25 @@ def get_actor_candidate_entities():
 
     # Retrieve input string
     search_query = input_json["search_query"]
-    urls, actor_entity_candidates = database.get_all_actor_entity_candidates()
+
+    # Get the yaml object which is supposed to be sent back as a json response:
+    with open("screaper_backend/mockups_companies.yaml", "r") as f:
+        out = yaml.load(f)
 
     # Fetch items closest to search query
 
     # Make web request to postgres server
-    out = []
-    for url, actor_item in zip(urls, actor_entity_candidates):
-        tmp = {
-            "url": url
-        }
-        tmp.update(actor_item.as_dict())
-        tmp.pop("url_id")
-        out.append(tmp)
+    # out = []
+    # for url, actor_item in zip(urls, actor_entity_candidates):
+    #     tmp = {
+    #         "url": url
+    #     }
+    #     tmp.update(actor_item.as_dict())
+    #     tmp.pop("url_id")
+    #     out.append(tmp)
 
     # Save into the json
-    print("out items are: ", out[:5])
+    print("out items are: ", out)
 
     return jsonify({
         "response": out
