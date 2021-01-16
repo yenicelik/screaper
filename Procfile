@@ -1,1 +1,1 @@
-web: python screaper_backend/run.py
+worker: python screaper_backend/run.py
