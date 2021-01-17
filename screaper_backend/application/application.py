@@ -72,7 +72,7 @@ def list_companies():
     for company in loaded_yaml_file:
         tmp = dict()
         for key in ["name", "division", "description", "verified", "type",
-                    "location", "mail-address", "phone-address", "fax-address",
+                    "location", "mail_address", "phone_address", "fax_address",
                     "homepage", "uuid"]:
             tmp[key] = company[key]
         out.append(tmp)

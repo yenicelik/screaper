@@ -5,17 +5,17 @@ companies:
   verified: False
   type: Custom Manufacturer
   location: Tuckahoe, NY 107070, USA
-  mail-address: info@elcanindustries.com
-  phone-address: +01-888-880-6170
-  fax-address: None
+  mail_address: info@elcanindustries.com
+  phone_address: +01-888-880-6170
+  fax_address: None
   homepage: https://elcanindustries.com/
   uuid: abc397ab-5978-4d10-b1d6-d99518deb02c
   products:
   - name: Elcan's 205 Square Inch (in²) Mesh Working Area 1 Deck Hi-Sifter Screening Separator
     descriptor: 401UC
     brand: None
-    product-line-name: Elcan's Hi-Sifter Screening Separators Product Line
-    product-line-description: Elcan's Hi-Sifter is the latest breakthrough in advanced screening technology. The Hi-Sifter excels in the food, pharma, and additive manufacturing industries and unlike other vibratory screeners, the Hi-Sifter requires no anti-blinding or screen cleaning devices to achieve fine particle separation. The material only sees a highly polished stainless steel surface and no other possible contamination surfaces. In addition, the high volume of energy being transferred to the screen allows hard to screen metal alloys to flow seamlessly. The machine also has a strong vertical vibration that translates to high rates of efficiencies and throughputs without any blinding. The removal of any potential for contamination within the machine, explosion proof designs and high energy make the Hi-Sifter the precise fit for companies looking to add screening machinery to their manufacturing plants.
+    product_line_name: Elcan's Hi-Sifter Screening Separators Product Line
+    product_line_description: Elcan's Hi-Sifter is the latest breakthrough in advanced screening technology. The Hi-Sifter excels in the food, pharma, and additive manufacturing industries and unlike other vibratory screeners, the Hi-Sifter requires no anti-blinding or screen cleaning devices to achieve fine particle separation. The material only sees a highly polished stainless steel surface and no other possible contamination surfaces. In addition, the high volume of energy being transferred to the screen allows hard to screen metal alloys to flow seamlessly. The machine also has a strong vertical vibration that translates to high rates of efficiencies and throughputs without any blinding. The removal of any potential for contamination within the machine, explosion proof designs and high energy make the Hi-Sifter the precise fit for companies looking to add screening machinery to their manufacturing plants.
     attributes:
     - name: mesh-working-area (per Deck)
       value: 205 in^2
@@ -26,8 +26,8 @@ companies:
   - name: Elcan's 205 Square Inch (in²) Mesh Working Area 2 Decks Hi-Sifter Screening Separator
     descriptor: 402UC
     brand: None
-    product-line-name: Elcan's Hi-Sifter Screening Separators Product Line
-    product-line-description: Elcan's Hi-Sifter is the latest breakthrough in advanced screening technology. The Hi-Sifter excels in the food, pharma, and additive manufacturing industries and unlike other vibratory screeners, the Hi-Sifter requires no anti-blinding or screen cleaning devices to achieve fine particle separation. The material only sees a highly polished stainless steel surface and no other possible contamination surfaces. In addition, the high volume of energy being transferred to the screen allows hard to screen metal alloys to flow seamlessly. The machine also has a strong vertical vibration that translates to high rates of efficiencies and throughputs without any blinding. The removal of any potential for contamination within the machine, explosion proof designs and high energy make the Hi-Sifter the precise fit for companies looking to add screening machinery to their manufacturing plants.
+    product_line_name: Elcan's Hi-Sifter Screening Separators Product Line
+    product_line_description: Elcan's Hi-Sifter is the latest breakthrough in advanced screening technology. The Hi-Sifter excels in the food, pharma, and additive manufacturing industries and unlike other vibratory screeners, the Hi-Sifter requires no anti-blinding or screen cleaning devices to achieve fine particle separation. The material only sees a highly polished stainless steel surface and no other possible contamination surfaces. In addition, the high volume of energy being transferred to the screen allows hard to screen metal alloys to flow seamlessly. The machine also has a strong vertical vibration that translates to high rates of efficiencies and throughputs without any blinding. The removal of any potential for contamination within the machine, explosion proof designs and high energy make the Hi-Sifter the precise fit for companies looking to add screening machinery to their manufacturing plants.
     attributes:
     - name: mesh-working-area (per Deck)
       value: 205 in^2
@@ -38,8 +38,8 @@ companies:
   - name: Elcan's 305 Square Inch (in²) Mesh Working Area 1 Deck Hi-Sifter Screening Separator
     descriptor: 501UC
     brand: None
-    product-line-name: Elcan's Hi-Sifter Screening Separators Product Line
-    product-line-description: Elcan's Hi-Sifter is the latest breakthrough in advanced screening technology. The Hi-Sifter excels in the food, pharma, and additive manufacturing industries and unlike other vibratory screeners, the Hi-Sifter requires no anti-blinding or screen cleaning devices to achieve fine particle separation. The material only sees a highly polished stainless steel surface and no other possible contamination surfaces. In addition, the high volume of energy being transferred to the screen allows hard to screen metal alloys to flow seamlessly. The machine also has a strong vertical vibration that translates to high rates of efficiencies and throughputs without any blinding. The removal of any potential for contamination within the machine, explosion proof designs and high energy make the Hi-Sifter the precise fit for companies looking to add screening machinery to their manufacturing plants.
+    product_line_name: Elcan's Hi-Sifter Screening Separators Product Line
+    product_line_description: Elcan's Hi-Sifter is the latest breakthrough in advanced screening technology. The Hi-Sifter excels in the food, pharma, and additive manufacturing industries and unlike other vibratory screeners, the Hi-Sifter requires no anti-blinding or screen cleaning devices to achieve fine particle separation. The material only sees a highly polished stainless steel surface and no other possible contamination surfaces. In addition, the high volume of energy being transferred to the screen allows hard to screen metal alloys to flow seamlessly. The machine also has a strong vertical vibration that translates to high rates of efficiencies and throughputs without any blinding. The removal of any potential for contamination within the machine, explosion proof designs and high energy make the Hi-Sifter the precise fit for companies looking to add screening machinery to their manufacturing plants.
     attributes:
     - name: mesh-working-area (per Deck)
       value: 305 in^2
@@ -53,22 +53,22 @@ companies:
   verified: True
   type: Manufacturer
   location: Livingstone, NJ 07039-1604, USA
-  mail-address: info@franklinmiller.com
-  phone-address: +01-866-904-2113
-  fax-address: None
+  mail_address: info@franklinmiller.com
+  phone_address: +01-866-904-2113
+  fax_address: None
   homepage: https://franklinmiller.com/
   uuid: 8b66cda6-f306-4644-bce8-eec77c373545
   products:
   - name: Delumper 2020L
     descriptor: The Delumper® "L" Series Crushers reduce product to a desired output size with a positive, once through, chopping action. Cutting teeth mounted to a smooth drum rotate through sizing combs to process agglomerates and chunks and reduce oversized particles to their basic grain size without over-grind, heat rise or fines. DELUMPER Crushers offer solid construction, smooth, refined finish and design features that make them truly a breed apart for unsurpassed quality, performance and reliability.
     brand: Delumper
-    product-line-name: Delumper 2020L
-    product-line-description: The Delumper® "L" Series Crushers reduce product to a desired output size with a positive, once through, chopping action. Cutting teeth mounted to a smooth drum rotate through sizing combs to process agglomerates and chunks and reduce oversized particles to their basic grain size without over-grind, heat rise or fines. DELUMPER Crushers offer solid construction, smooth, refined finish and design features that make them truly a breed apart for unsurpassed quality, performance and reliability.
+    product_line_name: Delumper 2020L
+    product_line_description: The Delumper® "L" Series Crushers reduce product to a desired output size with a positive, once through, chopping action. Cutting teeth mounted to a smooth drum rotate through sizing combs to process agglomerates and chunks and reduce oversized particles to their basic grain size without over-grind, heat rise or fines. DELUMPER Crushers offer solid construction, smooth, refined finish and design features that make them truly a breed apart for unsurpassed quality, performance and reliability.
   - name: Taskmaster TM8500
     descriptor: The TASKMASTER® TM8500 twin shaft shredder is the smallest in the TASKMASTER line of industrial shredders. It features an 8.5” wide cutting chamber up to 60” long and a direct drive. These units feature fully-sealed housing, mechanical shaft seals and patented 5, 7 or 11 tooth cutters. These versatile units are available for gravity feed, open channels or inline service with flanges. The geometry of this dual-shaft cutter also provides excellent feeding characteristics for a variety of solids. TASKMASTER cutters are precision manufactured to exacting standards to provide optimal shredding and long life. Each TASKMASTER shredder is heavily constructed for low deflection or vibration and quiet operation. These versatile shredders can handle screenings, fish waste, fabrics, waste material, and much more.
     brand: Taskmaster
-    product-line-name: Taskmaster
-    product-line-description: TASKMASTER® industrial shredders are used for a broad range of applications. They are known world wide for their efficiency, durability and reliable performance. TASKMASTER shredders aid in the safe disposal of sensitive, substandard or hazardous materials. They reduce bulk waste solids, liquid and solid waste, as well as sludge and biosolids. Our team of shredding experts help customers world wide select the right industrial shredder for their application. We also offer testing in our facility to guarantee the best unit is selected for your specific application.
+    product_line_name: Taskmaster
+    product_line_description: TASKMASTER® industrial shredders are used for a broad range of applications. They are known world wide for their efficiency, durability and reliable performance. TASKMASTER shredders aid in the safe disposal of sensitive, substandard or hazardous materials. They reduce bulk waste solids, liquid and solid waste, as well as sludge and biosolids. Our team of shredding experts help customers world wide select the right industrial shredder for their application. We also offer testing in our facility to guarantee the best unit is selected for your specific application.
     attributes:
     - name: input-width
       value: 216 mm
@@ -82,15 +82,15 @@ companies:
   verified: True
   type: Manufacturer
   location: Clifton, NJ 07014, USA
-  mail-address: info@glenmills.com
-  phone-address: +01-888-902-0472
-  fax-address: None
+  mail_address: info@glenmills.com
+  phone_address: +01-888-902-0472
+  fax_address: None
   homepage: https://glenmills.com/
   uuid: 45fa313d-c752-46ca-a5f6-73b045ec9d02
   products:
   - name: Turbula T10B – 17 Liter Powder Mixer Shaker
-    product-line-name: Turbula Shaker Mixer
-    product-line-description: Glen Mills Inc. is proud to present Powder Blending with the TURBULA® Shaker-Mixer. The TURBULA® Shaker-Mixer gives an exceptionally uniform mix of powders with differing densities, particle sizes, or concentrations. Removable mixing containers eliminate cross-contamination and allows for rapid changeovers. The line of TURBULA® Models can handle up to 2-liter, 17-liter, or 55-liter Vessels. For larger batches the dyna-MIX® would be the Shaker-Mixer of choice.
+    product_line_name: Turbula Shaker Mixer
+    product_line_description: Glen Mills Inc. is proud to present Powder Blending with the TURBULA® Shaker-Mixer. The TURBULA® Shaker-Mixer gives an exceptionally uniform mix of powders with differing densities, particle sizes, or concentrations. Removable mixing containers eliminate cross-contamination and allows for rapid changeovers. The line of TURBULA® Models can handle up to 2-liter, 17-liter, or 55-liter Vessels. For larger batches the dyna-MIX® would be the Shaker-Mixer of choice.
     descriptor: The mixing basket can hold up to 66 pounds in a 17 liter container. Twisted rubber clamping rings allow the use of smaller containers up to a maximum diameter of 220 mm. The movement of the mixing basket is controlled by a silent pendulum chain drive. The speed can be varied by adjusting the position of the round drive belt on the 4-step pulley.
     brand: Turbula
     attributes:
@@ -113,8 +113,8 @@ companies:
     - name: Dimensions open
       value: 880 x 988 x 848
   - name: Turbula T2F – 2 Liter Powder Mixer Shaker
-    product-line-name: Turbula Shaker Mixer
-    product-line-description: Glen Mills Inc. is proud to present Powder Blending with the TURBULA® Shaker-Mixer. The TURBULA® Shaker-Mixer gives an exceptionally uniform mix of powders with differing densities, particle sizes, or concentrations. Removable mixing containers eliminate cross-contamination and allows for rapid changeovers. The line of TURBULA® Models can handle up to 2-liter, 17-liter, or 55-liter Vessels. For larger batches the dyna-MIX® would be the Shaker-Mixer of choice.
+    product_line_name: Turbula Shaker Mixer
+    product_line_description: Glen Mills Inc. is proud to present Powder Blending with the TURBULA® Shaker-Mixer. The TURBULA® Shaker-Mixer gives an exceptionally uniform mix of powders with differing densities, particle sizes, or concentrations. Removable mixing containers eliminate cross-contamination and allows for rapid changeovers. The line of TURBULA® Models can handle up to 2-liter, 17-liter, or 55-liter Vessels. For larger batches the dyna-MIX® would be the Shaker-Mixer of choice.
     descriptor: The mixing basket can hold any form of container having a maximum volume of 2 liters. The containers are fastened in place by twisted rubber rings. The basket movement is driven by elastic drive belts and an eccentric drive gear. The speed can be varied by adjusting the position of the drive belts on its 5 step pulleys. The speed can also be adjusted optional frequency converter set up next to the machine. The TURBULA® T2F used in all industries and application fields, especially in research, development, and analysis.
     brand: Turbula
     attributes:
