@@ -27,7 +27,7 @@ def list_companies():
     """
         Example request could look as follows:
         {
-            "search-query": "bearings"
+            "search_query": "bearings"
         }
 
     """
@@ -42,14 +42,14 @@ def list_companies():
 
     print("Got request: ", input_json)
 
-    if "search-query" not in input_json:
+    if "search_query" not in input_json:
         return jsonify({
-            "errors": ["search-query not fund!", str(input_json)]
+            "errors": ["search_query not fund!", str(input_json)]
         }), 400
 
-    if not input_json["search-query"]:
+    if not input_json["search_query"]:
         return jsonify({
-            "errors": ["search-query empty!", str(input_json)]
+            "errors": ["search_query empty!", str(input_json)]
         }), 400
 
     # # Check if the api token is valid!
@@ -62,7 +62,7 @@ def list_companies():
     # input_json["ip"] -> you can buy such a database for ip2location here https://www.ip2location.com/database/ip2location (pretty cheap!)
 
     # Retrieve input string
-    search_query = input_json["search-query"]
+    search_query = input_json["search_query"]
 
     # Get the yaml object which is supposed to be sent back as a json response:
     with open("screaper_backend/mockups_companies.yaml", "r") as f:
@@ -117,14 +117,14 @@ def company():
 
     print("Got request: ", input_json)
 
-    if "company-uuid" not in input_json:
+    if "company_uuid" not in input_json:
         return jsonify({
-            "errors": ["company-uuid not fund!", str(input_json)]
+            "errors": ["company_uuid not fund!", str(input_json)]
         }), 400
 
-    if not input_json["company-uuid"]:
+    if not input_json["company_uuid"]:
         return jsonify({
-            "errors": ["company-uuid empty!", str(input_json)]
+            "errors": ["company_uuid empty!", str(input_json)]
         }), 400
 
     # # Check if the api token is valid!
@@ -137,7 +137,7 @@ def company():
     # input_json["ip"] -> you can buy such a database for ip2location here https://www.ip2location.com/database/ip2location (pretty cheap!)
 
     # Retrieve input string
-    company_uuid = input_json["company-uuid"]
+    company_uuid = input_json["company_uuid"]
 
     # Get the yaml object which is supposed to be sent back as a json response:
     with open("screaper_backend/mockups_companies.yaml", "r") as f:
@@ -150,7 +150,7 @@ def company():
         if company["uuid"] == company_uuid:
             # for key in ["company-name", "company-division", "company-description", "company-verified", "company-type",
             #             "company-location", "company-mail-address", "company-phone-address", "company-fax-address",
-            #             "company-homepage", "company-uuid"]:
+            #             "company-homepage", "company_uuid"]:
             #     tmp[key] = company[key]
             out.append(tmp)
 
