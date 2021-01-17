@@ -8,7 +8,6 @@ application = Flask(__name__)
 CORS(application)
 
 
-
 @application.route('/')
 def healthcheckpoint():
     """
@@ -72,9 +71,9 @@ def list_companies():
     out = []
     for company in loaded_yaml_file:
         tmp = dict()
-        for key in ["company-name", "company-division", "company-description", "company-verified", "company-type",
-                    "company-location", "company-mail-address", "company-phone-address", "company-fax-address",
-                    "company-homepage", "company-uuid"]:
+        for key in ["name", "division", "description", "verified", "type",
+                    "location", "mail-address", "phone-address", "fax-address",
+                    "homepage", "uuid"]:
             tmp[key] = company[key]
         out.append(tmp)
 
@@ -148,7 +147,7 @@ def company():
     # Load full yaml for given company
     for company in loaded_yaml_file:
         tmp = company
-        if company["company-uuid"] == company_uuid:
+        if company["uuid"] == company_uuid:
             # for key in ["company-name", "company-division", "company-description", "company-verified", "company-type",
             #             "company-location", "company-mail-address", "company-phone-address", "company-fax-address",
             #             "company-homepage", "company-uuid"]:

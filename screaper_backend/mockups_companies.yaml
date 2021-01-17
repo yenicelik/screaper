@@ -1,99 +1,99 @@
 companies:
-- company-name: Elcan Industries
-  company-division: None
-  company-description: Manufacturer of flour mill bolting machinery. Flour mill machinery is available in diameters ranging from 24 in. to 60 in. and from 1 to 3 decks. Specifications include electric power of.73 kW, screening surface of 0.932 sq. m and weight of 380 kg.
-  company-verified: False
-  company-type: Custom Manufacturer
-  company-location: Tuckahoe, NY 107070, USA
-  company-mail-address: info@elcanindustries.com
-  company-phone-address: +01-888-880-6170
-  company-fax-address: None
-  company-homepage: https://elcanindustries.com/
-  company-uuid: abc397ab-5978-4d10-b1d6-d99518deb02c
+- name: Elcan Industries
+  division: None
+  description: Manufacturer of flour mill bolting machinery. Flour mill machinery is available in diameters ranging from 24 in. to 60 in. and from 1 to 3 decks. Specifications include electric power of.73 kW, screening surface of 0.932 sq. m and weight of 380 kg.
+  verified: False
+  type: Custom Manufacturer
+  location: Tuckahoe, NY 107070, USA
+  mail-address: info@elcanindustries.com
+  phone-address: +01-888-880-6170
+  fax-address: None
+  homepage: https://elcanindustries.com/
+  uuid: abc397ab-5978-4d10-b1d6-d99518deb02c
   products:
-  - item-name: Elcan's 205 Square Inch (in²) Mesh Working Area 1 Deck Hi-Sifter Screening Separator
-    item-descriptor: 401UC
-    item-brand: None
+  - name: Elcan's 205 Square Inch (in²) Mesh Working Area 1 Deck Hi-Sifter Screening Separator
+    descriptor: 401UC
+    brand: None
     product-line-name: Elcan's Hi-Sifter Screening Separators Product Line
     product-line-description: Elcan's Hi-Sifter is the latest breakthrough in advanced screening technology. The Hi-Sifter excels in the food, pharma, and additive manufacturing industries and unlike other vibratory screeners, the Hi-Sifter requires no anti-blinding or screen cleaning devices to achieve fine particle separation. The material only sees a highly polished stainless steel surface and no other possible contamination surfaces. In addition, the high volume of energy being transferred to the screen allows hard to screen metal alloys to flow seamlessly. The machine also has a strong vertical vibration that translates to high rates of efficiencies and throughputs without any blinding. The removal of any potential for contamination within the machine, explosion proof designs and high energy make the Hi-Sifter the precise fit for companies looking to add screening machinery to their manufacturing plants.
-    item-attributes:
+    attributes:
     - name: mesh-working-area (per Deck)
       value: 205 in^2
     - name: Number of Decks
       value: 1
     - name: Motor Power
       value: 0.25kW
-  - item-name: Elcan's 205 Square Inch (in²) Mesh Working Area 2 Decks Hi-Sifter Screening Separator
-    item-descriptor: 402UC
-    item-brand: None
+  - name: Elcan's 205 Square Inch (in²) Mesh Working Area 2 Decks Hi-Sifter Screening Separator
+    descriptor: 402UC
+    brand: None
     product-line-name: Elcan's Hi-Sifter Screening Separators Product Line
     product-line-description: Elcan's Hi-Sifter is the latest breakthrough in advanced screening technology. The Hi-Sifter excels in the food, pharma, and additive manufacturing industries and unlike other vibratory screeners, the Hi-Sifter requires no anti-blinding or screen cleaning devices to achieve fine particle separation. The material only sees a highly polished stainless steel surface and no other possible contamination surfaces. In addition, the high volume of energy being transferred to the screen allows hard to screen metal alloys to flow seamlessly. The machine also has a strong vertical vibration that translates to high rates of efficiencies and throughputs without any blinding. The removal of any potential for contamination within the machine, explosion proof designs and high energy make the Hi-Sifter the precise fit for companies looking to add screening machinery to their manufacturing plants.
-    item-attributes:
+    attributes:
     - name: mesh-working-area (per Deck)
       value: 205 in^2
     - name: Number of Decks
       value: 2
     - name: Motor Power
       value: 0.25kW
-  - item-name: Elcan's 305 Square Inch (in²) Mesh Working Area 1 Deck Hi-Sifter Screening Separator
-    item-descriptor: 501UC
-    item-brand: None
+  - name: Elcan's 305 Square Inch (in²) Mesh Working Area 1 Deck Hi-Sifter Screening Separator
+    descriptor: 501UC
+    brand: None
     product-line-name: Elcan's Hi-Sifter Screening Separators Product Line
     product-line-description: Elcan's Hi-Sifter is the latest breakthrough in advanced screening technology. The Hi-Sifter excels in the food, pharma, and additive manufacturing industries and unlike other vibratory screeners, the Hi-Sifter requires no anti-blinding or screen cleaning devices to achieve fine particle separation. The material only sees a highly polished stainless steel surface and no other possible contamination surfaces. In addition, the high volume of energy being transferred to the screen allows hard to screen metal alloys to flow seamlessly. The machine also has a strong vertical vibration that translates to high rates of efficiencies and throughputs without any blinding. The removal of any potential for contamination within the machine, explosion proof designs and high energy make the Hi-Sifter the precise fit for companies looking to add screening machinery to their manufacturing plants.
-    item-attributes:
+    attributes:
     - name: mesh-working-area (per Deck)
       value: 305 in^2
     - name: Number of Decks
       value: 1
     - name: Motor Power
       value: 0.25kW
-- company-name: Franklin Miller Inc.
-  company-division: Delumper Division
-  company-description: Manufacturer of standard & custom flour mill, paper mill, pulp mill & fertilizer machinery including grinders, crushers, mills, mixers, granulators, shredders & screening systems. Crushers use impact, shear, compression or abrasion to reduce solid materials to desired particle size. Dual roll glass crushing mills have carbon or stainless steel construction with dual counter-rotating serrated or grooved mills. Shredders can be installed horizontally or vertically with stand, hopper or flange adapter. Screening conditioners take screenings from bar screens & grind, wash, dewater & discharge for disposal. Used & refurbished machinery is also available.
-  company-verified: True
-  company-type: Manufacturer
-  company-location: Livingstone, NJ 07039-1604, USA
-  company-mail-address: info@franklinmiller.com
-  company-phone-address: +01-866-904-2113
-  company-fax-address: None
-  company-homepage: https://franklinmiller.com/
-  company-uuid: 8b66cda6-f306-4644-bce8-eec77c373545
+- name: Franklin Miller Inc.
+  division: Delumper Division
+  description: Manufacturer of standard & custom flour mill, paper mill, pulp mill & fertilizer machinery including grinders, crushers, mills, mixers, granulators, shredders & screening systems. Crushers use impact, shear, compression or abrasion to reduce solid materials to desired particle size. Dual roll glass crushing mills have carbon or stainless steel construction with dual counter-rotating serrated or grooved mills. Shredders can be installed horizontally or vertically with stand, hopper or flange adapter. Screening conditioners take screenings from bar screens & grind, wash, dewater & discharge for disposal. Used & refurbished machinery is also available.
+  verified: True
+  type: Manufacturer
+  location: Livingstone, NJ 07039-1604, USA
+  mail-address: info@franklinmiller.com
+  phone-address: +01-866-904-2113
+  fax-address: None
+  homepage: https://franklinmiller.com/
+  uuid: 8b66cda6-f306-4644-bce8-eec77c373545
   products:
-  - item-name: Delumper 2020L
-    item-descriptor: The Delumper® "L" Series Crushers reduce product to a desired output size with a positive, once through, chopping action. Cutting teeth mounted to a smooth drum rotate through sizing combs to process agglomerates and chunks and reduce oversized particles to their basic grain size without over-grind, heat rise or fines. DELUMPER Crushers offer solid construction, smooth, refined finish and design features that make them truly a breed apart for unsurpassed quality, performance and reliability.
-    item-brand: Delumper
+  - name: Delumper 2020L
+    descriptor: The Delumper® "L" Series Crushers reduce product to a desired output size with a positive, once through, chopping action. Cutting teeth mounted to a smooth drum rotate through sizing combs to process agglomerates and chunks and reduce oversized particles to their basic grain size without over-grind, heat rise or fines. DELUMPER Crushers offer solid construction, smooth, refined finish and design features that make them truly a breed apart for unsurpassed quality, performance and reliability.
+    brand: Delumper
     product-line-name: Delumper 2020L
     product-line-description: The Delumper® "L" Series Crushers reduce product to a desired output size with a positive, once through, chopping action. Cutting teeth mounted to a smooth drum rotate through sizing combs to process agglomerates and chunks and reduce oversized particles to their basic grain size without over-grind, heat rise or fines. DELUMPER Crushers offer solid construction, smooth, refined finish and design features that make them truly a breed apart for unsurpassed quality, performance and reliability.
-  - item-name: Taskmaster TM8500
-    item-descriptor: The TASKMASTER® TM8500 twin shaft shredder is the smallest in the TASKMASTER line of industrial shredders. It features an 8.5” wide cutting chamber up to 60” long and a direct drive. These units feature fully-sealed housing, mechanical shaft seals and patented 5, 7 or 11 tooth cutters. These versatile units are available for gravity feed, open channels or inline service with flanges. The geometry of this dual-shaft cutter also provides excellent feeding characteristics for a variety of solids. TASKMASTER cutters are precision manufactured to exacting standards to provide optimal shredding and long life. Each TASKMASTER shredder is heavily constructed for low deflection or vibration and quiet operation. These versatile shredders can handle screenings, fish waste, fabrics, waste material, and much more.
-    item-brand: Taskmaster
+  - name: Taskmaster TM8500
+    descriptor: The TASKMASTER® TM8500 twin shaft shredder is the smallest in the TASKMASTER line of industrial shredders. It features an 8.5” wide cutting chamber up to 60” long and a direct drive. These units feature fully-sealed housing, mechanical shaft seals and patented 5, 7 or 11 tooth cutters. These versatile units are available for gravity feed, open channels or inline service with flanges. The geometry of this dual-shaft cutter also provides excellent feeding characteristics for a variety of solids. TASKMASTER cutters are precision manufactured to exacting standards to provide optimal shredding and long life. Each TASKMASTER shredder is heavily constructed for low deflection or vibration and quiet operation. These versatile shredders can handle screenings, fish waste, fabrics, waste material, and much more.
+    brand: Taskmaster
     product-line-name: Taskmaster
     product-line-description: TASKMASTER® industrial shredders are used for a broad range of applications. They are known world wide for their efficiency, durability and reliable performance. TASKMASTER shredders aid in the safe disposal of sensitive, substandard or hazardous materials. They reduce bulk waste solids, liquid and solid waste, as well as sludge and biosolids. Our team of shredding experts help customers world wide select the right industrial shredder for their application. We also offer testing in our facility to guarantee the best unit is selected for your specific application.
-    item-attributes:
+    attributes:
     - name: input-width
       value: 216 mm
     - name: input-length
       value: 305 mm
     - name: heigth
       value: 178 mm
-- company-name: Glen Mills, Inc.
-  company-division: None
-  company-description: Manufacturer of pug mill machinery for grinding & pulverizing spongy & fatty materials in bakeries, breweries & flour & fruit processing applications. Specifications of mills include 10 cc to 300 ml standard batch grinding capacity, up to 40 microns particle size reduction, 6,000 rpm to 18,000 rpm variable speed & 30 g/minute to 60 g/minute grinding rate. Features include one touch control systems, adjustable parameters, automatic cover closures, mini rotors & menu driven guidance systems in ten languages. Mills are available with stainless steel parts & optional cyclone collecting systems for grinding materials in the range of 3 L to 5 L. Mills are suitable for use with liquid nitrogen or dry ice for fine grinding fibrous, elastic, resinous & rubbery materials with various degrees of friability.
-  company-verified: True
-  company-type: Manufacturer
-  company-location: Clifton, NJ 07014, USA
-  company-mail-address: info@glenmills.com
-  company-phone-address: +01-888-902-0472
-  company-fax-address: None
-  company-homepage: https://glenmills.com/
-  company-uuid: 45fa313d-c752-46ca-a5f6-73b045ec9d02
+- name: Glen Mills, Inc.
+  division: None
+  description: Manufacturer of pug mill machinery for grinding & pulverizing spongy & fatty materials in bakeries, breweries & flour & fruit processing applications. Specifications of mills include 10 cc to 300 ml standard batch grinding capacity, up to 40 microns particle size reduction, 6,000 rpm to 18,000 rpm variable speed & 30 g/minute to 60 g/minute grinding rate. Features include one touch control systems, adjustable parameters, automatic cover closures, mini rotors & menu driven guidance systems in ten languages. Mills are available with stainless steel parts & optional cyclone collecting systems for grinding materials in the range of 3 L to 5 L. Mills are suitable for use with liquid nitrogen or dry ice for fine grinding fibrous, elastic, resinous & rubbery materials with various degrees of friability.
+  verified: True
+  type: Manufacturer
+  location: Clifton, NJ 07014, USA
+  mail-address: info@glenmills.com
+  phone-address: +01-888-902-0472
+  fax-address: None
+  homepage: https://glenmills.com/
+  uuid: 45fa313d-c752-46ca-a5f6-73b045ec9d02
   products:
-  - item-name: Turbula T10B – 17 Liter Powder Mixer Shaker
+  - name: Turbula T10B – 17 Liter Powder Mixer Shaker
     product-line-name: Turbula Shaker Mixer
     product-line-description: Glen Mills Inc. is proud to present Powder Blending with the TURBULA® Shaker-Mixer. The TURBULA® Shaker-Mixer gives an exceptionally uniform mix of powders with differing densities, particle sizes, or concentrations. Removable mixing containers eliminate cross-contamination and allows for rapid changeovers. The line of TURBULA® Models can handle up to 2-liter, 17-liter, or 55-liter Vessels. For larger batches the dyna-MIX® would be the Shaker-Mixer of choice.
-    item-descriptor: The mixing basket can hold up to 66 pounds in a 17 liter container. Twisted rubber clamping rings allow the use of smaller containers up to a maximum diameter of 220 mm. The movement of the mixing basket is controlled by a silent pendulum chain drive. The speed can be varied by adjusting the position of the round drive belt on the 4-step pulley.
-    item-brand: Turbula
-    item-attributes:
+    descriptor: The mixing basket can hold up to 66 pounds in a 17 liter container. Twisted rubber clamping rings allow the use of smaller containers up to a maximum diameter of 220 mm. The movement of the mixing basket is controlled by a silent pendulum chain drive. The speed can be varied by adjusting the position of the round drive belt on the 4-step pulley.
+    brand: Turbula
+    attributes:
     - name: Motor (kW)
       value: 0.37
     - name: Connections (V, Hz)
@@ -112,12 +112,12 @@ companies:
       value: 880 x 988 x 630
     - name: Dimensions open
       value: 880 x 988 x 848
-  - item-name: Turbula T2F – 2 Liter Powder Mixer Shaker
+  - name: Turbula T2F – 2 Liter Powder Mixer Shaker
     product-line-name: Turbula Shaker Mixer
     product-line-description: Glen Mills Inc. is proud to present Powder Blending with the TURBULA® Shaker-Mixer. The TURBULA® Shaker-Mixer gives an exceptionally uniform mix of powders with differing densities, particle sizes, or concentrations. Removable mixing containers eliminate cross-contamination and allows for rapid changeovers. The line of TURBULA® Models can handle up to 2-liter, 17-liter, or 55-liter Vessels. For larger batches the dyna-MIX® would be the Shaker-Mixer of choice.
-    item-descriptor: The mixing basket can hold any form of container having a maximum volume of 2 liters. The containers are fastened in place by twisted rubber rings. The basket movement is driven by elastic drive belts and an eccentric drive gear. The speed can be varied by adjusting the position of the drive belts on its 5 step pulleys. The speed can also be adjusted optional frequency converter set up next to the machine. The TURBULA® T2F used in all industries and application fields, especially in research, development, and analysis.
-    item-brand: Turbula
-    item-attributes:
+    descriptor: The mixing basket can hold any form of container having a maximum volume of 2 liters. The containers are fastened in place by twisted rubber rings. The basket movement is driven by elastic drive belts and an eccentric drive gear. The speed can be varied by adjusting the position of the drive belts on its 5 step pulleys. The speed can also be adjusted optional frequency converter set up next to the machine. The TURBULA® T2F used in all industries and application fields, especially in research, development, and analysis.
+    brand: Turbula
+    attributes:
     - name: Motor (kW)
       value: 0.18
     - name: Connections (V, Hz)
