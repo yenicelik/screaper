@@ -1,0 +1,7 @@
+[main]
+db_type = "Postgres"
+db_host = "192.168.99.101"
+db_port = "5432"
+db_user = "postgres"
+db_pass = "password"
+db_name = "postgres"
