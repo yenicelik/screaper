@@ -1,0 +1,41 @@
+companies:
+- name: Union Special Baker Magnetik
+  machines:
+    - name: 80 800C
+      parts:
+        - name: 80630G
+        - name: 666-149
+        - name: 80634EC
+        - name: 80639
+        - name: 1280
+        - name: 318
+        - name: 15745B
+        - name: 15465F
+        - name: 80657A
+        - name: 80658A
+        - name: 271E
+    - name: BC211UA16-1
+      parts:
+        - name: C10021FPULLEY
+        - name: 29126FTCRANKSHAFTASEMBLY
+        - name: 29126FS STİTCHLENGTH ADJ
+        - name: 10045K PİN, LİNK
+        - name: 10033M SPROCKET, BELT
+        - name: TA0370601M0 PLUG
+- name: Fischbein
+  machines:
+    - name: 22599L
+      parts:
+        - name: 10054 AB
+        - name: 10045C
+        - name: SS4150915 SP
+        - name: 99288
+        - name: 15037A
+        - name: 10084B
+        - name: 10023
+        - name: SS8120740 SP
+        - name: SS8080310TP
+        - name: 22599 L-UNSP
+
+
+
