@@ -1,0 +1,50 @@
+orders:
+  - uuid: 413e696b-bfeb-4f18-9f71-b1c4d5fbe947
+    reference: MCY-GLS-191202-1803 Union Special Yedekleri
+    date: 02.12.2019
+    customer: GÜLSAN SENTETİK DOKUMA SAN. VE TİC.A.Ş. GAZİANTEP
+    cusomter_address: Tel: (0342) 337 11 80 Fax: (0342) 337 25 28 Sn.Tuğba YILDIRIM
+    origin: ABD / Almanya
+    items:
+    - name: FP29105AK
+      description: CRANK ASSEMBLY (29105AK)
+      number_of_units: 4
+      unit_price: 623.16
+    - name: 56336
+      description: FEED CRANK STUD
+      number_of_units: 4
+      unit_price: 109.99
+    - name: 56336
+      description: FD ROCK ARM ASS (29476MJ)
+      number_of_units: 4
+      unit_price: 472.01
+  - uuid: 1a80424a-ae3d-4ede-a7ab-322fb2d40daf
+    reference: MCY-GLS-191016-1499 Union Special Yedekleri
+    date: 16.10.2019
+    customer: GÜLSAN SENTETİK DOKUMA SAN. VE TİC.A.Ş. GAZİANTEP
+    cusomter_address: Tel: (0342) 337 11 80 Fax: (0342) 337 25 28 Sn.Tuğba YILDIRIM
+    origin: ABD / Almanya
+    items:
+    - name: 56343F
+      description: COUPLING
+      number_of_units: 5
+      unit_price: 67.08
+    - name: 29476ZJ
+      description: FD ROCK ARM ASS (29476MJ)
+      number_of_units: 4
+      unit_price: 472.01
+  - uuid: 7d15d21e-7139-4344-b6e8-cc774b38e0f2
+    reference: MCY-GLS-191016-1499 Union Special Yedekleri
+    date: 08.08.2016
+    customer: KAYSERİ ŞEKER FABRİKASI A.Ş.
+    cusomter_address: Telefonlar (0-352) 331 24 00(6 hat) Osman Kavuncu Cad. 7. KM 38070 Kocasinan / KAYSERİ
+    origin: ABD / Almanya
+    items:
+    - name: YAĞ KEÇESİ ( DİK.MAK.) 10084A
+      description: 80 800C DİKİŞ MAKİNESİ YAĞ KEÇESİ 80630G NUMARALI PARÇA
+      number_of_units: 10
+      unit_price: 67.08
+    - name: ŞAFT
+      description: 80 800C DİKİŞ MAKİNESİ ÇAVANOZ ŞAFTI 80639 NUMARALI PARÇA
+      number_of_units: 7
+      unit_price: 472.01
