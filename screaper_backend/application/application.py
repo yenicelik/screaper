@@ -1,14 +1,17 @@
 import json
 
-import yaml
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
+from screaper_backend.algorithms.product_similarity import AlgorithmProductSimilarity
 from screaper_backend.models.orders import model_orders
 from screaper_backend.models.product_similarity import model_product_similarity
 
 application = Flask(__name__)
 CORS(application)
+
+# Algorithms
+algorithm_product_similarity = AlgorithmProductSimilarity()
 
 
 @application.route('/')
@@ -62,14 +65,12 @@ def list_products():
 
     # Make type validation
     # Calculate the location from this
-    # input_json["ip"] -> you can buy such a database for ip2location here https://www.ip2location.com/database/ip2location (pretty cheap!)
 
     # Retrieve input string
     query = input_json["query"]
 
     # Pass the query through the model
-
-    out = model_product_similarity.closest_documents(query)
+    out = algorithm_product_similarity.predict(query)
 
     # Save into the json
     print("out items are: ", out)
@@ -111,7 +112,7 @@ def list_orders():
 
 
     # Ignore input, and return all mockups
-    query = input_json["user_uuid"]
+    user_uuid = input_json["user_uuid"]
 
     out = model_orders.orders()
 

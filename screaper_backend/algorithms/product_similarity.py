@@ -32,10 +32,10 @@ class AlgorithmProductSimilarity:
 
         # Return this sorted list of items to the frontend
         out = []
-        for idx, similarity_item_idx in enumerate(ranked_most_similar_idx[:100]):
+        for idx, similarity_item_idx in enumerate(ranked_most_similar_idx[:2]):
 
             tmp = self.parts_list.id_to_dict(similarity_item_idx)
-            tmp.update({"order": idx})
+            tmp.update({"sequence_idx": idx})
             del tmp['searchstring']
             out.append(tmp)
 

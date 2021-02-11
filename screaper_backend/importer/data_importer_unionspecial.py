@@ -15,6 +15,11 @@ import numpy as np
 
 class DataImporterUnionSpecial:
 
+    def _str_to_number(self, x):
+        if isinstance(x, str):
+            x = x.replace(",", "").replace("'", "")
+        return float(x)
+
     def __init__(self):
 
         path = "/Users/david/screaper/screaper_backend/importer/Spare Parts EDC with Stock_02_2021.csv"
@@ -67,9 +72,10 @@ class DataImporterUnionSpecial:
         # self.df = self.df.replace(np.nan, '', regex=True)
 
         # Turn numbers into negative numbers if not known
-        self.df['manufacturer_price'] = self.df['manufacturer_price'].replace(np.nan, -1)
-        self.df['weight_in_g'] = self.df['weight_in_g'].replace(np.nan, -1)
-        self.df['manufacturer_stock'] = self.df['manufacturer_stock'].replace(np.nan, -1)
+        self.df['manufacturer_price'] = self.df['manufacturer_price'].replace(np.nan, -1).apply(self._str_to_number)
+        self.df['weight_in_g'] = self.df['weight_in_g'].replace(np.nan, -1).apply(self._str_to_number)
+        self.df['manufacturer_stock'] = self.df['manufacturer_stock'].replace(np.nan, -1).apply(self._str_to_number)
+        self.df['changes'] = self.df['changes'].replace(np.nan, -1).apply(self._str_to_number)
 
         self.df = self.df[[
             "part_external_identifier",
