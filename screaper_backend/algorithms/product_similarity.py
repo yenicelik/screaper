@@ -18,13 +18,6 @@ class AlgorithmProductSimilarity:
         # Populate the language model with the searchstring from the part_list
         self.model_tfidf.fit(self.parts_list.searchstring_list())
 
-        # obj = {
-        #     "idx": c,
-        #     "manufacturer": str(company['name']),
-        #     "machine": str(machine['name']),
-        #     "part": str(part['name'])
-        # }
-
     def predict(self, query):
 
         # Transform query into tf-idf language-model set
@@ -32,10 +25,10 @@ class AlgorithmProductSimilarity:
 
         # Return this sorted list of items to the frontend
         out = []
-        for idx, similarity_item_idx in enumerate(ranked_most_similar_idx[:2]):
+        for idx, similarity_item_idx in enumerate(ranked_most_similar_idx[:50]):
 
             tmp = self.parts_list.id_to_dict(similarity_item_idx)
-            tmp.update({"sequence_idx": idx})
+            tmp.update({"sequence_order": idx})
             del tmp['searchstring']
             out.append(tmp)
 
