@@ -1,8 +1,6 @@
 """
     Product similarity based on a query
 """
-import yaml
-import pandas as pd
 import numpy as np
 
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -11,52 +9,28 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 class ProductSimilarity:
 
-    def _prepare_mockup_documents(self):
-        # Get the yaml object which is supposed to be sent back as a json response:
-        with open("/Users/david/screaper/screaper_backend/mockups_products.yaml", "r") as f:
-            loaded_yaml_file = yaml.load(f, Loader=yaml.Loader)['companies']
-
-        # Turn this into a flat list
-
-        out = []
-        # Load full yaml for given company
-        c = 0
-        for company in loaded_yaml_file:
-            for machine in company['machines']:
-                for part in machine['parts']:
-                    obj = {
-                        "idx": c,
-                        "company": str(company['name']),
-                        "machine": str(machine['name']),
-                        "part": str(part['name'])
-                    }
-                    out.append(obj)
-                    c += 1
-
-        self.df = pd.DataFrame(out)
-        self.df['text'] = self.df['company'] + " " + self.df['machine'] + " " + self.df['part']
-
     def __init__(self):
         self.model = TfidfVectorizer(analyzer='char', ngram_range=(1, 4))
         self._pretrained_vectors = None
-
-        self._prepare_mockup_documents()
-        self.fit(self.df['text'].tolist())
+        self._documents = None
 
     def fit(self, documents):
         # A list of documents
         assert isinstance(documents, list), (type(documents), documents[:4])
         assert isinstance(documents[0], str), (type(documents[0]), documents[0])
 
+        self._documents = documents
         self._pretrained_vectors = self.model.fit_transform(documents)
 
-    def transform(self, document):
+    def transform(self, documents):
         # A single document
-        assert isinstance(document, str), (type(document), document)
+        assert isinstance(documents, list), (type(documents), documents)
+        for doc in documents:
+            assert isinstance(doc, str), (type(doc), doc)
 
         assert self._pretrained_vectors is not None, self._pretrained_vectors
 
-        return self.model.transform([document])
+        return self.model.transform(documents)
 
     def closest_documents(self, documents):
         v0 = self._pretrained_vectors
@@ -69,18 +43,13 @@ class ProductSimilarity:
         print("similarity matr shape is: ", similarity_matr.shape)
 
         # Return the items in v2 that are closest to the items in v1
-        most_similar_items = np.argsort(similarity_matr)[::-1]
-        print("most similar items shape is: ", most_similar_items.shape)
+        ranked_most_similar_idx = np.argsort(similarity_matr)[::-1]
+        print("most similar items shape is: ", ranked_most_similar_idx.shape)
 
-        # Return this sorted list of items to the frontend
-        out = []
-        for new_order, similari_item_idx in enumerate(most_similar_items):
-            tmp = self.df[self.df["idx"] == similari_item_idx].to_dict('records')[0]
-            tmp.update({"order": new_order})
-            del tmp['text']
-            out.append(tmp)
+        # Return only the indices, creating the dictionary is responsibility of the algorithm
+        return ranked_most_similar_idx.tolist()
 
-        return out
+
 
 model_product_similarity = ProductSimilarity()
 
