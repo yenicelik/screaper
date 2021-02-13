@@ -19,7 +19,7 @@ def authenticate(request):
     header_token = request.headers.get('token')
     if header_token not in authentication_token:
         return jsonify({
-            "errors": ["Permission denied", request.headers]
+            "errors": ["Permission denied", str(request.headers)]
         }), 403
 
     # if str(request.remote_addr) not in whitelisted_ips:
