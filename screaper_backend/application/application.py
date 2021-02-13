@@ -1,15 +1,13 @@
 import datetime
 import json
-from tempfile import NamedTemporaryFile
 
-from flask import Flask, request, jsonify, send_file, Response
+from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 
 from screaper_backend.algorithms.product_similarity import AlgorithmProductSimilarity
 from screaper_backend.application.authentication import authentication_token, whitelisted_ips
 from screaper_backend.exporter.exporter_offer_excel import ExporterOfferExcel
 from screaper_backend.models.orders import model_orders
-from screaper_backend.models.product_similarity import model_product_similarity
 
 application = Flask(__name__)
 CORS(application)
