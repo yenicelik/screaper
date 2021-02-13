@@ -11,7 +11,9 @@
 import re
 import pandas as pd
 import numpy as np
+from dotenv import load_dotenv
 
+load_dotenv()
 
 class DataImporterUnionSpecial:
 
@@ -22,7 +24,7 @@ class DataImporterUnionSpecial:
 
     def __init__(self):
 
-        path = "/Users/david/screaper/screaper_backend/importer/Spare Parts EDC with Stock_02_2021.csv"
+        path = os.getenv("UNSP_PRICE_LIST_PATH")
         df = pd.read_csv(path)
 
         print("df is: ", df.head())
