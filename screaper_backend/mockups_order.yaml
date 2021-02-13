@@ -61,6 +61,3 @@ orders:
       machine: 80 800C DİKİŞ MAKİNESİ
       quantity: 7
       unit_price: 472.01
-
-#      machine: string;
-#      part: string;

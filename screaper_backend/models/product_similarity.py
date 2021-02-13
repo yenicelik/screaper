@@ -1,8 +1,6 @@
 """
     Product similarity based on a query
 """
-import yaml
-import pandas as pd
 import numpy as np
 
 from sklearn.feature_extraction.text import TfidfVectorizer
