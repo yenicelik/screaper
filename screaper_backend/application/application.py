@@ -249,6 +249,7 @@ def orders_post():
         ("description_en", str),  # string
         ("description_de", str),  # string
         ("price_currency", str),  # string
+        ("cost_multiple", float), # float
 
         ("sequence_order", float),  # number
         ("quantity", float),  # number
@@ -280,6 +281,7 @@ def orders_post():
             description=part_json['description_en'],
             listprice=part_json['manufacturer_price'],
             requested_units=part_json['quantity'],
+            margin_multiplier=part_json['cost_multiple'],
 
             stock=part_json['manufacturer_stock'],
             status=part_json['manufacturer_status'],

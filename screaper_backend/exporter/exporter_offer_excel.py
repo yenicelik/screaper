@@ -53,7 +53,7 @@ class ExporterOfferExcel:
             partnumber,
             listprice,
             requested_units,
-            margin_multiplier=None,
+            margin_multiplier=2.5,
             stock=None,
             status=None,
             weight=None,
