@@ -8,16 +8,17 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-class Orders:
+class Customers:
 
     def __init__(self):
         print("Current pwd is: ", os.getcwd(), os.listdir(os.getcwd()))
-        with open(os.getenv("MOCK_ORDERS"), "r") as f:
-            loaded_yaml_file = yaml.load(f, Loader=yaml.Loader)['orders']
+        with open(os.getenv("MOCK_CUSTOMERS"), "r") as f:
+            loaded_yaml_file = yaml.load(f, Loader=yaml.Loader)['customers']
 
         self._orders = loaded_yaml_file
 
     def orders(self):
         return self._orders
 
-model_orders = Orders()
+
+model_customers = Customers()

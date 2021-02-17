@@ -6,6 +6,7 @@ from flask_cors import CORS
 
 application = Flask(__name__)
 application.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+application.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(application)
 CORS(application)
 
@@ -171,6 +172,8 @@ def orders_get():
     user_uuid = input_json["user_uuid"]
 
     out = model_orders.orders()
+    # Turn into one mega-dictionary per object
+    out = [x.to_dict() for x in out]
 
     return jsonify({
         "response": out

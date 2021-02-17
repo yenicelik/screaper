@@ -4,13 +4,15 @@
 """
 import datetime
 
+from sqlalchemy_serializer import SerializerMixin
 from screaper_backend.application.application import db
 
 # TODO: Add NOT NULL declarations
 
-class Part(db.Model):
+class Part(db.Model, SerializerMixin):
     # Whenever a new catalogue comes in, just append these parts! (and update the timestamp)
     __tablename__ = 'parts'
+    serialize_rules = ("-_children", "-rel_part")
 
     id = db.Column(db.Integer, autoincrement=True, primary_key=True)
 
@@ -35,9 +37,12 @@ class Part(db.Model):
 
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
+    _children = db.relationship('OrderItem', back_populates="rel_part")
 
-class Customer(db.Model):
+
+class Customer(db.Model, SerializerMixin):
     __tablename__ = "customers"
+    serialize_rules = ("-rel_orders", "-owner")
 
     id = db.Column(db.Integer, autoincrement=True, primary_key=True)
 
@@ -57,9 +62,12 @@ class Customer(db.Model):
 
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
+    rel_orders = db.relationship('Order', backref='owner')
 
-class Order(db.Model):
+
+class Order(db.Model, SerializerMixin):
     __tablename__ = "orders"
+    serialize_rules = ("-rel_order_items", "-owner")
 
     id = db.Column(db.Integer, autoincrement=True, primary_key=True)
 
@@ -70,16 +78,21 @@ class Order(db.Model):
 
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
+    rel_order_items = db.relationship('OrderItem', backref='owner')
 
-class OrderItem(db.Model):
+
+class OrderItem(db.Model, SerializerMixin):
     __tablename__ = 'order_items'
+    serialize_rules = ("-rel_part", "-_children")
 
     id = db.Column(db.Integer, autoincrement=True, primary_key=True)
 
     order_id = db.Column(db.Integer, db.ForeignKey("orders.id"))
-    product_id = db.Column(db.Integer, db.ForeignKey("parts.id"))
+    part_id = db.Column(db.Integer, db.ForeignKey("parts.id"))
     quantity = db.Column(db.Integer)
     price = db.Column(db.Float)
     origin = db.Column(db.String)
 
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+
+    rel_part = db.relationship("Part", uselist=False, back_populates="_children")

@@ -1,8 +1,6 @@
 """
     Database
 """
-from sqlalchemy import create_engine, MetaData, update
-from sqlalchemy.orm import sessionmaker
 
 from screaper_backend.application.application import db
 from screaper_backend.entities.entities_db import OrderItem, Order, Part, Customer
@@ -41,6 +39,16 @@ class Database:
         self._create_mock_customers()
         self._create_mock_order()
 
+        # Count number of items in the tables
+        print("Count Order: ", self.session.query(Order).count())
+        print("Count Order: ", self.session.query(Order.id).all())
+        print("Count OrderItem: ", self.session.query(OrderItem).count())
+        print("Count OrderItem: ", self.session.query(OrderItem.id).all())
+        print("Count Parts: ", self.session.query(Part).count())
+        print("Count Parts: ", self.session.query(Part.id).all())
+        print("Count Customers: ", self.session.query(Customer).count())
+        print("Count Customers (All): ", self.session.query(Customer.id).all())
+
     def _populate_union_special_partslist_into_db(self):
         """
             Populates the database with the union special price list
@@ -63,13 +71,16 @@ class Database:
             - Create a single customer. This is the placeholder for all customers now
         :return:
         """
-        self.create_single_order(customer_id=0, reference="ref MCY-GLS")
+        order = self.create_single_order(customer_id=1, reference="ref MCY-GLS")
+        print("Created order with orderid: ", order.id)
         self.create_order_item(
-            product_id=5,
+            order_id=order.id,
+            part_id=5,
             quantity=50,
             price=50,
             origin="DE / US"
         )
+        self.session.commit()
 
     def _create_mock_customers(self):
         """
@@ -131,7 +142,7 @@ class Database:
         # assert contact_name, contact_name
 
         # Make some type-tests, fail if not sufficient
-        obj = Customer(
+        customer = Customer(
             user_name=user_name,
             company_name=company_name,
             phone_number=phone_number,
@@ -143,22 +154,22 @@ class Database:
             country=country,
             contact_name=contact_name
         )
-        self.session.add(obj)
-        return obj
-
-    def read_customer(self):
-        customers = self.session.query(Customer).all()
-        return customers
+        self.session.add(customer)
+        self.session.commit()
+        self.session.refresh(customer)
+        assert customer.id
+        return customer
 
     def create_oder(self, order, order_items):
 
         assert order, order
         assert order_items, order_items
 
-        self.create_single_order(order.customer_id, order.reference)
+        order = self.create_single_order(order.customer_id, order.reference)
         for order_item in order_items:
             self.create_order_item(
-                product_id=order_item.product_id,
+                part_id=order_item.part_id,
+                order_id=order.id,
                 quantity=order_item.quantity,
                 price=order_item.price,
                 origin=order_item.origin
@@ -170,7 +181,7 @@ class Database:
             reference
     ):
         # Make some type-tests, fail if not sufficient
-        assert customer_id, customer_id
+        assert customer_id is not None, customer_id
         assert reference, reference
 
         order = Order(
@@ -179,22 +190,121 @@ class Database:
             status="offer created"
         )
         self.session.add(order)
+        self.session.commit()
+        self.session.refresh(order)
+        assert order.id
+        return order
 
     def create_order_item(
             self,
-            product_id,
+            order_id,
+            part_id,
             quantity,
             price,
             origin
     ):
         # Make some type-tests, fail if not sufficient
         order_item = OrderItem(
-            product_id=product_id,
+            order_id=order_id,
+            part_id=part_id,
             quantity=quantity,
             price=price,
             origin=origin
         )
         self.session.add(order_item)
+        self.session.commit()
+        self.session.refresh(order_item)
+        assert order_item.id
+        return order_item
+
+
+    ########################
+    # READ Operations
+    ########################
+    def read_customers(self):
+        customers = self.session.query(Customer).all()
+        return customers
+    #
+    # # TODO: Should be sorted by a user uuid
+    # def read_orders(self):
+    #     # Join with Customers, OrderItems, and Parts?
+    #     orders = self.session.query(Customer, Order) \
+    #         .filter(Customer.id == Order.customer_id) \
+    #         .all()
+    #
+    #     # customers, orders, order_items, parts
+    #     print("Retrieved orders are: ", orders)
+    #
+    #     for order in orders:
+    #         print("Order is: ", order)
+    #
+    #     return orders
+
+    # TODO: Should be searching by an Order ID
+    # def read_detailed_orders(self):
+    #     # Join with Customers, OrderItems, and Parts?
+    #     # orders = self.session.query(Customer, Order, OrderItem, Part) \
+    #     #     .filter(Customer.id == Order.customer_id) \
+    #     #     .filter(Order.id == OrderItem.order_id) \
+    #     #     .filter(OrderItem.part_id == Part.id) \
+    #     #     .all()
+    #
+    #     orders = self.session.query(Customer, Order) \
+    #         .filter(Customer.id == Order.customer_id) \
+    #         .filter(Order.id == OrderItem.order_id) \
+    #         .filter(OrderItem.part_id == Part.id) \
+    #         .all()
+    #
+    #     # customers, orders, order_items, parts
+    #     print("Retrieved orders are: ", orders)
+    #
+    #     for order in orders:
+    #         print("Order is: ", order)
+    #
+    #     return orders
+
+    def read_orders(self):
+        customers = self.session.query(Customer).all()
+
+        print("Customers are: ", customers)
+
+        # Expand this object to a tree-like structure
+        out = []
+        for customer in customers:
+            print(customer)
+            print(customer.rel_orders)
+            for order in customer.rel_orders:
+                tmp1 = order.to_dict()
+                print("tmp is: ")
+                print(tmp1)
+        #         tmp1.update(customer.to_dict())
+        #         tmp1['items'] = []
+        #         for order_item in order.rel_order_items:
+        #             tmp2 = order_item.to_dict()
+        #             tmp2.update(order_item.rel_part.to_dict())
+        #             tmp1['items'].append(tmp2)
+        #             print("Adding following object to the list (1):")
+        #             print(tmp2)
+        #         print("Adding following object to the list (2):")
+        #         print(tmp1)
+        #         out.append(tmp1)
+
+        print("Out length is: ", len(out))
+        print("Out length is: ", out[0])
+        print("Out length is: ", out)
+
+        return out
+
+
+
+
+    ########################
+    # UPDATE Operations
+    ########################
+
+    ########################
+    # DELETE Operations
+    ########################
 
     # TODO: Ignore for now. No new products should be added to the system for now
     # def create_product(
@@ -233,6 +343,8 @@ class Database:
     #     )
     #     self.session.add(product)
 
+
+screaper_database = Database()
 
 if __name__ == "__main__":
     print("Starting to create databsse connection")
