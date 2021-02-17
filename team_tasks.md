@@ -1,5 +1,5 @@
 Machine Learning:
-- Named Entity Recognition / Company / Product Entity Recognition
+- Named Entity Recognition / Company / Part Entity Recognition
 
 Nationalities:
 - Uniformally distributed at random around the globe, especially regions of interest EMEA

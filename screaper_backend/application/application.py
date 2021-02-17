@@ -1,16 +1,18 @@
-import datetime
 import json
 
 from flask import Flask, request, jsonify, Response
+from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+
+application = Flask(__name__)
+application.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+db = SQLAlchemy(application)
+CORS(application)
 
 from screaper_backend.algorithms.product_similarity import AlgorithmProductSimilarity
 from screaper_backend.application.authentication import authentication_token, whitelisted_ips
 from screaper_backend.exporter.exporter_offer_excel import ExporterOfferExcel
 from screaper_backend.models.orders import model_orders
-
-application = Flask(__name__)
-CORS(application)
 
 # Algorithms
 algorithm_product_similarity = AlgorithmProductSimilarity()
@@ -181,6 +183,7 @@ def orders_post():
         Example request could look as follows:
         {
             "user_uuid": "b6347351-7fbb-406b-9b4d-4e90e9021834"
+            "reference": "",
             "items": [
                 {
                     part_external_identifier: string,
@@ -269,6 +272,8 @@ def orders_post():
     user_uuid = input_json["user_uuid"]
     items = input_json["items"]
     items = sorted(items, key=lambda x: x['sequence_order'])
+
+    # TODO: Insert this into the database
 
     exporter = ExporterOfferExcel()
 

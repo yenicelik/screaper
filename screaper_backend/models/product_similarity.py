@@ -1,5 +1,5 @@
 """
-    Product similarity based on a query
+    Part similarity based on a query
 """
 import numpy as np
 
@@ -54,4 +54,4 @@ class ProductSimilarity:
 model_product_similarity = ProductSimilarity()
 
 if __name__ == "__main__":
-    print("Product Similarity Starting")
+    print("Part Similarity Starting")

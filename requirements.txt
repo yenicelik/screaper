@@ -11,3 +11,4 @@ flask_cors==3.0.10
 pandas==1.1.4
 sklearn
 openpyxl
+flask_sqlalchemy==2.4.4

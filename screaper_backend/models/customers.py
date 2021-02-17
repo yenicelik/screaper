@@ -1,5 +1,5 @@
 """
-    Get orders for a certain user
+    Get all customers in the system
 """
 import yaml
 import os
@@ -19,6 +19,5 @@ class Orders:
 
     def orders(self):
         return self._orders
-
 
 model_orders = Orders()
