@@ -15,6 +15,7 @@ class Orders:
         print(f"{len(self._orders)} orders collected")
 
     def orders(self):
+        self._orders = screaper_database.read_orders()
         return self._orders
 
     def create_order(self, customer_username, reference, order_items):
@@ -38,7 +39,7 @@ class Orders:
                 item_price=order_item["item_single_price"]
             )
 
-        screaper_database.commit()
+        screaper_database.session.commit()
 
         print(f"Crated {i} new order items")
 

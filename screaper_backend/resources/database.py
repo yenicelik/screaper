@@ -78,73 +78,83 @@ class Database:
         print("Created order with orderid: ", order.id)
 
         # print parts that we're gonna input:
-        print("buying part: ", self.read_part_by_part_id_obj(5))
+        part = self.read_part_by_part_id_obj(5)
+        print("buying part: ", part)
         self.create_order_item(
             order=order,
-            part_id=5,
+            part=part,
             quantity=50,
             item_price=50,
         )
-        print("buying part: ", self.read_part_by_part_id_obj(100))
+        part = self.read_part_by_part_id_obj(100)
+        print("buying part: ", part.to_dict())
         self.create_order_item(
             order=order,
-            part_id=100,
+            part=part,
             quantity=12,
             item_price=684.13 * 2.5,
         )
-        print("buying part: ", self.read_part_by_part_id_obj(52))
+        part = self.read_part_by_part_id_obj(52)
+        print("buying part: ", part.to_dict())
         self.create_order_item(
             order=order,
-            part_id=52,
+            part=part,
             quantity=12,
             item_price=100 * 2.5,
         )
-        print("buying part: ", self.read_part_by_part_id_obj(53))
+        part = self.read_part_by_part_id_obj(53)
+        print("buying part: ", part.to_dict())
         self.create_order_item(
             order=order,
-            part_id=53,
+            part=part,
             quantity=12,
             item_price=100 * 2.5,
         )
-        print("buying part: ", self.read_part_by_part_id_obj(23))
+        part = self.read_part_by_part_id_obj(23)
+        print("buying part: ", part.to_dict())
         self.create_order_item(
             order=order,
-            part_id=23,
+            part=part,
             quantity=12,
             item_price=100 * 2.5,
         )
-        print("buying part: ", self.read_part_by_part_id_obj(64))
+        part = self.read_part_by_part_id_obj(64)
+        print("buying part: ", part.to_dict())
         self.create_order_item(
             order=order,
-            part_id=64,
+            part=part,
             quantity=12,
             item_price=100 * 2.5,
         )
-        print("buying part: ", self.read_part_by_part_id_obj(24))
+        part = self.read_part_by_part_id_obj(24)
+        print("buying part: ", part.to_dict())
         self.create_order_item(
             order=order,
-            part_id=24,
+            part=part,
             quantity=12,
             item_price=100 * 2.5,
         )
-        print("buying part: ", self.read_part_by_part_id_obj(64))
+        part = self.read_part_by_part_id_obj(64)
+        print("buying part: ", part.to_dict())
         self.create_order_item(
             order=order,
-            part_id=64,
+            part=part,
             quantity=12,
             item_price=100 * 2.5,
         )
-        print("buying part: ", self.read_part_by_part_id_obj(75))
+        part = self.read_part_by_part_id_obj(75)
+        print("buying part: ", part.to_dict())
         self.create_order_item(
             order=order,
-            part_id=75,
+            part=part,
             quantity=12,
             item_price=100 * 2.5,
         )
-        print("buying part: ", self.read_part_by_part_id_obj(86))
+        part = self.read_part_by_part_id_obj(86)
+        print("buying part: ", part.to_dict())
         self.create_order_item(
             order=order,
-            part_id=86,
+            part=part,
             quantity=12,
             item_price=100 * 2.5,
         )
@@ -288,7 +298,7 @@ class Database:
     def read_orders(self):
         customers = self.session.query(Customer).all()
 
-        print("Orders are: ", customers)
+        print("Customers are: ", customers)
 
         # Expand this object to a tree-like structure
         out = []
@@ -297,27 +307,27 @@ class Database:
             print(customer.rel_orders)
             for order in customer.rel_orders:
                 tmp1 = order.to_dict()
-                print("tmp is: ")
-                print(tmp1)
+                # print("tmp is: ")
+                # print(tmp1)
                 tmp1.update(customer.to_dict())
                 tmp1['items'] = []
-                print("tmp after is: ")
+                # print("tmp after is: ")
                 print(tmp1)
                 for order_item in order.rel_order_items:
                     tmp2 = order_item.to_dict()
                     del tmp2['owner']
                     tmp2.update(order_item.rel_part.to_dict())
-                    print("tmp 2 is: ", tmp2)
+                    # print("tmp 2 is: ", tmp2)
                     tmp1['items'].append(tmp2)
-                    print("Adding following object to the list (1):")
+                    # print("Adding following object to the list (1):")
                     print(tmp2)
-                print("Adding following object to the list (2):")
+                # print("Adding following object to the list (2):")
                 print(tmp1)
                 out.append(tmp1)
 
-        print("Out length is: ", len(out))
-        print("Out length is: ", out[0])
-        print("Out length is: ", out)
+        # print("Out length is: ", len(out))
+        # print("Out length is: ", out[0])
+        # print("Out length is: ", out)
 
         return out
 
@@ -334,9 +344,9 @@ class Database:
             tmp = customer.to_dict()
             out.append(tmp)
 
-        print("Out length is: ", len(out))
-        print("Out length is: ", out[0])
-        print("Out length is: ", out)
+        # print("Out length is: ", len(out))
+        # print("Out length is: ", out[0])
+        # print("Out length is: ", out)
 
         return out
 
@@ -360,7 +370,7 @@ class Database:
     def read_parts(self):
         parts = self.session.query(Part).all()
 
-        print("Parts are: ", parts)
+        # print("Parts are: ", parts)
 
         # Expand this object to a tree-like structure
         out = []
@@ -370,14 +380,12 @@ class Database:
             out.append(tmp)
 
         print("Out length is: ", len(out))
-        print("Out length is: ", out[0])
-        print("Out length is: ", out)
+        print("Out length is: ", out[:5])
 
         return out
 
     def read_part_by_part_id_obj(self, idx):
         part = self.session.query(Part).filter(Part.id == idx).one_or_none()
-        part = part.to_dict()
         assert part, ("We previously had checked if this part exists. There is something wrong in the code", part)
         return part
 

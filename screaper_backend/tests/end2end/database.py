@@ -8,13 +8,13 @@ from screaper_backend.application.application import db
 
 from screaper_backend.models.customers import model_customers
 from screaper_backend.models.orders import model_orders
-from screaper_backend.resources.database import Database
+from screaper_backend.resources.database import screaper_database
 
 
 class TestDatabase(unittest.TestCase):
 
     def init(self):
-        self.db = Database()
+        self.db = screaper_database
 
     def run_end_to_end_test(self):
         pass
@@ -172,25 +172,26 @@ class TestDatabase(unittest.TestCase):
 
         # Check number of customers
         customers = model_customers.customers()
-        assert len(customers) == 2, customers
+        assert len(customers) == 2, (len(customers), customers)
 
         # Check number of orders
         orders = model_orders.orders()
-        assert len(orders) == 3, orders
+        assert len(orders) == 3, (len(orders), orders)
 
         # Check number of orderitems
         order_items = []
         for order in orders:
-            for order_item in order.rel_orders:
+            print("Returned order is", order)
+            for order_item in order["items"]:
                 order_items.append(order_item)
 
         assert len(order_items) == 2 + 3 + 10, (len(order_items), order_items)
 
         # Check that orderitems correspond to partnames
         for order in orders:
-            for order_item in order.rel_orders:
-                print("rel part is:", order["rel_part"])
-                order["rel_part"]["part_external_identifier"] in (
+            for order_item in order["items"]:
+                print("rel part is:", order_item)
+                order_item["part_external_identifier"] in (
                     "29480BC-BCE25",
                     "29480BC-BCE01",
                     "995-401",
@@ -206,12 +207,12 @@ class TestDatabase(unittest.TestCase):
                     "10022L",
                     "10024BU",
                     "10030AU"
-                ), ("part is not correctly set!", order)
+                ), ("part is not correctly set!", order_item)
 
         # References are correctly inserted
-        for order in order_items:
-            assert order.reference in ("ref MCY-GLS", "REF MCY-GÜLSAN", "REF MCY-KAYSERI"), order.reference
-            assert order["user_name"] in ("kayseri_sentetik", "gulsan_sentetik")
+        for order in orders:
+            assert order["reference"] in ("ref MCY-GLS", "REF MCY-GÜLSAN", "REF MCY-KAYSERI"), order
+            assert order["user_name"] in ("kayseri_sentetik", "gulsan_sentetik"), order
 
         # Number of items in orders are correct
 
