@@ -4,6 +4,7 @@ from flask import Flask, request, jsonify, Response
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 
+# These need to run before further imports, otherwise circular (maybe just put them into __init__
 application = Flask(__name__)
 application.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
 application.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -14,6 +15,7 @@ from screaper_backend.algorithms.product_similarity import AlgorithmProductSimil
 from screaper_backend.application.authentication import authentication_token, whitelisted_ips
 from screaper_backend.exporter.exporter_offer_excel import ExporterOfferExcel
 from screaper_backend.models.orders import model_orders
+from screaper_backend.models.customers import model_customers
 
 # Algorithms
 algorithm_product_similarity = AlgorithmProductSimilarity()
@@ -173,7 +175,53 @@ def orders_get():
 
     out = model_orders.orders()
     # Turn into one mega-dictionary per object
-    out = [x.to_dict() for x in out]
+    out = [x for x in out]
+
+    return jsonify({
+        "response": out
+    }), 200
+
+
+@application.route('/customers-get', methods=["GET", "POST"])
+def customers_get():
+    """
+        Example request could look as follows:
+        {
+            "user_uuid": "b6347351-7fbb-406b-9b4d-4e90e9021834"
+        }
+
+    """
+    tmp = authenticate(request)
+    if tmp is not None:
+        return tmp
+
+    try:
+        input_json = json.loads(request.data, strict=False)
+    except Exception as e:
+        print("Request body could not be parsed!", str(e), str(request.data))
+        return jsonify({
+            "errors": ["Request body could not be parsed!", str(e), str(request.data)]
+        }), 400
+
+    print("Got request: ", input_json)
+
+    if "user_uuid" not in input_json:
+        return jsonify({
+            "errors": ["user_uuid not fund!", str(input_json)]
+        }), 400
+
+    if not input_json["user_uuid"]:
+        return jsonify({
+            "errors": ["user_uuid empty!", str(input_json)]
+        }), 400
+
+
+    # Ignore input, and return all mockups
+    user_uuid = input_json["user_uuid"]
+
+    out = model_customers.customers()
+    # Turn into one mega-dictionary per object
+    out = [x for x in out]
 
     return jsonify({
         "response": out

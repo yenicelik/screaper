@@ -1,7 +1,6 @@
 """
     Database
 """
-
 from screaper_backend.application.application import db
 from screaper_backend.entities.entities_db import OrderItem, Order, Part, Customer
 from screaper_backend.importer.data_importer_unionspecial import DataImporterUnionSpecial
@@ -74,11 +73,74 @@ class Database:
         order = self.create_single_order(customer_id=1, reference="ref MCY-GLS")
         print("Created order with orderid: ", order.id)
         self.create_order_item(
-            order_id=order.id,
+            order=order,
             part_id=5,
             quantity=50,
-            price=50,
+            item_price=50,
             origin="DE / US"
+        )
+        self.create_order_item(
+            order=order,
+            part_id=100,
+            quantity=12,
+            item_price=684.13*2.5,
+            origin="ES"
+        )
+        self.create_order_item(
+            order=order,
+            part_id=52,
+            quantity=12,
+            item_price=100 * 2.5,
+            origin="ES"
+        )
+        self.create_order_item(
+            order=order,
+            part_id=53,
+            quantity=12,
+            item_price=100 * 2.5,
+            origin="ES"
+        )
+        self.create_order_item(
+            order=order,
+            part_id=23,
+            quantity=12,
+            item_price=100 * 2.5,
+            origin="ES"
+        )
+        self.create_order_item(
+            order=order,
+            part_id=64,
+            quantity=12,
+            item_price=100 * 2.5,
+            origin="ES"
+        )
+        self.create_order_item(
+            order=order,
+            part_id=24,
+            quantity=12,
+            item_price=100 * 2.5,
+            origin="ES"
+        )
+        self.create_order_item(
+            order=order,
+            part_id=64,
+            quantity=12,
+            item_price=100 * 2.5,
+            origin="ES"
+        )
+        self.create_order_item(
+            order=order,
+            part_id=75,
+            quantity=12,
+            item_price=100 * 2.5,
+            origin="ES"
+        )
+        self.create_order_item(
+            order=order,
+            part_id=86,
+            quantity=12,
+            item_price=100 * 2.5,
+            origin="ES"
         )
         self.session.commit()
 
@@ -169,9 +231,9 @@ class Database:
         for order_item in order_items:
             self.create_order_item(
                 part_id=order_item.part_id,
-                order_id=order.id,
+                order=order,
                 quantity=order_item.quantity,
-                price=order_item.price,
+                item_price=order_item.item_price,
                 origin=order_item.origin
             )
 
@@ -197,18 +259,18 @@ class Database:
 
     def create_order_item(
             self,
-            order_id,
+            order,
             part_id,
             quantity,
-            price,
+            item_price,
             origin
     ):
         # Make some type-tests, fail if not sufficient
         order_item = OrderItem(
-            order_id=order_id,
+            owner=order,
             part_id=part_id,
             quantity=quantity,
-            price=price,
+            item_price=item_price,
             origin=origin
         )
         self.session.add(order_item)
@@ -277,17 +339,41 @@ class Database:
                 tmp1 = order.to_dict()
                 print("tmp is: ")
                 print(tmp1)
-        #         tmp1.update(customer.to_dict())
-        #         tmp1['items'] = []
-        #         for order_item in order.rel_order_items:
-        #             tmp2 = order_item.to_dict()
-        #             tmp2.update(order_item.rel_part.to_dict())
-        #             tmp1['items'].append(tmp2)
-        #             print("Adding following object to the list (1):")
-        #             print(tmp2)
-        #         print("Adding following object to the list (2):")
-        #         print(tmp1)
-        #         out.append(tmp1)
+                tmp1.update(customer.to_dict())
+                tmp1['items'] = []
+                print("tmp after is: ")
+                print(tmp1)
+                for order_item in order.rel_order_items:
+                    tmp2 = order_item.to_dict()
+                    del tmp2['owner']
+                    del tmp2['origin']
+                    tmp2.update(order_item.rel_part.to_dict())
+                    print("tmp 2 is: ", tmp2)
+                    tmp1['items'].append(tmp2)
+                    print("Adding following object to the list (1):")
+                    print(tmp2)
+                print("Adding following object to the list (2):")
+                print(tmp1)
+                out.append(tmp1)
+
+        print("Out length is: ", len(out))
+        print("Out length is: ", out[0])
+        print("Out length is: ", out)
+
+        return out
+
+    def read_customers(self):
+        customers = self.session.query(Customer).all()
+
+        print("Customers are: ", customers)
+
+        # Expand this object to a tree-like structure
+        out = []
+        for customer in customers:
+            print(customer)
+            print(customer.rel_orders)
+            tmp = customer.to_dict()
+            out.append(tmp)
 
         print("Out length is: ", len(out))
         print("Out length is: ", out[0])
