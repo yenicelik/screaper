@@ -16,6 +16,7 @@ from screaper_backend.application.authentication import authentication_token, wh
 from screaper_backend.exporter.exporter_offer_excel import ExporterOfferExcel
 from screaper_backend.models.orders import model_orders
 from screaper_backend.models.customers import model_customers
+from screaper_backend.models.parts import model_parts
 
 # Algorithms
 algorithm_product_similarity = AlgorithmProductSimilarity()
@@ -235,6 +236,7 @@ def orders_post():
         {
             "user_uuid": "b6347351-7fbb-406b-9b4d-4e90e9021834"
             "reference": "",
+            "customer_username": "",
             "items": [
                 {
                     part_external_identifier: string,
@@ -287,6 +289,14 @@ def orders_post():
     if err is not None:
         return err
 
+    err = check_property_is_included(input_json, "customer_username", type_def=list)
+    if err is not None:
+        return err
+
+    err = check_property_is_included(input_json, "reference", type_def=list)
+    if err is not None:
+        return err
+
     item_key_value_pairs = [
         ("part_external_identifier", str),  # string
         ("manufacturer_status", str),  # string
@@ -321,10 +331,41 @@ def orders_post():
 
     # Ignore input, and return all mockups
     user_uuid = input_json["user_uuid"]
+    reference = input_json["reference"]
+    customer_username = input_json["customer_username"]
+
     items = input_json["items"]
     items = sorted(items, key=lambda x: x['sequence_order'])
 
-    # TODO: Insert this into the database
+    # Check if customer username is existent
+    customers = model_customers.customers()
+    if customer_username not in customers:
+        print(f"customer_username not recognized!!", str(customer_username), str(input_json))
+        return jsonify({
+            "errors": [f"customer_username not recognized!!", str(customer_username), str(input_json)]
+        }), 400
+
+    if not reference:
+        print(f"reference not recognized!!", str(reference), str(input_json))
+        return jsonify({
+            "errors": [f"reference not recognized!!", str(reference), str(input_json)]
+        }), 400
+
+    # Check if all part ids are existent
+    for item in items:
+        part_external_identifier = item['part_external_identifier']
+        if part_external_identifier not in model_parts.parts:
+            print(f"part_external_identifier not recognized!!", str(part_external_identifier), str(input_json))
+            return jsonify({
+                "errors": [f"part_external_identifier not recognized!!", str(part_external_identifier), str(input_json)]
+            }), 400
+
+    # Insert this into the database
+    model_orders.create_order(
+        customer_username=customer_username,
+        reference=reference,
+        order_items=items
+    )
 
     exporter = ExporterOfferExcel()
 

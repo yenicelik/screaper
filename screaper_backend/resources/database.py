@@ -70,7 +70,11 @@ class Database:
             - Create a single customer. This is the placeholder for all customers now
         :return:
         """
-        order = self.create_single_order(customer_id=1, reference="ref MCY-GLS")
+
+        # Get first customer
+        customer = self.read_customers_obj()[0]
+
+        order = self.create_single_order(customer=customer, reference="ref MCY-GLS")
         print("Created order with orderid: ", order.id)
         self.create_order_item(
             order=order,
@@ -222,7 +226,7 @@ class Database:
         assert customer.id
         return customer
 
-    def create_oder(self, order, order_items):
+    def create_order(self, order, order_items):
 
         assert order, order
         assert order_items, order_items
@@ -239,15 +243,15 @@ class Database:
 
     def create_single_order(
             self,
-            customer_id,
+            customer,
             reference
     ):
         # Make some type-tests, fail if not sufficient
-        assert customer_id is not None, customer_id
+        assert customer is not None, customer
         assert reference, reference
 
         order = Order(
-            customer_id=customer_id,
+            owner=customer,
             reference=reference,
             status="offer created"
         )
@@ -283,52 +287,10 @@ class Database:
     ########################
     # READ Operations
     ########################
-    def read_customers(self):
-        customers = self.session.query(Customer).all()
-        return customers
-    #
-    # # TODO: Should be sorted by a user uuid
-    # def read_orders(self):
-    #     # Join with Customers, OrderItems, and Parts?
-    #     orders = self.session.query(Customer, Order) \
-    #         .filter(Customer.id == Order.customer_id) \
-    #         .all()
-    #
-    #     # customers, orders, order_items, parts
-    #     print("Retrieved orders are: ", orders)
-    #
-    #     for order in orders:
-    #         print("Order is: ", order)
-    #
-    #     return orders
-
-    # TODO: Should be searching by an Order ID
-    # def read_detailed_orders(self):
-    #     # Join with Customers, OrderItems, and Parts?
-    #     # orders = self.session.query(Customer, Order, OrderItem, Part) \
-    #     #     .filter(Customer.id == Order.customer_id) \
-    #     #     .filter(Order.id == OrderItem.order_id) \
-    #     #     .filter(OrderItem.part_id == Part.id) \
-    #     #     .all()
-    #
-    #     orders = self.session.query(Customer, Order) \
-    #         .filter(Customer.id == Order.customer_id) \
-    #         .filter(Order.id == OrderItem.order_id) \
-    #         .filter(OrderItem.part_id == Part.id) \
-    #         .all()
-    #
-    #     # customers, orders, order_items, parts
-    #     print("Retrieved orders are: ", orders)
-    #
-    #     for order in orders:
-    #         print("Order is: ", order)
-    #
-    #     return orders
-
     def read_orders(self):
         customers = self.session.query(Customer).all()
 
-        print("Customers are: ", customers)
+        print("Orders are: ", customers)
 
         # Expand this object to a tree-like structure
         out = []
@@ -381,7 +343,52 @@ class Database:
 
         return out
 
+    def read_customers_obj(self):
+        customers = self.session.query(Customer).all()
+        return customers
 
+    def read_customers_by_customer_username(self, username):
+        customer = self.session.query(Customer).filter(Customer.user_name == username).one_or_none()
+
+        assert customer, ("We previously had checked if this customer exists. There is something wrong in the code", customer)
+
+        print("Customer is: ", customer)
+        # Expand this object to a tree-like structure
+        print(customer)
+        print(customer.rel_orders)
+
+        return customer
+
+    def read_parts(self):
+        parts = self.session.query(Part).all()
+
+        print("Customers are: ", parts)
+
+        # Expand this object to a tree-like structure
+        out = []
+        for part in parts:
+            print(part)
+            tmp = part.to_dict()
+            out.append(tmp)
+
+        print("Out length is: ", len(out))
+        print("Out length is: ", out[0])
+        print("Out length is: ", out)
+
+        return out
+
+    def read_part_by_part_external_identifier_obj(self, external_identifier):
+        part = self.session.query(Part).filter(Part.part_external_identifier == external_identifier).one_or_none()
+
+        assert part, ("We previously had checked if this part exists. There is something wrong in the code", part)
+
+        print("Customers are: ", part)
+
+        # Expand this object to a tree-like structure
+        print("Out length is: ", len(part))
+        print("Out length is: ", part)
+
+        return part
 
 
     ########################

@@ -16,7 +16,7 @@ class Part(db.Model, SerializerMixin):
 
     id = db.Column(db.Integer, autoincrement=True, primary_key=True)
 
-    part_external_identifier = db.Column(db.String)
+    part_external_identifier = db.Column(db.String, nullable=False)
     manufacturer_status = db.Column(db.String)
     manufacturer_price = db.Column(db.Float)
     manufacturer_stock = db.Column(db.Integer)
@@ -47,7 +47,7 @@ class Customer(db.Model, SerializerMixin):
     id = db.Column(db.Integer, autoincrement=True, primary_key=True)
 
     # Personal information
-    user_name = db.Column(db.String)
+    user_name = db.Column(db.String, index=True, unique=True)
     phone_number = db.Column(db.String)
 
     # Company information
