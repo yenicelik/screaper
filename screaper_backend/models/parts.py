@@ -12,7 +12,7 @@ class Parts:
 
     def __init__(self):
         self._parts = screaper_database.read_parts()
-        print("self parts are: ", self._parts)
+        print(f"{len(self._parts)} parts collected")
 
     def parts(self):
         return set(self._parts)

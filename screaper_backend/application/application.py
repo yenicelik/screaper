@@ -1,12 +1,16 @@
+import os
 import json
 
+from dotenv import load_dotenv
 from flask import Flask, request, jsonify, Response
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 
+load_dotenv()
+
 # These need to run before further imports, otherwise circular (maybe just put them into __init__
 application = Flask(__name__)
-application.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+application.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DatabaseUrlApplication')
 application.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(application)
 CORS(application)
@@ -315,6 +319,7 @@ def orders_post():
         ("price_currency", str),  # string
         ("cost_multiple", float), # float
 
+        ("item_single_price", float),
         ("sequence_order", float),  # number
         ("quantity", float),  # number
         ("total_manufacturing_price", float),  # number

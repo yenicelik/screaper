@@ -9,7 +9,7 @@ class PartsList:
         self.data = data_importer_union_special.parts_list()
         self._searchstring = self.data['searchstring'].tolist()
         self._parts = self.data.to_dict("records")
-        print("Self parts are: ", self._parts[:5])
+        print(f"{len(self._parts)} parts collected")
 
     def id_to_dict(self, idx):
         out = self.data.iloc[idx].to_dict()

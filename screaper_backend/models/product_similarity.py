@@ -35,16 +35,14 @@ class ProductSimilarity:
     def closest_documents(self, documents):
         v0 = self._pretrained_vectors
         v1 = self.transform(documents)
-
-        print("v0 and v1 are: ", v0.shape, v1.shape)
+        # print("v0 and v1 are: ", v0.shape, v1.shape)
 
         similarity_matr = cosine_similarity(v0, v1).flatten()
-
-        print("similarity matr shape is: ", similarity_matr.shape)
+        # print("similarity matr shape is: ", similarity_matr.shape)
 
         # Return the items in v2 that are closest to the items in v1
         ranked_most_similar_idx = np.argsort(similarity_matr)[::-1]
-        print("most similar items shape is: ", ranked_most_similar_idx.shape)
+        # print("most similar items shape is: ", ranked_most_similar_idx.shape)
 
         # Return only the indices, creating the dictionary is responsibility of the algorithm
         return ranked_most_similar_idx.tolist()

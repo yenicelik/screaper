@@ -12,7 +12,7 @@ class Customers:
 
     def __init__(self):
         self._customers = screaper_database.read_customers()
-        print("self orders are: ", self._customers)
+        print(f"{len(self._customers)} customers collected")
 
     def customers(self):
         return self._customers

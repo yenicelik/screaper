@@ -25,6 +25,7 @@ class Part(db.Model, SerializerMixin):
     weight_in_g = db.Column(db.Float)
     replaced_by = db.Column(db.String)
 
+    origin = db.Column(db.String)
     changes = db.Column(db.Integer)
     shortcut = db.Column(db.String)
     hs_code = db.Column(db.String)
@@ -91,7 +92,6 @@ class OrderItem(db.Model, SerializerMixin):
     part_id = db.Column(db.Integer, db.ForeignKey("parts.id"))
     quantity = db.Column(db.Integer)
     item_price = db.Column(db.Float)
-    origin = db.Column(db.String)
 
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 

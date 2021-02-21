@@ -76,75 +76,77 @@ class Database:
 
         order = self.create_single_order(customer=customer, reference="ref MCY-GLS")
         print("Created order with orderid: ", order.id)
+
+        # print parts that we're gonna input:
+        print("buying part: ", self.read_part_by_part_id_obj(5))
         self.create_order_item(
             order=order,
             part_id=5,
             quantity=50,
             item_price=50,
-            origin="DE / US"
         )
+        print("buying part: ", self.read_part_by_part_id_obj(100))
         self.create_order_item(
             order=order,
             part_id=100,
             quantity=12,
-            item_price=684.13*2.5,
-            origin="ES"
+            item_price=684.13 * 2.5,
         )
+        print("buying part: ", self.read_part_by_part_id_obj(52))
         self.create_order_item(
             order=order,
             part_id=52,
             quantity=12,
             item_price=100 * 2.5,
-            origin="ES"
         )
+        print("buying part: ", self.read_part_by_part_id_obj(53))
         self.create_order_item(
             order=order,
             part_id=53,
             quantity=12,
             item_price=100 * 2.5,
-            origin="ES"
         )
+        print("buying part: ", self.read_part_by_part_id_obj(23))
         self.create_order_item(
             order=order,
             part_id=23,
             quantity=12,
             item_price=100 * 2.5,
-            origin="ES"
         )
+        print("buying part: ", self.read_part_by_part_id_obj(64))
         self.create_order_item(
             order=order,
             part_id=64,
             quantity=12,
             item_price=100 * 2.5,
-            origin="ES"
         )
+        print("buying part: ", self.read_part_by_part_id_obj(24))
         self.create_order_item(
             order=order,
             part_id=24,
             quantity=12,
             item_price=100 * 2.5,
-            origin="ES"
         )
+        print("buying part: ", self.read_part_by_part_id_obj(64))
         self.create_order_item(
             order=order,
             part_id=64,
             quantity=12,
             item_price=100 * 2.5,
-            origin="ES"
         )
+        print("buying part: ", self.read_part_by_part_id_obj(75))
         self.create_order_item(
             order=order,
             part_id=75,
             quantity=12,
             item_price=100 * 2.5,
-            origin="ES"
         )
+        print("buying part: ", self.read_part_by_part_id_obj(86))
         self.create_order_item(
             order=order,
             part_id=86,
             quantity=12,
             item_price=100 * 2.5,
-            origin="ES"
         )
         self.session.commit()
 
@@ -237,8 +239,7 @@ class Database:
                 part_id=order_item.part_id,
                 order=order,
                 quantity=order_item.quantity,
-                item_price=order_item.item_price,
-                origin=order_item.origin
+                item_price=order_item.item_price
             )
 
     def create_single_order(
@@ -264,25 +265,22 @@ class Database:
     def create_order_item(
             self,
             order,
-            part_id,
+            part,
             quantity,
-            item_price,
-            origin
+            item_price
     ):
         # Make some type-tests, fail if not sufficient
         order_item = OrderItem(
             owner=order,
-            part_id=part_id,
+            rel_part=part,
             quantity=quantity,
-            item_price=item_price,
-            origin=origin
+            item_price=item_price
         )
         self.session.add(order_item)
         self.session.commit()
         self.session.refresh(order_item)
         assert order_item.id
         return order_item
-
 
     ########################
     # READ Operations
@@ -308,7 +306,6 @@ class Database:
                 for order_item in order.rel_order_items:
                     tmp2 = order_item.to_dict()
                     del tmp2['owner']
-                    del tmp2['origin']
                     tmp2.update(order_item.rel_part.to_dict())
                     print("tmp 2 is: ", tmp2)
                     tmp1['items'].append(tmp2)
@@ -350,7 +347,8 @@ class Database:
     def read_customers_by_customer_username(self, username):
         customer = self.session.query(Customer).filter(Customer.user_name == username).one_or_none()
 
-        assert customer, ("We previously had checked if this customer exists. There is something wrong in the code", customer)
+        assert customer, (
+        "We previously had checked if this customer exists. There is something wrong in the code", customer)
 
         print("Customer is: ", customer)
         # Expand this object to a tree-like structure
@@ -362,7 +360,7 @@ class Database:
     def read_parts(self):
         parts = self.session.query(Part).all()
 
-        print("Customers are: ", parts)
+        print("Parts are: ", parts)
 
         # Expand this object to a tree-like structure
         out = []
@@ -377,19 +375,16 @@ class Database:
 
         return out
 
-    def read_part_by_part_external_identifier_obj(self, external_identifier):
-        part = self.session.query(Part).filter(Part.part_external_identifier == external_identifier).one_or_none()
-
+    def read_part_by_part_id_obj(self, idx):
+        part = self.session.query(Part).filter(Part.id == idx).one_or_none()
+        part = part.to_dict()
         assert part, ("We previously had checked if this part exists. There is something wrong in the code", part)
-
-        print("Customers are: ", part)
-
-        # Expand this object to a tree-like structure
-        print("Out length is: ", len(part))
-        print("Out length is: ", part)
-
         return part
 
+    def read_part_by_part_external_identifier_obj(self, external_identifier):
+        part = self.session.query(Part).filter(Part.part_external_identifier == external_identifier).one_or_none()
+        assert part, ("We previously had checked if this part exists. There is something wrong in the code", part)
+        return part
 
     ########################
     # UPDATE Operations
@@ -398,43 +393,6 @@ class Database:
     ########################
     # DELETE Operations
     ########################
-
-    # TODO: Ignore for now. No new products should be added to the system for now
-    # def create_product(
-    #         self,
-    #         product_external_identifier,
-    #         manufacturer_status,
-    #         manufacturer_price,
-    #         price_currency,
-    #         manufacturer,
-    #         manufacturer_abbreviation,
-    #         weight_in_g,
-    #         replaced_by,
-    #         changes,
-    #         shortcut,
-    #         hs_code,
-    #         important,
-    #         description_en,
-    #         description_de
-    # ):
-    #     # Make some type-tests, fail if not sufficient
-    #     product = Part(
-    #         product_external_identifier=product_external_identifier,
-    #         manufacturer_status=manufacturer_status,
-    #         manufacturer_price=manufacturer_price,
-    #         price_currency=price_currency,
-    #         manufacturer=manufacturer,
-    #         manufacturer_abbreviation=manufacturer_abbreviation,
-    #         weight_in_g=weight_in_g,
-    #         replaced_by=replaced_by,
-    #         changes=changes,
-    #         shortcut=shortcut,
-    #         hs_code=hs_code,
-    #         important=important,
-    #         description_en=description_en,
-    #         description_de=description_de
-    #     )
-    #     self.session.add(product)
 
 
 screaper_database = Database()
