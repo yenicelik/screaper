@@ -20,5 +20,8 @@ class Customers:
     def customer_usernames(self):
         return set(x["user_name"]for x in self._customers)
 
+    def customer_by_username(self, username):
+        return screaper_database.read_customers_by_customer_username(username=username)
+
 
 model_customers = Customers()

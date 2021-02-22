@@ -391,6 +391,10 @@ def orders_post():
             replaced=part_json['replaced_by']
         )
 
+    customer_obj = model_customers.customer_by_username(customer_username)
+    exporter.insert_customer(customer_obj)
+    # exporter.insert_reference(reference)
+
     exporter.update_date()
 
     wrapped_file = exporter.get_bytestring()

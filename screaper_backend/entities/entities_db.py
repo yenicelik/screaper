@@ -51,11 +51,11 @@ class Customer(db.Model, SerializerMixin):
 
     # Personal information
     user_name = db.Column(db.String, index=True, unique=True)
-    phone_number = db.Column(db.String)
 
     # Company information
     company_name = db.Column(db.String)
     domain_name = db.Column(db.String)
+    phone_number = db.Column(db.String)
     fax_number = db.Column(db.String)
     email = db.Column(db.String)
     address = db.Column(db.String)
