@@ -85,7 +85,7 @@ class Database:
             order=order,
             part=part,
             quantity=50,
-            item_price=50,
+            item_single_price=50,
         )
         part = self.read_part_by_part_id_obj(100)
         print("buying part: ", part.to_dict())
@@ -93,7 +93,7 @@ class Database:
             order=order,
             part=part,
             quantity=12,
-            item_price=684.13 * 2.5,
+            item_single_price=684.13 * 2.5,
         )
         part = self.read_part_by_part_id_obj(52)
         print("buying part: ", part.to_dict())
@@ -101,7 +101,7 @@ class Database:
             order=order,
             part=part,
             quantity=12,
-            item_price=100 * 2.5,
+            item_single_price=100 * 2.5,
         )
         part = self.read_part_by_part_id_obj(53)
         print("buying part: ", part.to_dict())
@@ -109,7 +109,7 @@ class Database:
             order=order,
             part=part,
             quantity=12,
-            item_price=100 * 2.5,
+            item_single_price=100 * 2.5,
         )
         part = self.read_part_by_part_id_obj(23)
         print("buying part: ", part.to_dict())
@@ -117,7 +117,7 @@ class Database:
             order=order,
             part=part,
             quantity=12,
-            item_price=100 * 2.5,
+            item_single_price=100 * 2.5,
         )
         part = self.read_part_by_part_id_obj(64)
         print("buying part: ", part.to_dict())
@@ -125,7 +125,7 @@ class Database:
             order=order,
             part=part,
             quantity=12,
-            item_price=100 * 2.5,
+            item_single_price=100 * 2.5,
         )
         part = self.read_part_by_part_id_obj(24)
         print("buying part: ", part.to_dict())
@@ -133,7 +133,7 @@ class Database:
             order=order,
             part=part,
             quantity=12,
-            item_price=100 * 2.5,
+            item_single_price=100 * 2.5,
         )
         part = self.read_part_by_part_id_obj(64)
         print("buying part: ", part.to_dict())
@@ -141,7 +141,7 @@ class Database:
             order=order,
             part=part,
             quantity=12,
-            item_price=100 * 2.5,
+            item_single_price=100 * 2.5,
         )
         part = self.read_part_by_part_id_obj(75)
         print("buying part: ", part.to_dict())
@@ -149,7 +149,7 @@ class Database:
             order=order,
             part=part,
             quantity=12,
-            item_price=100 * 2.5,
+            item_single_price=100 * 2.5,
         )
         part = self.read_part_by_part_id_obj(86)
         print("buying part: ", part.to_dict())
@@ -157,7 +157,7 @@ class Database:
             order=order,
             part=part,
             quantity=12,
-            item_price=100 * 2.5,
+            item_single_price=100 * 2.5,
         )
         self.session.commit()
 
@@ -291,14 +291,14 @@ class Database:
             order,
             part,
             quantity,
-            item_price
+            item_single_price
     ):
         # Make some type-tests, fail if not sufficient
         order_item = OrderItem(
             owner=order,
             rel_part=part,
             quantity=quantity,
-            item_price=item_price
+            item_single_price=item_single_price
         )
         self.session.add(order_item)
         self.session.commit()
@@ -339,9 +339,9 @@ class Database:
                 print(tmp1)
                 out.append(tmp1)
 
-        # print("Out length is: ", len(out))
-        # print("Out length is: ", out[0])
-        # print("Out length is: ", out)
+        print("Orders out are:")
+        for order in out[:5]:
+            print(order)
 
         return out
 

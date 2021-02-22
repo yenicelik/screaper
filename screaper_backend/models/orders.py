@@ -36,7 +36,7 @@ class Orders:
                 order=order,
                 part=part,
                 quantity=order_item["quantity"],
-                item_price=order_item["item_single_price"]
+                item_single_price=order_item["item_single_price"]
             )
 
         screaper_database.session.commit()

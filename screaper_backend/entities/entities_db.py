@@ -93,7 +93,7 @@ class OrderItem(db.Model, SerializerMixin):
     order_id = db.Column(db.Integer, db.ForeignKey("orders.id"))
     part_id = db.Column(db.Integer, db.ForeignKey("parts.id"))
     quantity = db.Column(db.Integer)
-    item_price = db.Column(db.Float)
+    item_single_price = db.Column(db.Float)
 
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
