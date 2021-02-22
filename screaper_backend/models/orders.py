@@ -1,18 +1,49 @@
 """
     Get orders for a certain user
 """
-import yaml
+from dotenv import load_dotenv
+
+from screaper_backend.resources.database import screaper_database
+
+load_dotenv()
 
 
 class Orders:
 
     def __init__(self):
-        with open("/Users/david/screaper/screaper_backend/mockups_order.yaml", "r") as f:
-            loaded_yaml_file = yaml.load(f, Loader=yaml.Loader)['orders']
-
-        self._orders = loaded_yaml_file
+        self._orders = screaper_database.read_orders()
+        print(f"{len(self._orders)} orders collected")
 
     def orders(self):
+        self._orders = screaper_database.read_orders()
         return self._orders
+
+    def create_order(self, customer_username, reference, order_items):
+        # Get customer object
+        customer = screaper_database.read_customers_by_customer_username(username=customer_username)
+
+        order = screaper_database.create_single_order(customer=customer, reference=reference)
+        i = 0
+        for order_item in order_items:
+            i += 1
+            assert "id" in order_item, order_item
+
+            part = screaper_database.read_part_by_part_id_obj(idx=order_item["id"])
+
+            # TODO: Fetch the part as given by the external identifier
+            print("Inserting: ", order_item)
+            screaper_database.create_order_item(
+                order=order,
+                part=part,
+                quantity=order_item["quantity"],
+                item_single_price=order_item["item_single_price"]
+            )
+
+        screaper_database.session.commit()
+
+        print(f"Crated {i} new order items")
+
+        # Make sure that there are more items in the database now (?)
+
 
 model_orders = Orders()

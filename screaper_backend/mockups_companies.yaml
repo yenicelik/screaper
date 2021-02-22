@@ -14,7 +14,7 @@ companies:
   - name: Elcan's 205 Square Inch (in²) Mesh Working Area 1 Deck Hi-Sifter Screening Separator
     descriptor: 401UC
     brand: None
-    product_line_name: Elcan's Hi-Sifter Screening Separators Product Line
+    product_line_name: Elcan's Hi-Sifter Screening Separators Part Line
     product_line_description: Elcan's Hi-Sifter is the latest breakthrough in advanced screening technology. The Hi-Sifter excels in the food, pharma, and additive manufacturing industries and unlike other vibratory screeners, the Hi-Sifter requires no anti-blinding or screen cleaning devices to achieve fine particle separation. The material only sees a highly polished stainless steel surface and no other possible contamination surfaces. In addition, the high volume of energy being transferred to the screen allows hard to screen metal alloys to flow seamlessly. The machine also has a strong vertical vibration that translates to high rates of efficiencies and throughputs without any blinding. The removal of any potential for contamination within the machine, explosion proof designs and high energy make the Hi-Sifter the precise fit for companies looking to add screening machinery to their manufacturing plants.
     attributes:
     - name: mesh-working-area (per Deck)
@@ -26,7 +26,7 @@ companies:
   - name: Elcan's 205 Square Inch (in²) Mesh Working Area 2 Decks Hi-Sifter Screening Separator
     descriptor: 402UC
     brand: None
-    product_line_name: Elcan's Hi-Sifter Screening Separators Product Line
+    product_line_name: Elcan's Hi-Sifter Screening Separators Part Line
     product_line_description: Elcan's Hi-Sifter is the latest breakthrough in advanced screening technology. The Hi-Sifter excels in the food, pharma, and additive manufacturing industries and unlike other vibratory screeners, the Hi-Sifter requires no anti-blinding or screen cleaning devices to achieve fine particle separation. The material only sees a highly polished stainless steel surface and no other possible contamination surfaces. In addition, the high volume of energy being transferred to the screen allows hard to screen metal alloys to flow seamlessly. The machine also has a strong vertical vibration that translates to high rates of efficiencies and throughputs without any blinding. The removal of any potential for contamination within the machine, explosion proof designs and high energy make the Hi-Sifter the precise fit for companies looking to add screening machinery to their manufacturing plants.
     attributes:
     - name: mesh-working-area (per Deck)
@@ -38,7 +38,7 @@ companies:
   - name: Elcan's 305 Square Inch (in²) Mesh Working Area 1 Deck Hi-Sifter Screening Separator
     descriptor: 501UC
     brand: None
-    product_line_name: Elcan's Hi-Sifter Screening Separators Product Line
+    product_line_name: Elcan's Hi-Sifter Screening Separators Part Line
     product_line_description: Elcan's Hi-Sifter is the latest breakthrough in advanced screening technology. The Hi-Sifter excels in the food, pharma, and additive manufacturing industries and unlike other vibratory screeners, the Hi-Sifter requires no anti-blinding or screen cleaning devices to achieve fine particle separation. The material only sees a highly polished stainless steel surface and no other possible contamination surfaces. In addition, the high volume of energy being transferred to the screen allows hard to screen metal alloys to flow seamlessly. The machine also has a strong vertical vibration that translates to high rates of efficiencies and throughputs without any blinding. The removal of any potential for contamination within the machine, explosion proof designs and high energy make the Hi-Sifter the precise fit for companies looking to add screening machinery to their manufacturing plants.
     attributes:
     - name: mesh-working-area (per Deck)

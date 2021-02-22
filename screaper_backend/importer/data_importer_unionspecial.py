@@ -8,10 +8,13 @@
 
     # TODO: Introduce UUIDs for each item (should be done once we push into the database)
 """
+import os
 import re
 import pandas as pd
 import numpy as np
+from dotenv import load_dotenv
 
+load_dotenv()
 
 class DataImporterUnionSpecial:
 
@@ -22,7 +25,7 @@ class DataImporterUnionSpecial:
 
     def __init__(self):
 
-        path = "/Users/david/screaper/screaper_backend/importer/Spare Parts EDC with Stock_02_2021.csv"
+        path = os.getenv("UNSP_PRICE_LIST_PATH")
         df = pd.read_csv(path)
 
         print("df is: ", df.head())
@@ -95,8 +98,15 @@ class DataImporterUnionSpecial:
             'manufacturer_abbreviation'
         ]]
 
+        print("df head is: ", df.head())
+
+        # sort df:
+        self.df = self.df.sort_values(by=["part_external_identifier"])
+
         self._generate_searchstrings()
         print("Columns are: ", self.df.columns)
+
+        print("df after creation of searchstrings are: ", df.head())
 
     def _replace_na_with_empty_string(self, x):
         if x == np.nan:
@@ -112,7 +122,11 @@ class DataImporterUnionSpecial:
     def _generate_searchstrings(self):
 
         # print("Adding ", self.df['part_external_identifier'])
+        # Put more weight to the partnumber
         self.df['searchstring'] = self.df['part_external_identifier'].apply(self._cleanse_strings)
+        self.df['searchstring'] += " " + self.df['part_external_identifier'].apply(self._cleanse_strings)
+        self.df['searchstring'] += " " + self.df['part_external_identifier'].apply(self._cleanse_strings)
+
         # print("Adding ", self.df['replaced_by'])
         self.df['searchstring'] += " " + self.df['replaced_by'].apply(self._cleanse_strings)
         self.df['searchstring'] += " " + self.df['manufacturer']

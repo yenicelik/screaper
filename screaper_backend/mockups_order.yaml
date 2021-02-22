@@ -1,63 +1,47 @@
 orders:
-  - uuid: 413e696b-bfeb-4f18-9f71-b1c4d5fbe947
-    reference: MCY-GLS-191202-1803 Union Special Yedekleri
-    date: 02.12.2019
-    customer: GÜLSAN SENTETİK DOKUMA SAN. VE TİC.A.Ş. GAZİANTEP
-    customer_address: Tel (0342) 337 11 80 Fax (0342) 337 25 28 Sn.Tuğba YILDIRIM
-    origin: ABD / Almanya
-    items:
-    - part: FP29105AK
-      description: CRANK ASSEMBLY
-      quantity: 4
-      unit_price: 623.16
-      machine: 29105AK
-      company: Fischbein
-    - part: 56336
-      description: FEED CRANK STUD
-      quantity: 4
-      unit_price: 109.99
-      company: Fischbein
-    - part: 56336
-      description: FD ROCK ARM ASS
-      quantity: 4
-      unit_price: 472.01
-      company: Union Special
-      machine: 29476MJ
-  - uuid: 1a80424a-ae3d-4ede-a7ab-322fb2d40daf
-    reference: MCY-GLS-191016-1499 Union Special Yedekleri
-    date: 16.10.2019
-    customer: GÜLSAN SENTETİK DOKUMA SAN. VE TİC.A.Ş. GAZİANTEP
-    customer_address: Tel (0342) 337 11 80 Fax (0342) 337 25 28 Sn.Tuğba YILDIRIM
-    origin: ABD / Almanya
-    items:
-    - part: 56343F
-      description: COUPLING
-      quantity: 5
-      unit_price: 67.08
-      company: Union Special
-      machine: 56343F
-    - part: 29476ZJ
-      description: FD ROCK ARM ASS
-      quantity: 4
-      unit_price: 472.01
-      company: Union Special
-      machine: 29476MJ
-  - uuid: 7d15d21e-7139-4344-b6e8-cc774b38e0f2
-    reference: MCY-GLS-191016-1499 Union Special Yedekleri
-    date: 08.08.2016
-    customer: KAYSERİ ŞEKER FABRİKASI A.Ş.
-    customer_address: Telefonlar (0-352) 331 24 00(6 hat) Osman Kavuncu Cad. 7. KM 38070 Kocasinan / KAYSERİ
-    origin: ABD / Almanya
-    items:
-    - part: YAĞ KEÇESİ ( DİK.MAK.) 10084A
-      description: YAĞ KEÇESİ 80630G NUMARALI PARÇA
-      quantity: 10
-      machine: 80 800C DİKİŞ MAKİNESİ
-      company: Union Special
-      unit_price: 67.08
-    - part: ŞAFT
-      description: ÇAVANOZ ŞAFTI 80639 NUMARALI PARÇA
-      company: Union Special
-      machine: 80 800C DİKİŞ MAKİNESİ
-      quantity: 7
-      unit_price: 472.01
+- uuid: 413e696b-bfeb-4f18-9f71-b1c4d5fbe947
+  reference: MCY-GLS-191202-1803 Union Special Yedekleri
+  date: 02.12.2019
+  customer: GÜLSAN SENTETİK DOKUMA SAN. VE TİC.A.Ş. GAZİANTEP
+  customer_address: Tel (0342) 337 11 80 Fax (0342) 337 25 28 Sn.Tuğba YILDIRIM
+  origin: ABD / Almanya
+  status: Shipment Sent
+  items:
+  - company: Fischbein,
+    description: CRANK ASSEMBLY,
+    machine: 29105AK,
+    quantity: 4,
+    part: FP29105AK,
+    unit_price: 623.16
+  - company": Fischbein,
+    description": FEED CRANK STUD,
+    quantity": 4,
+    part": 56336,
+    machine": 29105AK,
+    unit_price": 109.99
+  - company": Union Special,
+    description": FD ROCK ARM ASS,
+    machine": 29476MJ,
+    quantity": 4,
+    part": 56336,
+    unit_price": 472.01
+- uuid: 7d15d21e-7139-4344-b6e8-cc774b38e0f2
+  reference: MCY-GLS-191016-1499 Union Special Yedekleri
+  date: 08.08.2016
+  customer: KAYSERİ ŞEKER FABRİKASI A.Ş.
+  customer_address: Telefonlar (0-352) 331 24 00(6 hat) Osman Kavuncu Cad. 7. KM 38070 Kocasinan / KAYSERİ
+  origin: ABD / Almanya
+  status: Waiting for Response
+  items:
+  - company": Union Special,
+    description": YAĞ KEÇESİ 80630G NUMARALI PARÇA,
+    machine": 80 800C DİKİŞ MAKİNESİ,
+    part": YAĞ KEÇESİ ( DİK.MAK.) 10084A,
+    quantity": 10,
+    unit_price": 67.08
+  - company": Union Special,
+    description": ÇAVANOZ ŞAFTI 80639 NUMARALI PARÇA,
+    machine": 80 800C DİKİŞ MAKİNESİ,
+    part": ŞAFT,
+    quantity": 7,
+    unit_price": 472.01

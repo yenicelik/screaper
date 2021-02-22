@@ -1,16 +1,26 @@
-import datetime
+import os
 import json
 
+from dotenv import load_dotenv
 from flask import Flask, request, jsonify, Response
+from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+
+load_dotenv()
+
+# These need to run before further imports, otherwise circular (maybe just put them into __init__
+application = Flask(__name__)
+application.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DatabaseUrlApplication')
+application.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(application)
+CORS(application)
 
 from screaper_backend.algorithms.product_similarity import AlgorithmProductSimilarity
 from screaper_backend.application.authentication import authentication_token, whitelisted_ips
 from screaper_backend.exporter.exporter_offer_excel import ExporterOfferExcel
 from screaper_backend.models.orders import model_orders
-
-application = Flask(__name__)
-CORS(application)
+from screaper_backend.models.customers import model_customers
+from screaper_backend.models.parts import model_parts
 
 # Algorithms
 algorithm_product_similarity = AlgorithmProductSimilarity()
@@ -19,7 +29,7 @@ def authenticate(request):
     header_token = request.headers.get('token')
     if header_token not in authentication_token:
         return jsonify({
-            "errors": ["Permission denied", request.headers]
+            "errors": ["Permission denied", str(request.headers)]
         }), 403
 
     # if str(request.remote_addr) not in whitelisted_ips:
@@ -36,7 +46,7 @@ def check_property_is_included(input_json, property_name, type_def):
 
     if property_name not in input_json:
         return jsonify({
-            "errors": [f"{property_name} not fund!", str(input_json)]
+            "errors": [f"{property_name} not found!", str(input_json)]
         }), 400
 
     if input_json[property_name] is None:
@@ -169,6 +179,54 @@ def orders_get():
     user_uuid = input_json["user_uuid"]
 
     out = model_orders.orders()
+    # Turn into one mega-dictionary per object
+    out = [x for x in out]
+
+    return jsonify({
+        "response": out
+    }), 200
+
+
+@application.route('/customers-get', methods=["GET", "POST"])
+def customers_get():
+    """
+        Example request could look as follows:
+        {
+            "user_uuid": "b6347351-7fbb-406b-9b4d-4e90e9021834"
+        }
+
+    """
+    tmp = authenticate(request)
+    if tmp is not None:
+        return tmp
+
+    try:
+        input_json = json.loads(request.data, strict=False)
+    except Exception as e:
+        print("Request body could not be parsed!", str(e), str(request.data))
+        return jsonify({
+            "errors": ["Request body could not be parsed!", str(e), str(request.data)]
+        }), 400
+
+    print("Got request: ", input_json)
+
+    if "user_uuid" not in input_json:
+        return jsonify({
+            "errors": ["user_uuid not fund!", str(input_json)]
+        }), 400
+
+    if not input_json["user_uuid"]:
+        return jsonify({
+            "errors": ["user_uuid empty!", str(input_json)]
+        }), 400
+
+
+    # Ignore input, and return all mockups
+    user_uuid = input_json["user_uuid"]
+
+    out = model_customers.customers()
+    # Turn into one mega-dictionary per object
+    out = [x for x in out]
 
     return jsonify({
         "response": out
@@ -181,8 +239,11 @@ def orders_post():
         Example request could look as follows:
         {
             "user_uuid": "b6347351-7fbb-406b-9b4d-4e90e9021834"
+            "reference": "",
+            "customer_username": "",
             "items": [
                 {
+                    id: number,
                     part_external_identifier: string,
                     manufacturer_status: string,
                     manufacturer_price: number,
@@ -233,6 +294,14 @@ def orders_post():
     if err is not None:
         return err
 
+    err = check_property_is_included(input_json, "customer_username", type_def=str)
+    if err is not None:
+        return err
+
+    err = check_property_is_included(input_json, "reference", type_def=str)
+    if err is not None:
+        return err
+
     item_key_value_pairs = [
         ("part_external_identifier", str),  # string
         ("manufacturer_status", str),  # string
@@ -249,7 +318,9 @@ def orders_post():
         ("description_en", str),  # string
         ("description_de", str),  # string
         ("price_currency", str),  # string
+        ("cost_multiple", float), # float
 
+        ("item_single_price", float),
         ("sequence_order", float),  # number
         ("quantity", float),  # number
         ("total_manufacturing_price", float),  # number
@@ -266,8 +337,40 @@ def orders_post():
 
     # Ignore input, and return all mockups
     user_uuid = input_json["user_uuid"]
+    reference = input_json["reference"]
+    customer_username = input_json["customer_username"]
+
     items = input_json["items"]
     items = sorted(items, key=lambda x: x['sequence_order'])
+
+    # Check if customer username is existent
+    customers = model_customers.customer_usernames()
+    if customer_username not in customers:
+        print(f"customer_username not recognized!!", str(customer_username), str(input_json))
+        return jsonify({
+            "errors": [f"customer_username not recognized!!", str(customer_username), str(input_json)]
+        }), 400
+
+    if not reference:
+        print(f"reference not recognized!!", str(reference), str(input_json))
+        return jsonify({
+            "errors": [f"reference not recognized!!", str(reference), str(input_json)]
+        }), 400
+
+    for item in items:
+        part_id = item['id']
+        if part_id not in model_parts.part_ids():
+            print(f"part id not recognized!!", str(part_id), str(input_json))
+            return jsonify({
+                "errors": [f"part id not recognized!!", str(part_id), str(input_json)]
+            }), 400
+
+    # Insert this into the database
+    model_orders.create_order(
+        customer_username=customer_username,
+        reference=reference,
+        order_items=items
+    )
 
     exporter = ExporterOfferExcel()
 
@@ -280,12 +383,17 @@ def orders_post():
             description=part_json['description_en'],
             listprice=part_json['manufacturer_price'],
             requested_units=part_json['quantity'],
+            margin_multiplier=part_json['cost_multiple'],
 
             stock=part_json['manufacturer_stock'],
             status=part_json['manufacturer_status'],
             weight=part_json['weight_in_g'],
             replaced=part_json['replaced_by']
         )
+
+    customer_obj = model_customers.customer_by_username(customer_username)
+    exporter.insert_customer(customer_obj)
+    # exporter.insert_reference(reference)
 
     exporter.update_date()
 

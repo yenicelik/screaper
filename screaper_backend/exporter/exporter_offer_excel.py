@@ -47,13 +47,32 @@ class ExporterOfferExcel:
         self.sheet[f'H11'] = '{}'.format(datetime.date.today().strftime("%d.%m.%Y"))
         self.sheet[f'H11']._style = style
 
+    def insert_customer(self, customer_obj):
+        style = copy(self.sheet[f'A10']._style)
+        self.sheet[f'A10'] = '{}'.format(customer_obj.company_name)
+        self.sheet[f'A10']._style = style
+        style = copy(self.sheet[f'A11']._style)
+        self.sheet[f'A11'] = '{}'.format(customer_obj.city)
+        self.sheet[f'A11']._style = style
+        style = copy(self.sheet[f'A12']._style)
+        self.sheet[f'A12'] = 'Tel: {}  Fax: {}'.format(customer_obj.phone_number, customer_obj.fax_number)
+        self.sheet[f'A12']._style = style
+        style = copy(self.sheet[f'A13']._style)
+        self.sheet[f'A13'] = '{}'.format(customer_obj.contact_name)
+        self.sheet[f'A13']._style = style
+
+    # def insert_reference(self, reference):
+    #     style = copy(self.sheet[f'A10']._style)
+    #     self.sheet[f'A10'] = '{}'.format(reference)
+    #     self.sheet[f'A10']._style = style
+
     def insert_item(
             self,
             description,
             partnumber,
             listprice,
             requested_units,
-            margin_multiplier=None,
+            margin_multiplier=2.5,
             stock=None,
             status=None,
             weight=None,
@@ -95,7 +114,7 @@ class ExporterOfferExcel:
         self.sheet[f'E{rowidx}'] = description
         self.sheet[f'E{rowidx}']._style = style
 
-        # Listprice
+        # Buy price
         style = copy(self.sheet[f'I{previous_row}']._style)
         self.sheet[f'I{rowidx}'] = listprice
         self.sheet[f'I{rowidx}']._style = style
