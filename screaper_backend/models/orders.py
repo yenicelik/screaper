@@ -26,7 +26,7 @@ class Orders:
         i = 0
         for order_item in order_items:
             i += 1
-            assert "id" in order_item
+            assert "id" in order_item, order_item
 
             part = screaper_database.read_part_by_part_id_obj(idx=order_item["id"])
 

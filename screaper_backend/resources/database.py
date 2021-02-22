@@ -53,6 +53,7 @@ class Database:
             Populates the database with the union special price list
         :return:
         """
+        # Sort by external identifier (?) probably not needed ...
         data = DataImporterUnionSpecial().parts_list()
         # Only keep valid keys:
         data = data.drop(columns=["searchstring"])
@@ -79,7 +80,7 @@ class Database:
 
         # print parts that we're gonna input:
         part = self.read_part_by_part_id_obj(5)
-        print("buying part: ", part)
+        print("buying part: ", part.to_dict())
         self.create_order_item(
             order=order,
             part=part,

@@ -98,6 +98,9 @@ class DataImporterUnionSpecial:
             'manufacturer_abbreviation'
         ]]
 
+        # sort df:
+        self.df = self.df.sort_values(by="part_external_identifier")
+
         self._generate_searchstrings()
         print("Columns are: ", self.df.columns)
 
