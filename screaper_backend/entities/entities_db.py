@@ -25,6 +25,8 @@ class Part(db.Model, SerializerMixin):
     weight_in_g = db.Column(db.Float)
     replaced_by = db.Column(db.String)
 
+    searchstring = db.Column(db.String, nullable=False)
+
     origin = db.Column(db.String)
     changes = db.Column(db.Integer)
     shortcut = db.Column(db.String)

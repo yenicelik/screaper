@@ -10,7 +10,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 class ProductSimilarity:
 
     def __init__(self):
-        self.model = TfidfVectorizer(analyzer='char', ngram_range=(1, 4))
+        self.model = TfidfVectorizer(analyzer='char', ngram_range=(2, 6))
         self._pretrained_vectors = None
         self._documents = None
 
@@ -46,7 +46,6 @@ class ProductSimilarity:
 
         # Return only the indices, creating the dictionary is responsibility of the algorithm
         return ranked_most_similar_idx.tolist()
-
 
 
 model_product_similarity = ProductSimilarity()

@@ -357,14 +357,6 @@ def orders_post():
             "errors": [f"reference not recognized!!", str(reference), str(input_json)]
         }), 400
 
-    # Check if all part ids are existent
-    # for item in items:
-    #     part_external_identifier = item['part_external_identifier']
-    #     if part_external_identifier not in model_parts.part_external_identifiers():
-    #         print(f"part_external_identifier not recognized!!", str(part_external_identifier), str(input_json))
-    #         return jsonify({
-    #             "errors": [f"part_external_identifier not recognized!!", str(part_external_identifier), str(input_json)]
-    #         }), 400
     for item in items:
         part_id = item['id']
         if part_id not in model_parts.part_ids():

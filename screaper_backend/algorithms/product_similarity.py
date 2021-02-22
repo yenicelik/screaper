@@ -1,8 +1,8 @@
 """
     Part Similarity Algorithm
 """
+from screaper_backend.models.parts import model_parts
 from screaper_backend.models.product_similarity import ProductSimilarity
-from screaper_backend.resources.parts_list import PartsList
 
 
 class AlgorithmProductSimilarity:
@@ -12,13 +12,11 @@ class AlgorithmProductSimilarity:
         # TODO: Make this use the database, NOT the parts_list
 
         # Import the parts list
-        self.parts_list = PartsList()
-
         # Import the (tf-idf) language model
         self.model_tfidf = ProductSimilarity()
 
         # Populate the language model with the searchstring from the part_list
-        self.model_tfidf.fit(self.parts_list.searchstring_list())
+        self.model_tfidf.fit(model_parts.searchstring_list())
 
     def predict(self, query):
 
@@ -28,8 +26,10 @@ class AlgorithmProductSimilarity:
         # Return this sorted list of items to the frontend
         out = []
         for idx, similarity_item_idx in enumerate(ranked_most_similar_idx[:50]):
+            print("Most similar searchstring is: ")
+            print(self.model_tfidf._documents[similarity_item_idx])
 
-            tmp = self.parts_list.id_to_dict(similarity_item_idx)
+            tmp = model_parts.id_to_dict(similarity_item_idx)
             tmp.update({"sequence_order": idx})
             del tmp['searchstring']
             out.append(tmp)

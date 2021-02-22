@@ -56,7 +56,7 @@ class Database:
         # Sort by external identifier (?) probably not needed ...
         data = DataImporterUnionSpecial().parts_list()
         # Only keep valid keys:
-        data = data.drop(columns=["searchstring"])
+        # data = data.drop(columns=["searchstring"])
         # Push this into the table
         objs = []
         for obj in data.to_dict("records"):
@@ -393,7 +393,8 @@ class Database:
             out.append(tmp)
 
         print("Out length is: ", len(out))
-        print("Out parts are: ", out[:5])
+        for part in out[:5]:
+            print("part is: ", part)
 
         return out
 
