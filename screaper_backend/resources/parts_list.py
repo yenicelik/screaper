@@ -13,6 +13,7 @@ class PartsList:
 
     def id_to_dict(self, idx):
         out = self.data.iloc[idx].to_dict()
+        out.update({"id": idx})
         return out
 
     def parts_list(self):

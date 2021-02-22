@@ -18,7 +18,7 @@ class Customers:
         return self._customers
 
     def customer_usernames(self):
-        return set(x.user_name for x in self._customers)
+        return set(x["user_name"]for x in self._customers)
 
 
 model_customers = Customers()

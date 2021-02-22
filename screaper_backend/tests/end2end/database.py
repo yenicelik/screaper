@@ -3,6 +3,7 @@
 """
 
 import unittest
+from random import random
 
 from screaper_backend.application.application import db
 
@@ -20,6 +21,16 @@ class TestDatabase(unittest.TestCase):
         pass
 
     def item_set_1(self):
+        # Get some random parts from the database
+        itemset = [
+            self.read_part_by_part_id_obj(2309).to_dict(),
+            self.read_part_by_part_id_obj(1532).to_dict()
+        ]
+        print("itemset 1 is: ", itemset)
+        return itemset
+
+
+
         itemset = [
             {
                 "changes": -1,
@@ -28,6 +39,7 @@ class TestDatabase(unittest.TestCase):
                 "description_en": "STARTER KIT BC211/BCE311UA25",
                 "hs_code": "84529000000",
                 "important": "",
+                "id": 5314,
                 "manufacturer": "Union Special",
                 "manufacturer_abbreviation": "UNSP",
                 "manufacturer_price": 545,
@@ -50,6 +62,7 @@ class TestDatabase(unittest.TestCase):
                 "description_de": "STARTER KIT BC211/BCE311P01",
                 "description_en": "STARTER KIT BC211/BCE311P01",
                 "hs_code": "84529000000",
+                "id": 5311,
                 "important": "",
                 "manufacturer": "Union Special",
                 "manufacturer_abbreviation": "UNSP",
@@ -79,6 +92,7 @@ class TestDatabase(unittest.TestCase):
                 "description_de": "ZAHNRADSATZ",
                 "description_en": "KIT OF GEARS",
                 "hs_code": "",
+                "id": 20934,
                 "important": "",
                 "manufacturer": "Union Special",
                 "manufacturer_abbreviation": "UNSP",
@@ -102,6 +116,7 @@ class TestDatabase(unittest.TestCase):
                 "description_de": "HANDRADSCHUTZ",
                 "description_en": "HANDWHEEL GUARD",
                 "hs_code": "",
+                "id": 7773,
                 "important": "",
                 "manufacturer": "Union Special",
                 "manufacturer_abbreviation": "UNSP",
@@ -125,6 +140,7 @@ class TestDatabase(unittest.TestCase):
                 "description_de": "JETZT 34727 XX8",
                 "description_en": "PRS FOOT ASS",
                 "hs_code": "",
+                "id": 7081,
                 "important": "",
                 "manufacturer": "Union Special",
                 "manufacturer_abbreviation": "UNSP",
@@ -172,7 +188,7 @@ class TestDatabase(unittest.TestCase):
 
         # Check number of customers
         customers = model_customers.customers()
-        assert len(customers) == 2, (len(customers), customers)
+        assert len(customers) == 3, (len(customers), customers)
 
         # Check number of orders
         orders = model_orders.orders()
@@ -191,7 +207,12 @@ class TestDatabase(unittest.TestCase):
         for order in orders:
             for order_item in order["items"]:
                 print("rel part is:", order_item)
-                order_item["part_external_identifier"] in (
+                assert order_item["id"] in (5, 100, 52, 53, 23, 64, 24, 64, 75, 86, 7081, 7773, 5314, 5311, 20934), ("part is not correctly set!", order_item)
+
+        for order in orders:
+            for order_item in order["items"]:
+                print("rel part is:", order_item)
+                assert order_item["part_external_identifier"] in (
                     "29480BC-BCE25",
                     "29480BC-BCE01",
                     "995-401",
@@ -206,13 +227,23 @@ class TestDatabase(unittest.TestCase):
                     "10016",
                     "10022L",
                     "10024BU",
-                    "10030AU"
-                ), ("part is not correctly set!", order_item)
+                    "10030AU",
+
+                    # TODO: Should double check if these are in-order to be here!
+                    # Or if there is a bug with import (I think it's a bug that will be replaced by using the DB)
+
+                    # "29480BC-BCE16",
+                    # "29480BC24",
+                    # "35021",
+                    # "34720XX16"
+                ), ("part is not correctly set!", order_item["part_external_identifier"], order_item)
+
+                # Will make a manual test now
 
         # References are correctly inserted
         for order in orders:
             assert order["reference"] in ("ref MCY-GLS", "REF MCY-GÜLSAN", "REF MCY-KAYSERI"), order
-            assert order["user_name"] in ("kayseri_sentetik", "gulsan_sentetik"), order
+            assert order["user_name"] in ("default", "kayseri_sentetik", "gulsan_sentetik"), order
 
         # Number of items in orders are correct
 

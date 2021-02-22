@@ -46,7 +46,7 @@ def check_property_is_included(input_json, property_name, type_def):
 
     if property_name not in input_json:
         return jsonify({
-            "errors": [f"{property_name} not fund!", str(input_json)]
+            "errors": [f"{property_name} not found!", str(input_json)]
         }), 400
 
     if input_json[property_name] is None:
@@ -243,6 +243,7 @@ def orders_post():
             "customer_username": "",
             "items": [
                 {
+                    id: number,
                     part_external_identifier: string,
                     manufacturer_status: string,
                     manufacturer_price: number,
@@ -293,11 +294,11 @@ def orders_post():
     if err is not None:
         return err
 
-    err = check_property_is_included(input_json, "customer_username", type_def=list)
+    err = check_property_is_included(input_json, "customer_username", type_def=str)
     if err is not None:
         return err
 
-    err = check_property_is_included(input_json, "reference", type_def=list)
+    err = check_property_is_included(input_json, "reference", type_def=str)
     if err is not None:
         return err
 
@@ -343,7 +344,7 @@ def orders_post():
     items = sorted(items, key=lambda x: x['sequence_order'])
 
     # Check if customer username is existent
-    customers = model_customers.customers()
+    customers = model_customers.customer_usernames()
     if customer_username not in customers:
         print(f"customer_username not recognized!!", str(customer_username), str(input_json))
         return jsonify({
@@ -357,12 +358,19 @@ def orders_post():
         }), 400
 
     # Check if all part ids are existent
+    # for item in items:
+    #     part_external_identifier = item['part_external_identifier']
+    #     if part_external_identifier not in model_parts.part_external_identifiers():
+    #         print(f"part_external_identifier not recognized!!", str(part_external_identifier), str(input_json))
+    #         return jsonify({
+    #             "errors": [f"part_external_identifier not recognized!!", str(part_external_identifier), str(input_json)]
+    #         }), 400
     for item in items:
-        part_external_identifier = item['part_external_identifier']
-        if part_external_identifier not in model_parts.parts:
-            print(f"part_external_identifier not recognized!!", str(part_external_identifier), str(input_json))
+        part_id = item['id']
+        if part_id not in model_parts.part_ids():
+            print(f"part id not recognized!!", str(part_id), str(input_json))
             return jsonify({
-                "errors": [f"part_external_identifier not recognized!!", str(part_external_identifier), str(input_json)]
+                "errors": [f"part id not recognized!!", str(part_id), str(input_json)]
             }), 400
 
     # Insert this into the database

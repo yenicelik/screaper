@@ -166,6 +166,19 @@ class Database:
             - Create a single customer. This is the placeholder for all customers now
         :return:
         """
+        # Create one "default" customer; which is used if no customer is defined
+        self.create_customer(
+            user_name="default",
+            company_name="No Customer Defined",
+            phone_number="PHONE",
+            fax_number="FAX",
+            domain_name="DOMAIN",
+            email="EMAIL",
+            address="ADDRESS",
+            city="CITY",
+            country="COUNTRY",
+            contact_name="CONTACT PERSON"
+        )
         self.create_customer(
             user_name="gulsan_sentetik",
             company_name="GÜLSAN SENTETİK DOKUMA SAN. VE TİC.A.Ş.",
@@ -375,12 +388,11 @@ class Database:
         # Expand this object to a tree-like structure
         out = []
         for part in parts:
-            print(part)
             tmp = part.to_dict()
             out.append(tmp)
 
         print("Out length is: ", len(out))
-        print("Out length is: ", out[:5])
+        print("Out parts are: ", out[:5])
 
         return out
 

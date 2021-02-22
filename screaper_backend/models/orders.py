@@ -26,9 +26,9 @@ class Orders:
         i = 0
         for order_item in order_items:
             i += 1
-            assert "part_external_identifier" in order_item
+            assert "id" in order_item
 
-            part = screaper_database.read_part_by_part_external_identifier_obj(external_identifier=order_item["part_external_identifier"])
+            part = screaper_database.read_part_by_part_id_obj(idx=order_item["id"])
 
             # TODO: Fetch the part as given by the external identifier
             print("Inserting: ", order_item)

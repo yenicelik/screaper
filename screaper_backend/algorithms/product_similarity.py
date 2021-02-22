@@ -9,6 +9,8 @@ class AlgorithmProductSimilarity:
 
     def __init__(self):
 
+        # TODO: Make this use the database, NOT the parts_list
+
         # Import the parts list
         self.parts_list = PartsList()
 
