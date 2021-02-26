@@ -3,8 +3,11 @@ import json
 
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, Response
+from flask_login import LoginManager, login_required
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+
+from werkzeug.security import check_password_hash
 
 load_dotenv()
 
@@ -15,15 +18,28 @@ application.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(application)
 CORS(application)
 
+login_manager = LoginManager()
+# login_manager.login_view = 'auth.login'
+login_manager.init_app(application)
+
 from screaper_backend.algorithms.product_similarity import AlgorithmProductSimilarity
 from screaper_backend.application.authentication import authentication_token, whitelisted_ips
 from screaper_backend.exporter.exporter_offer_excel import ExporterOfferExcel
 from screaper_backend.models.orders import model_orders
 from screaper_backend.models.customers import model_customers
 from screaper_backend.models.parts import model_parts
+from screaper_backend.models.users import model_users
+from screaper_backend.resources.database import screaper_database
 
 # Algorithms
 algorithm_product_similarity = AlgorithmProductSimilarity()
+
+# TODO: Will this do the trick?
+@login_manager.user_loader
+def load_user(user_id):
+    # since the user_id is just the primary key of our user table, use it in the query for the user
+    return screaper_database.User.query.get(int(user_id))
+
 
 def authenticate(request):
     header_token = request.headers.get('token')
@@ -41,7 +57,6 @@ def authenticate(request):
 
 
 def check_property_is_included(input_json, property_name, type_def):
-
     assert property_name, property_name
 
     if property_name not in input_json:
@@ -57,12 +72,14 @@ def check_property_is_included(input_json, property_name, type_def):
     if type_def == float:
         if not isinstance(input_json[property_name], float) and not isinstance(input_json[property_name], int):
             return jsonify({
-                "errors": [f"{property_name} not of type {type_def}!", str(type(input_json[property_name])), str(input_json)]
+                "errors": [f"{property_name} not of type {type_def}!", str(type(input_json[property_name])),
+                           str(input_json)]
             }), 400
     else:
         if not isinstance(input_json[property_name], type_def):
             return jsonify({
-                "errors": [f"{property_name} not of type {type_def}!", str(type(input_json[property_name])), str(input_json)]
+                "errors": [f"{property_name} not of type {type_def}!", str(type(input_json[property_name])),
+                           str(input_json)]
             }), 400
 
     return None
@@ -86,7 +103,33 @@ def healthcheckpoint():
     }), 200
 
 
+@application.route('/login', methods=['POST'])
+def login():
+    username = str(request.form.get('username'))
+    password = str(request.form.get('password'))
+    remember = True if request.form.get('remember') else False
+
+    user = model_users.user_by_username(username)
+
+    if not user:
+        return jsonify({
+            "errors": [f"Username Password combination wrong!!"]
+        }), 400
+
+    if check_password_hash(user.password, password):
+        # Provide token to the front-end application
+
+        return jsonify({
+            "errors": [f"Username Password combination wrong!"]
+        }), 400
+
+    return jsonify({
+        "errors": [f"Username Password combination wrong!"]
+    }), 400
+
+
 @application.route('/products', methods=["GET", "POST"])
+@login_required
 def list_products():
     """
         Example request could look as follows:
@@ -142,6 +185,7 @@ def list_products():
 
 
 @application.route('/orders-get', methods=["GET", "POST"])
+@login_required
 def orders_get():
     """
         Example request could look as follows:
@@ -174,7 +218,6 @@ def orders_get():
             "errors": ["user_uuid empty!", str(input_json)]
         }), 400
 
-
     # Ignore input, and return all mockups
     user_uuid = input_json["user_uuid"]
 
@@ -188,6 +231,7 @@ def orders_get():
 
 
 @application.route('/customers-get', methods=["GET", "POST"])
+@login_required
 def customers_get():
     """
         Example request could look as follows:
@@ -220,7 +264,6 @@ def customers_get():
             "errors": ["user_uuid empty!", str(input_json)]
         }), 400
 
-
     # Ignore input, and return all mockups
     user_uuid = input_json["user_uuid"]
 
@@ -234,6 +277,7 @@ def customers_get():
 
 
 @application.route('/orders-post', methods=["GET", "POST"])
+@login_required
 def orders_post():
     """
         Example request could look as follows:
@@ -318,7 +362,7 @@ def orders_post():
         ("description_en", str),  # string
         ("description_de", str),  # string
         ("price_currency", str),  # string
-        ("cost_multiple", float), # float
+        ("cost_multiple", float),  # float
 
         ("item_single_price", float),
         ("sequence_order", float),  # number
@@ -402,7 +446,6 @@ def orders_post():
     print("Sending file: ", wrapped_file)
     print("Sending file... ")
     return Response(wrapped_file, mimetype="text/plain", direct_passthrough=True)
-
 
 # @application.route('/orders', methods=["POST"])
 # def list_orders():

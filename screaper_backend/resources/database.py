@@ -1,8 +1,10 @@
 """
     Database
 """
+from werkzeug.security import generate_password_hash
+
 from screaper_backend.application.application import db
-from screaper_backend.entities.entities_db import OrderItem, Order, Part, Customer
+from screaper_backend.entities.entities_db import OrderItem, Order, Part, Customer, User
 from screaper_backend.importer.data_importer_unionspecial import DataImporterUnionSpecial
 
 
@@ -206,6 +208,15 @@ class Database:
         )
         self.session.commit()
 
+    def create_mock_user(self):
+        user = User(
+            username="yenicelik",
+            password=generate_password_hash("example_password"),
+            email="baker"
+        )
+        self.session.add(user)
+        self.session.commit()
+
     ########################
     # CREATE Operations
     ########################
@@ -344,6 +355,11 @@ class Database:
             print(order)
 
         return out
+
+    def read_user_obj(self, username):
+        user = self.session.query(User).filter(User.username == username).one_or_none()
+
+        return user
 
     def read_customers(self):
         customers = self.session.query(Customer).all()

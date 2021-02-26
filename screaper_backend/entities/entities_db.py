@@ -4,10 +4,21 @@
 """
 import datetime
 
+from flask_login import UserMixin
 from sqlalchemy_serializer import SerializerMixin
 from screaper_backend.application.application import db
 
 # TODO: Add NOT NULL declarations
+
+class User(UserMixin, db.Model):
+
+    __tablename__ = "users"
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True)
+    username = db.Column(db.String(64), unique=True, nullable=False)
+    password = db.Column(db.String(120), nullable=False)
+    email = db.Column(db.String(64))
+
 
 class Part(db.Model, SerializerMixin):
     # Whenever a new catalogue comes in, just append these parts! (and update the timestamp)
