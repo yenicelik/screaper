@@ -2,14 +2,8 @@
     Union Special Data Importer
     pip openpyxl
     pip xlrd
-
-    # TODO: Implement typed input (should be for database anyways).
-    # Write database importer script
-
-    # TODO: Introduce UUIDs for each item (should be done once we push into the database)
 """
 import os
-import re
 import pandas as pd
 import numpy as np
 from dotenv import load_dotenv

@@ -3,9 +3,6 @@
 """
 
 import unittest
-from random import random
-
-from screaper_backend.application.application import db
 
 from screaper_backend.models.customers import model_customers
 from screaper_backend.models.orders import model_orders

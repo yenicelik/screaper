@@ -1,26 +1,16 @@
-import os
 import json
 
-from dotenv import load_dotenv
-from flask import Flask, request, jsonify, Response
-from flask_sqlalchemy import SQLAlchemy
-from flask_cors import CORS
+from flask import jsonify, request, Response
 
-load_dotenv()
-
-# These need to run before further imports, otherwise circular (maybe just put them into __init__
-application = Flask(__name__)
-application.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DatabaseUrlApplication')
-application.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(application)
-CORS(application)
-
-from screaper_backend.algorithms.product_similarity import AlgorithmProductSimilarity
-from screaper_backend.application.authentication import authentication_token, whitelisted_ips
+from screaper_backend.application.authentication import authentication_token
 from screaper_backend.exporter.exporter_offer_excel import ExporterOfferExcel
+
 from screaper_backend.models.orders import model_orders
 from screaper_backend.models.customers import model_customers
 from screaper_backend.models.parts import model_parts
+from screaper_backend.algorithms.product_similarity import AlgorithmProductSimilarity
+
+from screaper_backend.application import application
 
 # Algorithms
 algorithm_product_similarity = AlgorithmProductSimilarity()

@@ -1,15 +1,12 @@
 """
     Union Special Data Importer
-
-    # TODO: Implement typed input (should be for database anyways).
-    # TODO: Introduce UUIDs for each item (should be done once we push into the database)
 """
 import os
 import pandas as pd
 import uuid
 from dotenv import load_dotenv
 
-from screaper_backend.importer.utils import _cleanse_strings, _strip_first_dollar
+from screaper_backend.importer.utils import _cleanse_strings
 
 load_dotenv()
 

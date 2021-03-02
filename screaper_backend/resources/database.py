@@ -1,9 +1,8 @@
 """
     Database
 """
-from screaper_backend.application.application import db
+from screaper_backend.application import db
 from screaper_backend.entities.entities_db import OrderItem, Order, Part, Customer
-
 
 class Database:
     """
@@ -20,7 +19,7 @@ class Database:
 
         # Create all tables (DEV)
         if dev:
-            db.create_all()
+            self.db.create_all()
 
         self.session = self.db.session
 
@@ -247,9 +246,6 @@ class Database:
 
 
 screaper_database = Database()
-
-from screaper_backend.scripts.database.initialize_db import initialize_db
-initialize_db()
 
 if __name__ == "__main__":
     print("Starting to create databsse connection")

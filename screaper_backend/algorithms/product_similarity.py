@@ -1,9 +1,8 @@
 """
     Part Similarity Algorithm
 """
-from screaper_backend.models.parts import model_parts
 from screaper_backend.models.product_similarity import ProductSimilarity
-
+from screaper_backend.models.parts import model_parts
 
 class AlgorithmProductSimilarity:
 

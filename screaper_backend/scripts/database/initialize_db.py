@@ -1,12 +1,12 @@
 """
     Script to initialize the database, and load some custom data inside
 """
-from screaper_backend.entities.entities_db import Part, Customer
 from screaper_backend.importer.bmbaker_customers.data_importer_baker_customers import DataImporterBakerCustomers
 from screaper_backend.importer.fischbein.data_importer_fischbein import DataImporterFischbein
 from screaper_backend.importer.unionspecial.data_importer_unionspecial import DataImporterUnionSpecial
-from screaper_backend.resources.database import screaper_database
 
+from screaper_backend.entities.entities_db import Part, Customer
+from screaper_backend.resources.database import screaper_database
 
 def _populate_union_special_partslist_into_db(session):
     """
@@ -83,22 +83,31 @@ def _create_default_customers(database_wrapper):
 
 def initialize_db():
 
+    print("Initializing the database...")
+
     # Commit any tbd changes
     screaper_database.session.commit()
+    print("Committed")
     # Drop all tables if existent
     screaper_database.db.drop_all()
+    print("Dropped all")
     # Re-instantiate tables
     screaper_database.db.create_all()
-
-    # Populate parts list
-    _populate_union_special_partslist_into_db(screaper_database.session)
-    _populate_fischbein_partslist_into_db(screaper_database.session)
+    print("Created all")
 
     # Create default user
     _create_default_customers(screaper_database)
+    print("Populated Default Customer")
 
     # Create customer list
     _populate_bmbaker_customerlist_into_db(screaper_database.session)
+    print("Populated Customers")
+
+    # Populate parts list
+    _populate_fischbein_partslist_into_db(screaper_database.session)
+    print("Populated FSBN")
+    _populate_union_special_partslist_into_db(screaper_database.session)
+    print("Populated UNSP")
 
 
 if __name__ == "__main__":

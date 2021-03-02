@@ -5,9 +5,9 @@
 import datetime
 
 from sqlalchemy_serializer import SerializerMixin
-from screaper_backend.application.application import db
 
-# TODO: Add NOT NULL declarations
+from screaper_backend.application import db
+
 
 class Part(db.Model, SerializerMixin):
     # Whenever a new catalogue comes in, just append these parts! (and update the timestamp)

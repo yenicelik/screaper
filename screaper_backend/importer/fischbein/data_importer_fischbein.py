@@ -1,8 +1,5 @@
 """
     Union Special Data Importer
-
-    # TODO: Implement typed input (should be for database anyways).
-    # TODO: Introduce UUIDs for each item (should be done once we push into the database)
 """
 import os
 import pandas as pd
