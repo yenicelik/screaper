@@ -3,3 +3,4 @@
 *.xlsx
 *
 !screaper_backend/
+!requirements.txt
