@@ -3,7 +3,6 @@
 """
 from screaper_backend.application.application import db
 from screaper_backend.entities.entities_db import OrderItem, Order, Part, Customer
-from screaper_backend.importer.data_importer_unionspecial import DataImporterUnionSpecial
 
 
 class Database:
@@ -19,24 +18,11 @@ class Database:
         # Create sqlalchemy database connection
         self.db = db
 
-        # # Drop all tables (because this is still in development
-        # tables = [
-        #     Part,
-        #     Customer,
-        #     Order,
-        #     OrderItem
-        # ]
-
         # Create all tables (DEV)
         if dev:
             db.create_all()
 
         self.session = self.db.session
-
-        # Populate tables (?) Probably not, actually
-        self._populate_union_special_partslist_into_db()
-        self._create_mock_customers()
-        self._create_mock_order()
 
         # Count number of items in the tables
         print("Count Order: ", self.session.query(Order).count())
@@ -48,163 +34,6 @@ class Database:
         print("Count Customers: ", self.session.query(Customer).count())
         print("Count Customers (All): ", self.session.query(Customer.id).all())
 
-    def _populate_union_special_partslist_into_db(self):
-        """
-            Populates the database with the union special price list
-        :return:
-        """
-        # Sort by external identifier (?) probably not needed ...
-        data = DataImporterUnionSpecial().parts_list()
-        # Only keep valid keys:
-        # data = data.drop(columns=["searchstring"])
-        # Push this into the table
-        objs = []
-        for obj in data.to_dict("records"):
-            tmp = Part(**obj)
-            objs.append(tmp)
-        self.session.bulk_save_objects(objs)
-        self.session.commit()
-
-    def _create_mock_order(self):
-        """
-            Create some mock elements:
-            - Create a single customer. This is the placeholder for all customers now
-        :return:
-        """
-
-        # Get first customer
-        customer = self.read_customers_obj()[0]
-
-        order = self.create_single_order(customer=customer, reference="ref MCY-GLS")
-        print("Created order with orderid: ", order.id)
-
-        # print parts that we're gonna input:
-        part = self.read_part_by_part_id_obj(5)
-        print("buying part: ", part.to_dict())
-        self.create_order_item(
-            order=order,
-            part=part,
-            quantity=50,
-            item_single_price=50,
-        )
-        part = self.read_part_by_part_id_obj(100)
-        print("buying part: ", part.to_dict())
-        self.create_order_item(
-            order=order,
-            part=part,
-            quantity=12,
-            item_single_price=684.13 * 2.5,
-        )
-        part = self.read_part_by_part_id_obj(52)
-        print("buying part: ", part.to_dict())
-        self.create_order_item(
-            order=order,
-            part=part,
-            quantity=12,
-            item_single_price=100 * 2.5,
-        )
-        part = self.read_part_by_part_id_obj(53)
-        print("buying part: ", part.to_dict())
-        self.create_order_item(
-            order=order,
-            part=part,
-            quantity=12,
-            item_single_price=100 * 2.5,
-        )
-        part = self.read_part_by_part_id_obj(23)
-        print("buying part: ", part.to_dict())
-        self.create_order_item(
-            order=order,
-            part=part,
-            quantity=12,
-            item_single_price=100 * 2.5,
-        )
-        part = self.read_part_by_part_id_obj(64)
-        print("buying part: ", part.to_dict())
-        self.create_order_item(
-            order=order,
-            part=part,
-            quantity=12,
-            item_single_price=100 * 2.5,
-        )
-        part = self.read_part_by_part_id_obj(24)
-        print("buying part: ", part.to_dict())
-        self.create_order_item(
-            order=order,
-            part=part,
-            quantity=12,
-            item_single_price=100 * 2.5,
-        )
-        part = self.read_part_by_part_id_obj(64)
-        print("buying part: ", part.to_dict())
-        self.create_order_item(
-            order=order,
-            part=part,
-            quantity=12,
-            item_single_price=100 * 2.5,
-        )
-        part = self.read_part_by_part_id_obj(75)
-        print("buying part: ", part.to_dict())
-        self.create_order_item(
-            order=order,
-            part=part,
-            quantity=12,
-            item_single_price=100 * 2.5,
-        )
-        part = self.read_part_by_part_id_obj(86)
-        print("buying part: ", part.to_dict())
-        self.create_order_item(
-            order=order,
-            part=part,
-            quantity=12,
-            item_single_price=100 * 2.5,
-        )
-        self.session.commit()
-
-    def _create_mock_customers(self):
-        """
-            Create some mock elements:
-            - Create a single customer. This is the placeholder for all customers now
-        :return:
-        """
-        # Create one "default" customer; which is used if no customer is defined
-        self.create_customer(
-            user_name="default",
-            company_name="No Customer Defined",
-            phone_number="PHONE",
-            fax_number="FAX",
-            domain_name="DOMAIN",
-            email="EMAIL",
-            address="ADDRESS",
-            city="CITY",
-            country="COUNTRY",
-            contact_name="CONTACT PERSON"
-        )
-        self.create_customer(
-            user_name="gulsan_sentetik",
-            company_name="GÜLSAN SENTETİK DOKUMA SAN. VE TİC.A.Ş.",
-            phone_number="(0342) 337 11 80",
-            fax_number="(0342) 337 25 28",
-            domain_name="",
-            email="",
-            address="",
-            city="GAZİANTEP",
-            country="",
-            contact_name="Sn.Tuğba YILDIRIM"
-        )
-        self.create_customer(
-            user_name="kayseri_sentetik",
-            company_name="KAYSERI ŞEKER FABRIKASI A.Ş.",
-            phone_number="(0-352) 331 24 00 (6 hat)",
-            fax_number="(0-352) 331 24 06",
-            domain_name="kayseriseker.com.tr",
-            email="haberlesme@kayseriseker.com.tr",
-            address="Osman Kavuncu Cad. 7. KM 38070 Kocasinan",
-            city="KAYSERI",
-            country="",
-            contact_name=""
-        )
-        self.session.commit()
 
     ########################
     # CREATE Operations
@@ -418,6 +247,9 @@ class Database:
 
 
 screaper_database = Database()
+
+from screaper_backend.scripts.database.initialize_db import initialize_db
+initialize_db()
 
 if __name__ == "__main__":
     print("Starting to create databsse connection")
