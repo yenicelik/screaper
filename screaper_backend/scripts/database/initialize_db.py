@@ -80,8 +80,6 @@ def _create_default_customers(database_wrapper):
     )
     database_wrapper.session.commit()
 
-    # TODO: Write one for Fischbein as well (or whatever catalogue your dad has already sent you)
-
 
 def initialize_db():
 
@@ -93,14 +91,14 @@ def initialize_db():
     screaper_database.db.create_all()
 
     # Populate parts list
-    _populate_union_special_partslist_into_db(screaper_database)
-    _populate_fischbein_partslist_into_db(screaper_database)
+    _populate_union_special_partslist_into_db(screaper_database.session)
+    _populate_fischbein_partslist_into_db(screaper_database.session)
 
     # Create default user
     _create_default_customers(screaper_database)
 
     # Create customer list
-    _populate_bmbaker_customerlist_into_db()
+    _populate_bmbaker_customerlist_into_db(screaper_database.session)
 
 
 if __name__ == "__main__":

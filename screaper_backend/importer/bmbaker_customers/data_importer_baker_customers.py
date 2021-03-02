@@ -6,6 +6,7 @@
 """
 import os
 import pandas as pd
+import uuid
 from dotenv import load_dotenv
 
 from screaper_backend.importer.utils import _cleanse_strings, _strip_first_dollar
@@ -33,14 +34,19 @@ class DataImporterBakerCustomers:
             'fax_number': 'fax_number',
             'mobil_phone': 'mobile_phone',
             'email_(1)': 'email',
-            'contact_nane (1)': 'contact_name'
+            'contact_nane (1)': 'contact_name',
+            "address": "address",
+            "city": "city",
+            "country": "country"
         })
 
         for col in self.df.columns:
             if col in (
                     "user_name", "company_name", "domain_name",
                     "phone_number", "fax_number", "mobile_phone",
-                    "email", "contact_name", "email_(2)", "contact_nane (2)"):
+                    "email", "contact_name", "email_(2)",
+                    "contact_nane (2)", "address", "city",
+                    "country"):
                 self.df[col] = self.df[col].apply(_cleanse_strings)
 
         self.df['email'] += self.df['email_(2)'].apply(lambda x: ", " + x if x else "")
@@ -52,7 +58,7 @@ class DataImporterBakerCustomers:
             'domain_name',
             'phone_number',
             'fax_number',
-            'mobile_phone',
+            # 'mobile_phone',
             'email',
             'contact_name'
         ]]
@@ -60,7 +66,7 @@ class DataImporterBakerCustomers:
         print("self df is: ")
         print(self.df.head())
 
-        self.df['user_name'] = self.df['email']
+        self.df['user_name'] = self.df['user_name'].apply(lambda x: str(uuid.uuid4()))
 
     def customers_list(self):
         return self.df
