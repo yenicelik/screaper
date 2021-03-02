@@ -1,6 +1,8 @@
 branch-defaults:
   default:
     environment: Screaperbackend-env
+  main:
+    environment: Screaperbackend-env
 environment-defaults:
   Screaperbackend-env:
     branch: null
