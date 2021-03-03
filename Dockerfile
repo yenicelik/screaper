@@ -10,7 +10,7 @@ ENV HOME=/app
 WORKDIR /app
 
 # Install Python web server and dependencies
-RUN pip install -r ./screaper_backend/requirements.txt
+RUN pip install -r screaper_backend/requirements.txt
 
 # Expose port
 EXPOSE 5000
