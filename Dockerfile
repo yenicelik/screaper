@@ -13,10 +13,13 @@ WORKDIR /app
 RUN pwd
 RUN ls
 RUN pip install -r screaper_backend/requirements.txt
+RUN pwd
+RUN ls
+RUN ls screaper_backend
 
 # Expose port
 EXPOSE 5000
 EXPOSE 80
 EXPOSE 8080
 
-ENTRYPOINT ["gunicorn", "-k", "gevent", "-b", "0.0.0.0:8080", "--timeout", "500", "--workers", "1", "screaper_backend.application.application:application", "--log-level", "debug"]
+ENTRYPOINT ["gunicorn", "-k", "gevent", "-b", "0.0.0.0:8080", "--timeout", "500", "--workers", "1", "screaper_backend.run:application", "--log-level", "debug"]
