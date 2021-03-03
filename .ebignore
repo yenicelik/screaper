@@ -1,6 +1,0 @@
-*.csv
-*.xls
-*.xlsx
-*
-!screaper_backend/
-!requirements.txt
