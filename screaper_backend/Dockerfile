@@ -5,7 +5,7 @@ RUN apt-get update -y
 RUN apt-get install postgresql -y postgresql-contrib
 
 # Copy all files into the docker dir
-COPY ./screaper_backend/ /app/screaper_backend/
+COPY . /app
 ENV HOME=/app
 WORKDIR /app
 
