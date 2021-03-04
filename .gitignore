@@ -4,6 +4,8 @@ __pycache__/
 *$py.class
 .DS_Store
 
+!screaper_backend/resources/templates/UnionSpecial.xlsx
+
 # C extensions
 *.so
 

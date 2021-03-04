@@ -23,9 +23,13 @@ class ExporterOfferExcel:
 
     def _load_template(self):
         filepath = os.getenv('UNSP_TEKLIF_TEMPLATE_PATH')
+        print("filepath is: ", filepath)
         workbook = load_workbook(filepath)
+        print("Sheetnames are: ", workbook.sheetnames)
         sheet = workbook.active
-        print("Workbook is")
+        print("Workbook is", workbook)
+        print("Sheet is", sheet)
+        print("Cell F11 is", sheet['F11'])
         print("Cell F11 is", sheet['F11'].internal_value)
         assert sheet['F11'].internal_value == "Ref:", (
             f"Correct cell not found! expected {sheet['F11'].internal_value} got {'Ref'}"
@@ -37,7 +41,7 @@ class ExporterOfferExcel:
         self.workbook, self.sheet = self._load_template()
         # set the counter ...
         self.rowcounter = 0
-        self.rowoffset = 17  # the enumeration of items starts at row 17
+        self.rowoffset = 19  # the enumeration of items starts at row 17
 
     def update_date(self):
         style = copy(self.sheet[f'H10']._style)
@@ -54,12 +58,20 @@ class ExporterOfferExcel:
         style = copy(self.sheet[f'A11']._style)
         self.sheet[f'A11'] = '{}'.format(customer_obj.city)
         self.sheet[f'A11']._style = style
-        style = copy(self.sheet[f'A12']._style)
-        self.sheet[f'A12'] = 'Tel: {}  Fax: {}'.format(customer_obj.phone_number, customer_obj.fax_number)
-        self.sheet[f'A12']._style = style
         style = copy(self.sheet[f'A13']._style)
-        self.sheet[f'A13'] = '{}'.format(customer_obj.contact_name)
+        self.sheet[f'A13'] = 'Tel: {}'.format(customer_obj.phone_number)
         self.sheet[f'A13']._style = style
+        style = copy(self.sheet[f'A15']._style)
+        self.sheet[f'A15'] = '{}'.format(customer_obj.contact_name if customer_obj.contact_name else "")
+        self.sheet[f'A15']._style = style
+
+        style = copy(self.sheet[f'E13']._style)
+        self.sheet[f'E13'] = 'Fax: {}'.format(customer_obj.fax_number)
+        self.sheet[f'E13']._style = style
+
+        style = copy(self.sheet[f'A15']._style)
+        self.sheet[f'F15'] = 'E-mail: {}'.format(customer_obj.email if customer_obj.email else "")
+        self.sheet[f'F15']._style = style
 
     # def insert_reference(self, reference):
     #     style = copy(self.sheet[f'A10']._style)
@@ -84,8 +96,6 @@ class ExporterOfferExcel:
         )
 
         rowidx = self.rowcounter + self.rowoffset
-
-        # print("Row id is", rowidx)
 
         # Insert a row
         if self.rowcounter > 0:
@@ -149,7 +159,6 @@ class ExporterOfferExcel:
             self.sheet[f'N{rowidx}']._style = style
 
         # Copy all equations which were not copied yet
-
         style = copy(self.sheet[f'F{previous_row}']._style)
         self.sheet[f'F{rowidx}'] = f'=J{rowidx}'
         self.sheet[f'F{rowidx}']._style = style
@@ -168,7 +177,7 @@ class ExporterOfferExcel:
             self.sheet[f'{deadcol}{rowidx}']._style = style
 
         self.sheet[f'H{rowidx + 3}'] = f'=SUM(H{self.rowoffset}: H{rowidx})'
-        self.sheet[f'H{rowidx + 4}'] = f'=H{rowidx + 3}*25/100'
+        self.sheet[f'H{rowidx + 4}'] = f'=H{rowidx + 3}*15/100'
         self.sheet[f'H{rowidx + 5}'] = f'=H{rowidx + 3}-H{rowidx + 4}'
 
         # Increase counter by one...
