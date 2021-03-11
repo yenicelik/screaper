@@ -90,11 +90,26 @@ pub async fn main<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
         async move {
             tokio::spawn(async move {
                 println!("HI");
+                
                 let response = client.get(record.data()).send().await.unwrap();
-
                 let connection = connections.get().await.unwrap();
-
                 println!("{:?}", response.text().await.unwrap());
+
+                // Parse all links from the response 
+
+                // Normalize all links => there is this rust package that does ISO normalization
+                // take out all utm parameters (see python code) 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'
+                // remove all anchor text from url (all items after incl. '#')
+                // just check python code here: https://github.com/yenicelik/screaper/blob/rust/screaper/engine/markup_processor.py
+
+                // mark the item if it is in this list as skipped https://github.com/yenicelik/screaper/blob/rust/notebooks/notebooks_20201223_popular_websites/popular_websites.yaml
+
+                // Save all newly found URLs into the database (perhaps queue)
+
+                // Save markdown to database 
+
+
+                // This easily makes VSCode crash, perhaps do this later
 
                 panic!();
             })
