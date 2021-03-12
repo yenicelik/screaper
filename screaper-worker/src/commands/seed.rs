@@ -28,6 +28,6 @@ pub async fn main<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
     let connection = screaper_data::connection(&globals.value_of("database_url").unwrap()).unwrap();
 
     args.values_of("urls").unwrap().for_each(|url| {
-        UrlRecord::get_or_insert(&connection, url, UrlRecordStatus::Ready).unwrap();
+        UrlRecord::get_or_insert(&connection, url, UrlRecordStatus::Ready, -1).unwrap();
     });
 }

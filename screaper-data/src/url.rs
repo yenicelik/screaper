@@ -9,6 +9,7 @@ use diesel::{
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub enum UrlRecordStatus {
+    Failed = -2,
     Ignored = -1,
     Ready = 0,
     Processing = 1,
@@ -18,6 +19,7 @@ pub enum UrlRecordStatus {
 impl From<i16> for UrlRecordStatus {
     fn from(value: i16) -> Self {
         match value {
+            -2 => UrlRecordStatus::Failed,
             -1 => UrlRecordStatus::Ignored,
             0 => UrlRecordStatus::Ready,
             1 => UrlRecordStatus::Processing,
@@ -91,13 +93,15 @@ impl UrlRecord {
 }
 
 impl UrlRecord {
+
     pub fn get_or_insert(
         connection: &PgConnection,
         data: &str,
         status: UrlRecordStatus,
+        depth: i32
     ) -> QueryResult<Self> {
         diesel::insert_into(url::table)
-            .values((url::data.eq(data), url::status.eq(status as i16)))
+            .values((url::data.eq(data), url::status.eq(status as i16), url::depth.eq(depth as i32)))
             .on_conflict(url::data)
             // Update is required for return value
             .do_update()
@@ -113,8 +117,6 @@ impl UrlRecord {
             .limit(max as _)
             .load::<UrlRecord>(connection)
     }
-
-    
 
     pub fn save(&mut self, connection: &PgConnection) -> QueryResult<()> {
         diesel::update(url::table)

@@ -17,14 +17,20 @@ pub struct MarkupRecord {
 }
 
 impl MarkupRecord {
-    
-    pub fn save(&mut self, connection: &PgConnection) -> QueryResult<()> {
-        diesel::update(markup::table)
-            .set(&*self)
+
+    pub fn get_or_insert(
+        connection: &PgConnection,
+        raw: &str,
+        status: i16
+    ) -> QueryResult<Self> {
+        diesel::insert_into(markup::table)
+            .values((markup::raw.eq(raw), markup::status.eq(status as i16)))
+            .on_conflict(markup::raw)
+            // Update is required for return value
+            .do_update()
+            .set(markup::url_id.eq(markup::url_id))
             .returning(markup::all_columns)
             .get_result(connection)
-            .map(|updated| {
-                *self = updated;
-            })
     }
+    
 }

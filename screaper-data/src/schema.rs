@@ -4,7 +4,7 @@ table! {
         created_at -> Timestamp,
         updated_at -> Timestamp,
         raw -> Text,
-        processed -> Nullable<Text>,
+        // processed -> Nullable<Text>,
         status -> Int2,
     }
 }
