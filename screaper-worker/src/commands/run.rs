@@ -90,28 +90,102 @@ pub async fn main<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
         async move {
             tokio::spawn(async move {
                 println!("HI");
+
+                record.set_status(UrlRecordStatus.from(1));
+                record.save(connection);
+
+                let failed = false;
                 
-                let response = client.get(record.data()).send().await.unwrap();
+                // If panic happens here, increase retry amount by one
+                let response = client.get(record.data()).send().await.unwrap_or_else(|| {
+                    record.set_retries(record.retries() + 1);
+                    failed = true;
+                });
+
+                // If response code is not "OK", then set retries and continue
+                if (response.status.is_success()) {
+                    failed = true;
+                }
+
+                // Continue to next url if failed somehow
+                if (failed) {
+                    record.set_status(UrlRecordStatus.from(1));
+                    record.save(connection);
+                    return;
+                }
+
+                let document = response.text().await.unwrap();
+
                 let connection = connections.get().await.unwrap();
-                println!("{:?}", response.text().await.unwrap());
 
-                // Parse all links from the response 
+                let collected_urls: HashMap<URL> = HashMap::new();
 
-                // Normalize all links => there is this rust package that does ISO normalization
-                // take out all utm parameters (see python code) 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'
-                // remove all anchor text from url (all items after incl. '#')
-                // just check python code here: https://github.com/yenicelik/screaper/blob/rust/screaper/engine/markup_processor.py
+                // Parse all href links from the response 
+                Document::from(response.as_str())
+                .find(Name("a"))
+                .filter_map(|n| n.attr("href"))
+                .for_each(|x| {
+                    println!("{}", x);
+                    // Turn x into a URL object
+                    let url = URL.parse(x);
+                    // Normalize all links => there is this rust package that does ISO normalization
+                    // TODO take out all utm parameters (see python code) 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'
+                    url = url_normalize(url);
+                    collected_urls.insert_into(url);
+                })
+                ;
+                // TODO Also parse the rawtext for any strings that match the URL regex scheme
 
-                // mark the item if it is in this list as skipped https://github.com/yenicelik/screaper/blob/rust/notebooks/notebooks_20201223_popular_websites/popular_websites.yaml
+                // TODO: Parse all links extracted as regex from the response
+                // Match the following regex in the document to extract additional links
+                // check python code here: https://github.com/yenicelik/screaper/blob/rust/screaper/engine/markup_processor.py for more
+                regex = "(?i)\b((?:(https|https)?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))";
 
-                // Save all newly found URLs into the database (perhaps queue)
+                // For all collected urls, insert them into the database
+                collected_urls.forall(|url| {
 
-                // Save markdown to database 
+                    // Mark them as skipped if they are contained in this list
+                    // mark the item if it is in this list as skipped https://github.com/yenicelik/screaper/blob/rust/notebooks/notebooks_20201223_popular_websites/popular_websites.yaml
+                    let status: i16 = 0;
+                    let depth: i32 = record.depth() + 1;
 
+                    // Save all newly found URLs into the database
+                    let url_record: UrlRecord = {
+                        data: url.tostring(),
+                        status: status,
+                        retries: 0,
+                        score: 0,
+                        depth: depth,
+                    }
+                    // Insert markup record into database (Should this be done here, or elsewhere)
+                    url_record.save(connection);
+                    // Gotta get the id that was inputted?
+
+                    // Save all newly found URLs into the database queue
+                    // Increase count if record already exists
+                    let url_: UrlReferralRecord = {
+                        referrer_id: record.id(),
+                        referee_id: url_record.id(),
+                        count: 0,
+                    }
+
+                    // Save markdown to database 
+                    let markup_record: MarkupRecord = {
+                        raw: document
+                        status: 0  // Insert should always call the "0" status (a python script later will modify this)
+                    }
+                    // TODO Insert markup record into database (Should this be done here, or elsewhere)
+                    markup_record.save(connection);
+
+                })
+
+                record.set_status(UrlRecordStatus.from(2));
+                record.save(connection);
 
                 // This easily makes VSCode crash, perhaps do this later
-
+                println!("{:?}", response.text().await.unwrap());
                 panic!();
+
             })
             .await
             .ok();

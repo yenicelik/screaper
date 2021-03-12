@@ -15,3 +15,16 @@ pub struct MarkupRecord {
     pub raw: String,
     pub status: i16,
 }
+
+impl MarkupRecord {
+    
+    pub fn save(&mut self, connection: &PgConnection) -> QueryResult<()> {
+        diesel::update(markup::table)
+            .set(&*self)
+            .returning(markup::all_columns)
+            .get_result(connection)
+            .map(|updated| {
+                *self = updated;
+            })
+    }
+}

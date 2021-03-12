@@ -17,6 +17,7 @@ serde = "~1.0"
 serde_json = "~1.0"
 async-trait = "~0.1"
 rand = "~0.8"
+url-normalizer = "0.2.0"
 
 screaper-data = { path = "../screaper-data" }
 

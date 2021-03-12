@@ -33,7 +33,7 @@ pub struct UrlRecord {
     pub id: i32,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
-    pub data: String,
+    pub data: String, // Could this be a URL datatype?
     pub status: i16,
     pub retries: i32,
     pub score: i32,
@@ -109,6 +109,7 @@ impl UrlRecord {
     pub fn ready(connection: &PgConnection, max: usize) -> QueryResult<Vec<Self>> {
         url::table
             .filter(url::status.eq(UrlRecordStatus::Ready as i16))
+            // TODO: Increase retries counter
             .limit(max as _)
             .load::<UrlRecord>(connection)
     }
