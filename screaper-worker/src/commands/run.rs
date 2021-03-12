@@ -65,7 +65,15 @@ pub async fn main<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
         10,
     );
 
+    // Read file that reads all blacklisted URLs
+    let blacklist_urls_file = std::fs::File::open("something.yaml")?;
+    let blacklist_urls: Vec<String> = serde_yaml::from_reader(blacklist_urls_file).unwrap()["websites"]
+    .as_str()
+    .map(|x| x.to_string())
+    .ok_or(anyhow!("Could not find key foo.bar in something.yaml"));
+
     let mut rng = thread_rng();
+    let re = Regex::new("(?i)\b((?:(https|https)?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))").unwrap();
 
     // `socks4` protocol currently unsupported by reqwest
     let clients = reqwest::get("https://www.proxyscan.io/api/proxy?last_check=3600&uptime=70&ping=500&limit=20&type=socks5").await.unwrap()
@@ -132,21 +140,39 @@ pub async fn main<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
                     // TODO take out all utm parameters (see python code) 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'
                     url = url_normalize(url);
                     collected_urls.insert_into(url);
-                })
-                ;
-                // TODO Also parse the rawtext for any strings that match the URL regex scheme
 
-                // TODO: Parse all links extracted as regex from the response
-                // Match the following regex in the document to extract additional links
-                // check python code here: https://github.com/yenicelik/screaper/blob/rust/screaper/engine/markup_processor.py for more
-                regex = "(?i)\b((?:(https|https)?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))";
+                    println!("URL in html found: {}", &url);
+
+                });
+
+                // Also parse the rawtext for any strings that match the URL regex scheme
+                // Parse all links extracted as regex from the response
+                // We can leave this for now, let's see how much performance this eats up
+                /*
+                for cap in re.captures_iter(document) {
+                    
+                    let url = URL.parse(cap);
+                    // Normalize all links => there is this rust package that does ISO normalization
+                    // TODO take out all utm parameters (see python code) 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'
+                    url = url_normalize(url);
+                    collected_urls.insert_into(url);
+
+                    println!("URL in plaintext found: {}", &cap[0]);
+                }
+                */
 
                 // For all collected urls, insert them into the database
                 collected_urls.forall(|url| {
 
                     // Mark them as skipped if they are contained in this list
                     // mark the item if it is in this list as skipped https://github.com/yenicelik/screaper/blob/rust/notebooks/notebooks_20201223_popular_websites/popular_websites.yaml
-                    let status: i16 = 0;
+
+                    let status: i16;
+                    if (blacklist_urls.contains(url)) {
+                        status = -1;
+                    } else {
+                        status = 0;
+                    }
                     let depth: i32 = record.depth() + 1;
 
                     // Save all newly found URLs into the database
@@ -174,7 +200,7 @@ pub async fn main<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
                         raw: document
                         status: 0  // Insert should always call the "0" status (a python script later will modify this)
                     }
-                    // TODO Insert markup record into database (Should this be done here, or elsewhere)
+                    // Insert markup record into database (Should this be done here, or elsewhere)
                     markup_record.save(connection);
 
                 })
