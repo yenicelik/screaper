@@ -34,7 +34,7 @@ impl UrlReferralRecord {
             )
             // If the pair referred id and referee id is conflict
             .on_conflict(
-                (url_referral::referrer_id, url_referral::referrer_id)
+                (url_referral::referrer_id, url_referral::referee_id)
             )
             // Update is required for return value
             .do_update()

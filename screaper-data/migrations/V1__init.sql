@@ -19,7 +19,7 @@ CREATE TABLE url (
     status smallint NOT NULL,
     retries int NOT NULL DEFAULT 0,
     score int NOT NULL DEFAULT 0,
-    depth int NOT NULL DEFAULT - 1,
+    depth int NOT NULL DEFAULT -1,
     -- Constraints
     PRIMARY KEY (id),
     UNIQUE (data)

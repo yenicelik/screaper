@@ -120,7 +120,17 @@ impl UrlRecord {
 
     pub fn save(&mut self, connection: &PgConnection) -> QueryResult<()> {
         diesel::update(url::table)
-            .set(&*self)
+            .set((
+                url::id.eq(self.id),
+                url::updated_at.eq(self.updated_at),
+                url::created_at.eq(self.created_at),
+                url::data.eq(&*self.data),
+                url::status.eq(self.status),
+                url::retries.eq(self.retries),
+                url::score.eq(self.score),
+                url::depth.eq(self.depth)
+            ))
+            .filter(url::id.eq(self.id))
             .returning(url::all_columns)
             .get_result(connection)
             .map(|updated| {
