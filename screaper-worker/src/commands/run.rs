@@ -72,8 +72,10 @@ pub async fn main<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
     // Read file that reads all blacklisted URLs
     let blacklist_urls_file = std::fs::File::open("something.yaml").unwrap();
     let blacklist_urls_readfile: serde_yaml::Value  = serde_yaml::from_reader(blacklist_urls_file).unwrap();
-    let blacklist_urls: HashSet<String> = blacklist_urls_readfile["websites"].as_sequence().unwrap().to_owned()
-        .iter().map(|x| x.as_str().unwrap().to_owned()).collect();
+    // let blacklist_urls: HashSet<String> = blacklist_urls_readfile["websites"].as_sequence().unwrap().to_owned()
+    //    .iter().map(|x| x.as_str().unwrap().to_owned()).collect();
+    let blacklist_urls: HashSet<String> = blacklist_urls_readfile["websites"].as_sequence().unwrap().into_iter().map(|x| x.as_str().unwrap().to_owned()).collect::<HashSet<_>>();
+    let blacklist_url_atomic_reference = std::sync::Arc::new(blacklist_urls);
 
     let mut rng = thread_rng();
     // "(?i)\b((?:(https|https)?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
@@ -100,6 +102,7 @@ pub async fn main<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
     .for_each(|mut record| {
         let client = clients.choose(&mut rng).unwrap().clone();
         let connections = connections.clone();
+        let blacklist_reference_copy = blacklist_url_atomic_reference.clone();
 
         async move {
             tokio::spawn(async move {
@@ -110,7 +113,7 @@ pub async fn main<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
                 record.set_status(UrlRecordStatus::Processing);
                 record.save(&connection);
 
-                let failed = false;
+                let mut failed = false;
                 
                 // If panic happens here, increase retry amount by one
                 let response = client.get(record.data()).send().await.unwrap();
@@ -135,7 +138,7 @@ pub async fn main<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
 
                 let document = response.text().await.unwrap();
 
-                let collected_urls: HashSet<Url> = HashSet::new();
+                let mut collected_urls: HashSet<Url> = HashSet::new();
 
                 // Parse all href links from the response 
                 Document::from(document.as_str())
@@ -144,13 +147,15 @@ pub async fn main<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
                 .for_each(|x| {
                     println!("{}", x);
                     // Turn x into a URL object
-                    let url: Url = Url::parse(x).unwrap();
+                    let url: Url = normalize(
+                        Url::parse(x).unwrap()
+                    ).unwrap();
                     // Normalize all links => there is this rust package that does ISO normalization
                     // TODO take out all utm parameters (see python code) 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'
-                    url = normalize(url).unwrap();
+                    // url = normalize(url).unwrap();
                     collected_urls.insert(url);
 
-                    println!("URL in html found: {}", url.as_str());
+                    // println!("URL in html found: {}", url.as_str());
 
                 });
 
@@ -178,7 +183,7 @@ pub async fn main<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
 
                     let status: UrlRecordStatus;
                     // Maybe apply faster logic somehow
-                    if (blacklist_urls.contains(&url.as_str().to_owned())) {
+                    if (blacklist_reference_copy.contains(&url.as_str().to_owned())) {
                         status = UrlRecordStatus::Ignored;
                     } else {
                         status = UrlRecordStatus::Ready;
@@ -201,7 +206,7 @@ pub async fn main<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
                 record.save(&connection);
 
                 // This easily makes VSCode crash, perhaps do this later
-                println!("{:?}", response.text().await.unwrap());
+                // println!("{:?}", response.text().await.unwrap());
                 panic!();
 
             })
