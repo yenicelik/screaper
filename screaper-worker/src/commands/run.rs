@@ -70,7 +70,7 @@ pub async fn main<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
     );
 
     // Read file that reads all blacklisted URLs
-    let blacklist_urls_file = std::fs::File::open("something.yaml").unwrap();
+    let blacklist_urls_file = std::fs::File::open("notebooks/notebooks_20201223_popular_websites/popular_websites.yaml").unwrap();
     let blacklist_urls_readfile: serde_yaml::Value  = serde_yaml::from_reader(blacklist_urls_file).unwrap();
     // let blacklist_urls: HashSet<String> = blacklist_urls_readfile["websites"].as_sequence().unwrap().to_owned()
     //    .iter().map(|x| x.as_str().unwrap().to_owned()).collect();
@@ -90,13 +90,15 @@ pub async fn main<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
         .map(|proxy| Arc::new(Client::builder().proxy(reqwest::Proxy::all(&format!("socks5://{}:{}", proxy.ip, proxy.port)).unwrap()).build().unwrap()))
         .collect::<Vec<_>>();
 
+    println!("Connecting to database...");
     unfold(connections.clone(), |pool| async {
         let records = {
             let connection = pool.get().await.unwrap();
             UrlRecord::ready(&connection, 100).unwrap()
         };
-
+        println!("Connection successful");
         Some((iter(records), pool))
+
     })
     .flatten()
     .for_each(|mut record| {
