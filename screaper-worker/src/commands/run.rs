@@ -1,5 +1,6 @@
-use std::{sync::Arc, thread, time::Duration, collections::HashSet};
+use std::{sync::Arc, thread, time::Duration, time::Instant, collections::HashSet};
 
+use std::sync::atomic::{AtomicUsize, Ordering};
 use clap::{App, Arg, ArgMatches, SubCommand};
 use deadpool::{
     managed::{Pool as ManagedPool, RecycleResult},
@@ -94,32 +95,63 @@ pub async fn main<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
 
     // `socks4` protocol currently unsupported by reqwest
     let proxyResponse: ProxyResponse = reqwest::get("https://raw.githubusercontent.com/scidam/proxy-list/master/proxy.json").await.unwrap().json::<ProxyResponse>().await.unwrap();
-    let clients = proxyResponse.proxies.into_iter().filter(|proxy| proxy.google_error == "no").map(|proxy| Arc::new(
+    /*let clients = proxyResponse.proxies.into_iter().filter(|proxy| proxy.google_error == "no").map(|proxy| Arc::new(
         Client::builder().timeout(Duration::from_secs(20))
         .user_agent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36")
         .build().unwrap()
+    )).collect::<Vec<_>>();*/
+    let clients = proxyResponse.proxies.into_iter().filter(|proxy| proxy.google_error == "no").map(|proxy| Arc::new(
+        Client::builder().timeout(Duration::from_secs(20))
+        .proxy(reqwest::Proxy::all(&format!("socks5://{}:{}", proxy.ip, proxy.port)).unwrap())
+        .user_agent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36")
+        .build().unwrap()
     )).collect::<Vec<_>>();
-    // let clients = proxyResponse.proxies.into_iter().filter(|proxy| proxy.google_error == "no").map(|proxy| Arc::new(Client::builder().timeout(Duration::from_secs(20)).proxy(reqwest::Proxy::all(&format!("socks5://{}:{}", proxy.ip, proxy.port)).unwrap()).build().unwrap())).collect::<Vec<_>>();
+
+    // No proxy
+    // Number of spiders 1 = 0.15 requests / second
+    // Number of spiders 5 = 0.37 requests / second // 0.2 requests / second
+    // Number of spiders 10 = 0.55 requests / second // 0.52 requests / second // 0.42 requests / second 
+    // Number of spiders 20 = 0.833 requests / second // 0.4 requests / second 
+
+    // Proxy
+    // Number of spiders 1000 = 1.87 requests / second
+    let number_of_spiders = 500;
+
+    let now = Instant::now();
+    let counter = Arc::new(AtomicUsize::new(1));
 
     println!("Connecting to database...");
     unfold(connections.clone(), |pool| async {
         let records = {
             let connection = pool.get().await.unwrap();
-            UrlRecord::ready(&connection, 100).unwrap()
+            UrlRecord::ready(&connection, 4000).unwrap()
         };
-        println!("Connection successful");
         Some((iter(records), pool))
-
     })
     .flatten()
-    .for_each_concurrent(3, |mut record| {
+    .for_each_concurrent(number_of_spiders, |mut record| {
+
+        // TODO: Remove this proxy if there are too many failed retries
         let client = clients.choose(&mut rng).unwrap().clone();
+
         let connections = connections.clone();
         let blacklist_reference_copy = blacklist_url_atomic_reference.clone();
+        let counter_copy = counter.clone();
+
+        if (counter_copy.load(Ordering::Relaxed) as usize % 10) == 0 {
+            let req_per_sec = (counter_copy.load(Ordering::Relaxed) as f32) / (now.elapsed().as_secs() + 1) as f32;
+            println!("Seconds {} -- Items {} -- {} requests/s -- {} requests/min -- {} requests/h -- {} requests/day", 
+                counter_copy.load(Ordering::Relaxed), now.elapsed().as_secs(), 
+                req_per_sec, 
+                (req_per_sec * 60.0) as i16, 
+                (req_per_sec * 60.0 * 60.0) as i16, 
+                (req_per_sec * 60.0 * 60.0 * 24.0) as i16
+            );
+        }
+
 
         async move {
             tokio::spawn(async move {
-                println!("HI");
 
                 let connection = connections.get().await.unwrap();
 
@@ -139,6 +171,7 @@ pub async fn main<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
 
                 // If panic happens here, increase retry amount by one
                 let response_result = client.get(record.data()).send().await;
+                counter_copy.fetch_add(1 as usize, Ordering::Relaxed);
 
                 match response_result {
                     Ok(response) => {
@@ -150,9 +183,9 @@ pub async fn main<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
 
                         // Continue to next url if failed somehow
                         if (failed) {
-                            println!("failed");
-                            println!("{:?}", response.text().await.unwrap());
-                            record.set_status(UrlRecordStatus::Failed);
+                            println!("failed {:?}", record.data());
+                            // println!("{:?}", response.text().await.unwrap());
+                            record.set_status(UrlRecordStatus::Ready);
                             let insert_result = record.save(&connection);
                             match insert_result {
                                 Ok(()) => (),
@@ -188,15 +221,20 @@ pub async fn main<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
                             let mut current_url: String = x.to_string();
         
                             let first_character = current_url.chars().next();
-        
+
+
                             match first_character {
                                 Some(v) => {
         
                                     // If the first element of the URL is a "/", then prepend the host
                                     if v == '/' {
-                                        current_url = base_url.clone() + &current_url;
+                                        if base_url.chars().last().unwrap() == '/' {
+                                            current_url = base_url.clone() + &current_url;
+                                        } else {
+                                            current_url = base_url.clone() + &current_url[1..];
+                                        }
                                     } 
-                                    if v != '#' {
+                                    if v != '#' && base_url != "javascript:void(0)"{
         
                                         // Turn x into a URL object
                                         let parsed_url = Url::parse(&current_url);
@@ -258,29 +296,75 @@ pub async fn main<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
         
                             // Skip certain URLs 
                             // These unwrap should work because we have prepended host urls before
-                            let parsed_domain = url.host_str().unwrap();
-                            
-                            // Maybe apply faster logic somehow
-                            if (blacklist_reference_copy.contains(&parsed_domain.to_owned())) {
-                                println!("Ignore");
-                                println!("{:?}", parsed_domain);
-                                status = UrlRecordStatus::Ignored;
-                            } else {
-                                status = UrlRecordStatus::Ready;
-                            }
-                            let depth = record.depth() + 1;
-        
-                            // Save all newly found URLs into the database
-                            let url_record_response = UrlRecord::get_or_insert(&connection, url.as_str(), status, depth as i32);
-                            match url_record_response {
-                                Ok(url_record) => {
-                                    // Save all newly found URLs into the database queue
-                                    // Increase count if record already exists
-                                    let insert_result = UrlReferralRecord::get_or_insert(&connection, record.id(), url_record.id(), 1);
-                                    match insert_result {
-                                        Ok(_) => (),
+                            let parsed_domain_result = url.host_str();
+
+                            match parsed_domain_result {
+
+                                Some(parsed_domain) => {
+
+                                    // Maybe apply faster logic somehow
+                                    if (blacklist_reference_copy.contains(&parsed_domain.to_owned()) || &parsed_domain[..4] == "tel:" || &parsed_domain[..7] == "mailto:") {
+                                        // println!("Ignore");
+                                        // println!("{:?}", parsed_domain);
+                                        status = UrlRecordStatus::Ignored;
+                                    } else {
+                                        status = UrlRecordStatus::Ready;
+                                    }
+                                    let depth = record.depth() + 1;
+                
+                                    // Save all newly found URLs into the database
+                                    let url_record_response = UrlRecord::get_or_insert(&connection, url.as_str(), status, depth as i32);
+                                    match url_record_response {
+                                        Ok(url_record) => {
+                                            // Save all newly found URLs into the database queue
+                                            // Increase count if record already exists
+                                            let insert_result = UrlReferralRecord::get_or_insert(&connection, record.id(), url_record.id(), 1);
+                                            match insert_result {
+                                                Ok(_) => (),
+                                                Err(e) => {
+                                                    println!("Insert URL Referral Record");
+                                                    println!("{}", e);
+                                                    record.set_status(UrlRecordStatus::Failed);
+                                                    let insert_result = record.save(&connection);
+                                                    match insert_result {
+                                                        Ok(()) => (),
+                                                        Err(e) => {
+                                                            println!("{}", e);
+                                                        }
+                                                    }
+                                                }
+                                            }
+                
+                                        },
                                         Err(e) => {
-                                            println!("Insert URL Referral Record");
+                                            println!("Get or Insert URL Record");
+                                            println!("{}", e);
+                                            record.set_status(UrlRecordStatus::Failed);
+                                            let insert_result = record.save(&connection);
+                                            match insert_result {
+                                                Ok(()) => (),
+                                                Err(e) => {
+                                                    println!("{}", e);
+                                                }
+                                            }                        
+                                        }
+                                    }
+                
+                                    // Save markdown to database // Insert should always call the "0" status (a python script later will modify this)
+                                    let insert_result = MarkupRecord::get_or_insert(&connection, record.id(), &document.to_string(), 0 as i16);
+                                    match insert_result {
+                                        Ok(_) => {
+                                            record.set_status(UrlRecordStatus::Processed);
+                                            let insert_result = record.save(&connection);
+                                            match insert_result {
+                                                Ok(()) => (),
+                                                Err(e) => {
+                                                    println!("{}", e);
+                                                }
+                                            }
+                                        },
+                                        Err(e) => {
+                                            println!("Insert Markup Record");
                                             println!("{}", e);
                                             record.set_status(UrlRecordStatus::Failed);
                                             let insert_result = record.save(&connection);
@@ -292,49 +376,12 @@ pub async fn main<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
                                             }
                                         }
                                     }
-        
+
                                 },
-                                Err(e) => {
-                                    println!("Get or Insert URL Record");
-                                    println!("{}", e);
-                                    record.set_status(UrlRecordStatus::Failed);
-                                    let insert_result = record.save(&connection);
-                                    match insert_result {
-                                        Ok(()) => (),
-                                        Err(e) => {
-                                            println!("{}", e);
-                                        }
-                                    }                        
+                                None => {
+                                    // println!("No host: {:?}", url.as_str());
                                 }
                             }
-        
-                            // Save markdown to database // Insert should always call the "0" status (a python script later will modify this)
-                            let insert_result = MarkupRecord::get_or_insert(&connection, record.id(), &document.to_string(), 0 as i16);
-                            match insert_result {
-                                Ok(_) => {
-                                    record.set_status(UrlRecordStatus::Processed);
-                                    let insert_result = record.save(&connection);
-                                    match insert_result {
-                                        Ok(()) => (),
-                                        Err(e) => {
-                                            println!("{}", e);
-                                        }
-                                    }
-                                },
-                                Err(e) => {
-                                    println!("Insert Markup Record");
-                                    println!("{}", e);
-                                    record.set_status(UrlRecordStatus::Failed);
-                                    let insert_result = record.save(&connection);
-                                    match insert_result {
-                                        Ok(()) => (),
-                                        Err(e) => {
-                                            println!("{}", e);
-                                        }
-                                    }
-                                }
-                            }
-        
                         }
 
 
