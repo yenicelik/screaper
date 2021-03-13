@@ -71,8 +71,8 @@ impl UrlRecord {
         self.score as u32
     }
 
-    pub fn depth(&self) -> u32 {
-        self.depth as u32
+    pub fn depth(&self) -> i32 {
+        self.depth as i32
     }
 
     pub fn set_status(&mut self, status: UrlRecordStatus) {
@@ -87,7 +87,7 @@ impl UrlRecord {
         self.score = score as _;
     }
 
-    pub fn set_depth(&mut self, depth: u32) {
+    pub fn set_depth(&mut self, depth: i32) {
         self.depth = depth as _;
     }
 }

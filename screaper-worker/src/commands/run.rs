@@ -127,7 +127,8 @@ pub async fn main<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
                 let connection = connections.get().await.unwrap();
 
                 record.set_status(UrlRecordStatus::Processing);
-                record.save(&connection);
+                let insert_result = record.save(&connection);
+                println!("{:?}", insert_result);
 
                 let mut failed = false;
                 
