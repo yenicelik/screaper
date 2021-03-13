@@ -1,5 +1,4 @@
-use std::{sync::Arc, thread, collections::HashSet};
-use url::{Url, ParseError};
+use std::{sync::Arc, thread, time::Duration, collections::HashSet};
 
 use clap::{App, Arg, ArgMatches, SubCommand};
 use deadpool::{
@@ -8,13 +7,14 @@ use deadpool::{
 };
 use futures::future::{FutureExt, TryFutureExt};
 use futures::stream::{iter, repeat_with, unfold, StreamExt};
+use rand::thread_rng;
+use rand::seq::SliceRandom;
 use regex::Regex;
 use reqwest::{Client, Error as ReqwestError};
 use select::document::Document;
 use select::predicate::Name;
 use serde::Deserialize;
-use rand::thread_rng;
-use rand::seq::SliceRandom;
+use url::{Url, ParseError};
 use url_normalizer::normalize;
 
 use screaper_data::{Connection, ConnectionError, UrlRecord, MarkupRecord, UrlRecordStatus, UrlReferralRecord};
@@ -34,16 +34,25 @@ pub fn app() -> App<'static, 'static> {
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "PascalCase")]
+#[serde(rename_all = "snake_case")]
 pub struct Proxy {
     ip: String,
-    port: usize,
-    ping: usize,
-    failed: bool,
-    anonymity: String,
-    working_count: usize,
-    uptime: f32,
-    recheck_count: usize,
+    port: String,
+    // ping: usize,
+    google_error: String,
+    // google_status: usize,
+    // google_total_time: usize,
+    // anonymity: String,
+    // working_count: usize,
+    // uptime: f32,
+    // recheck_count: usize,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct ProxyResponse {
+    date: String,
+    proxies: Vec<Proxy>
 }
 
 struct DatabaseManager {
@@ -84,16 +93,21 @@ pub async fn main<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
     ).unwrap();
 
     // `socks4` protocol currently unsupported by reqwest
-    let clients = reqwest::get("https://www.proxyscan.io/api/proxy?last_check=3600&uptime=70&ping=500&limit=20&type=socks5").await.unwrap()
-        .json::<Vec<Proxy>>().await.unwrap()
-        .into_iter()
-        .map(|proxy| Arc::new(Client::builder().proxy(reqwest::Proxy::all(&format!("socks5://{}:{}", proxy.ip, proxy.port)).unwrap()).build().unwrap()))
-        .collect::<Vec<_>>();
+    let proxyResponse: ProxyResponse = reqwest::get("https://raw.githubusercontent.com/scidam/proxy-list/master/proxy.json").await.unwrap().json::<ProxyResponse>().await.unwrap();
+    let clients = proxyResponse.proxies.into_iter().filter(|proxy| proxy.google_error == "no").map(|proxy| Arc::new(
+        Client::builder().timeout(Duration::from_secs(20))
+        .user_agent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36")
+        .build().unwrap()
+    )).collect::<Vec<_>>();
+    // let clients = proxyResponse.proxies.into_iter().filter(|proxy| proxy.google_error == "no").map(|proxy| Arc::new(Client::builder().timeout(Duration::from_secs(20)).proxy(reqwest::Proxy::all(&format!("socks5://{}:{}", proxy.ip, proxy.port)).unwrap()).build().unwrap())).collect::<Vec<_>>();
 
     println!("Connecting to database...");
     unfold(connections.clone(), |pool| async {
         let records = {
             let connection = pool.get().await.unwrap();
+
+            // Only get items that are not being processed rn
+
             UrlRecord::ready(&connection, 100).unwrap()
         };
         println!("Connection successful");
@@ -101,7 +115,7 @@ pub async fn main<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
 
     })
     .flatten()
-    .for_each(|mut record| {
+    .for_each_concurrent(3, |mut record| {
         let client = clients.choose(&mut rng).unwrap().clone();
         let connections = connections.clone();
         let blacklist_reference_copy = blacklist_url_atomic_reference.clone();
@@ -117,8 +131,10 @@ pub async fn main<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
 
                 let mut failed = false;
                 
+                println!("Making request");
                 // If panic happens here, increase retry amount by one
                 let response = client.get(record.data()).send().await.unwrap();
+                println!("Made request");
                 /*.unwrap_or_else(|e| {
                     record.set_retries(record.retries() + 1);
                     failed = true;
@@ -127,12 +143,14 @@ pub async fn main<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
                 });*/
 
                 // If response code is not "OK", then set retries and continue
-                if (response.status().is_success()) {
+                if (!response.status().is_success()) {
                     failed = true;
                 }
 
                 // Continue to next url if failed somehow
                 if (failed) {
+                    println!("failed");
+                    println!("{:?}", response.text().await.unwrap());
                     record.set_status(UrlRecordStatus::Failed);
                     record.save(&connection);
                     return;
@@ -142,22 +160,58 @@ pub async fn main<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
 
                 let mut collected_urls: HashSet<Url> = HashSet::new();
 
+                let base_url: String = record.data().to_string();
+                let parsed_base_url: Url = Url::parse(&base_url).unwrap();
+                let parsed_domain = parsed_base_url.host_str().unwrap();
+
                 // Parse all href links from the response 
                 Document::from(document.as_str())
                 .find(Name("a"))
                 .filter_map(|n| n.attr("href"))
                 .for_each(|x| {
-                    println!("{}", x);
-                    // Turn x into a URL object
-                    let url: Url = normalize(
-                        Url::parse(x).unwrap()
-                    ).unwrap();
-                    // Normalize all links => there is this rust package that does ISO normalization
-                    // TODO take out all utm parameters (see python code) 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'
-                    // url = normalize(url).unwrap();
-                    collected_urls.insert(url);
 
-                    // println!("URL in html found: {}", url.as_str());
+                    let mut current_url: String = x.to_string();
+
+                    let first_character = current_url.chars().next();
+
+                    match first_character {
+                        Some(v) => {
+
+                            // If the first element of the URL is a "/", then prepend the host
+                            if v == '/' {
+                                current_url = base_url.clone() + &current_url;
+                            }
+
+                            // Turn x into a URL object
+                            let parsed_url = Url::parse(&current_url);
+
+                            // TODO take out all utm parameters (see python code) 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'
+
+                            // Normalize all links => there is this rust package that does ISO normalization
+                            match parsed_url {
+                                Ok(v) => {
+                                    let url: Result<Url, _> = normalize(v);
+                                    match url {
+                                        Ok(v) => {
+                                            collected_urls.insert(v);
+                                        },
+                                        Err(e) => {
+                                            println!("URL not parsed");
+                                            // println!("{:?}", e);
+                                            println!("{:?}", x);
+                                        }
+                                    }
+                                }, 
+                                Err(e) => {
+                                    println!("URL not normalized");
+                                    // println!("{:?}", e);
+                                    println!("{:?}", x);
+                                }
+                            }
+
+                        },
+                        None => {}
+                    }
 
                 });
 
