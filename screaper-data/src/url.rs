@@ -3,7 +3,7 @@ use crate::schema::url;
 use chrono::{NaiveDate, NaiveDateTime};
 use diesel::{
     pg::PgConnection, AsChangeset, ExpressionMethods, Insertable, QueryDsl, QueryResult, Queryable,
-    RunQueryDsl,
+    RunQueryDsl, BoolExpressionMethods
 };
 
 #[repr(C)]
@@ -112,8 +112,8 @@ impl UrlRecord {
 
     pub fn ready(connection: &PgConnection, max: usize) -> QueryResult<Vec<Self>> {
         url::table
-            .filter(url::status.eq(UrlRecordStatus::Ready as i16))
-            // TODO: Increase retries counter
+            .filter(url::retries.lt(5).and(url::status.eq(UrlRecordStatus::Ready as i16)))
+            .order(url::depth.asc())
             .limit(max as _)
             .load::<UrlRecord>(connection)
     }
