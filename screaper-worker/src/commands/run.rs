@@ -63,6 +63,20 @@ impl deadpool::managed::Manager<Connection, ConnectionError> for DatabaseManager
     }
 }
 
+fn print_progress(counter: &std::sync::Arc<std::sync::atomic::AtomicUsize>, now: std::time::Instant) {
+    if (counter.load(Ordering::Relaxed) as usize % 10) == 0 {
+        let req_per_sec = (counter.load(Ordering::Relaxed) as f32) / (now.elapsed().as_secs() + 1) as f32;
+        println!("Seconds {} -- Items {} -- {} requests/s -- {} requests/min -- {} requests/h -- {} requests/day", 
+        counter.load(Ordering::Relaxed), 
+            now.elapsed().as_secs(), 
+            req_per_sec, 
+            (req_per_sec * 60.0) as i64, 
+            (req_per_sec * 60.0 * 60.0) as i64, 
+            (req_per_sec * 60.0 * 60.0 * 24.0) as i64
+        );
+    }
+}
+
 pub async fn run<'a>(globals: &ArgMatches<'a>, _args: &ArgMatches<'a>) {
 
     println!("Running...");
@@ -82,7 +96,6 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, _args: &ArgMatches<'a>) {
     let blacklist_urls: HashSet<String> = original_blacklist_urls.union(&www_extended_blacklist_urls).into_iter().map(|x| x.to_owned()).collect::<HashSet<_>>();
 
     let blacklist_url_atomic_reference = std::sync::Arc::new(blacklist_urls);
-    let mut rng = thread_rng();
     
     println!("Collecting proxies...");
     let proxy_response: ProxyResponse = reqwest::get("https://raw.githubusercontent.com/scidam/proxy-list/master/proxy.json").await.unwrap().json::<ProxyResponse>().await.unwrap();
@@ -98,6 +111,7 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, _args: &ArgMatches<'a>) {
 
     let now = Instant::now();
     let counter = Arc::new(AtomicUsize::new(1));
+    let global_counter = Arc::new(AtomicUsize::new(1));
 
     println!("Connecting to database...");
     unfold(connections.clone(), |pool| async {
@@ -111,50 +125,32 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, _args: &ArgMatches<'a>) {
         };
         Some((iter(records), pool))
     })
-    .for_each(move |block| async {
-        block.for_each_concurrent(number_of_spiders, move |mut record| {
+    .for_each(|block| async {
+        block.for_each_concurrent(number_of_spiders, |mut record| {
 
             // TODO: Remove this proxy if there are too many failed retries
-            let client = clients.choose(&mut rng).unwrap().clone();
+            let client = clients.choose(&mut thread_rng()).unwrap().clone();
             let connections = connections.clone();
             let blacklist_reference_copy = blacklist_url_atomic_reference.clone();
             let counter_copy = counter.clone();
+            let global_counter_copy = global_counter.clone();
             // let mut status = UrlRecordStatus::Processed;
 
-            async move {}
+            print_progress(&global_counter_copy, now);
 
-        }).await;
-    }).await;    
+            async move {
+                tokio::spawn(async move {
+                    global_counter_copy.fetch_add(1 as usize, Ordering::Relaxed);
 
-        /*
-                
-        
-                if (counter_copy.load(Ordering::Relaxed) as usize % 10) == 0 {
-                    let req_per_sec = (counter_copy.load(Ordering::Relaxed) as f32) / (now.elapsed().as_secs() + 1) as f32;
-                    println!("Seconds {} -- Items {} -- {} requests/s -- {} requests/min -- {} requests/h -- {} requests/day", 
-                        counter_copy.load(Ordering::Relaxed), 
-                        now.elapsed().as_secs(), 
-                        req_per_sec, 
-                        (req_per_sec * 60.0) as i64, 
-                        (req_per_sec * 60.0 * 60.0) as i64, 
-                        (req_per_sec * 60.0 * 60.0 * 24.0) as i64
-                    );
-                }
-        
-                async move { tokio::spawn(async move {
-        
-                    counter_copy.fetch_add(1 as usize, Ordering::Relaxed);
-        
                     let request_response = client.get(record.data()).send().await;
                     let connection = connections.get().await.unwrap();
-        
+
                     // Unpack response and mark as failed if cannot unpack
                     let response: reqwest::Response; 
                     match request_response {
                         Ok(v) => response = v,
                         Err(e) => {
                             // println!("E1 {:?}", e);
-                            
                             record.set_status(UrlRecordStatus::Ready);
                             record.set_retries(record.retries() + 1);
                             /*
@@ -165,14 +161,12 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, _args: &ArgMatches<'a>) {
                                 _ => (),
                             }
                             */
-                            
                             return;
                         }
                     }
-        
+
                     // If unsuccessful, mark as failed
                     if !response.status().is_success() {
-        
                         record.set_status(UrlRecordStatus::Failed);
                         /*
                         match record.save(&connection) {
@@ -184,14 +178,13 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, _args: &ArgMatches<'a>) {
                         */
                         return;
                     }
-        
+
                     // Extract string from HTML document
                     let document: std::string::String;
                     match response.text().await {
                         Ok(document_response) => document = document_response,
                         Err(err) => {
                             println!("E4 {:?}", err);
-                            
                             record.set_status(UrlRecordStatus::Failed);
                             /*
                             match record.save(&connection) {
@@ -201,14 +194,13 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, _args: &ArgMatches<'a>) {
                                 _ => (),
                             }
                             */
-                            
                             return;
                         }
                     }
-        
+
                     // A bunch of logic to extract the links
                     let mut collected_urls: HashSet<Url> = HashSet::new();
-        
+
                     let base_url: String = record.data().to_string();
                     let parsed_base_url: Url = Url::parse(&base_url).unwrap();
                     let base_host = parsed_base_url.host_str().unwrap();
@@ -249,10 +241,10 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, _args: &ArgMatches<'a>) {
                             _ => (),
                         }
                     });
-        
+
                     // For all collected urls, insert them into the database
                     for url in &collected_urls {
-        
+
                         let mut status: UrlRecordStatus = UrlRecordStatus::Ready;
                         let depth;
                         match url.host_str() {
@@ -291,9 +283,7 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, _args: &ArgMatches<'a>) {
                             }
                         }
                     };
-        
-                    // Save markdown to database // Insert should always call the "0" status (a python script later will modify this)
-                    /*
+
                     let insert_result = MarkupRecord::get_or_insert(&connection, record.id(), &document.to_string(), 0 as i16);
                     match insert_result {
                         Ok(_) => {
@@ -318,13 +308,13 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, _args: &ArgMatches<'a>) {
                                 }
                             }
                         }
-                    };*/
-                    ()
-                }).await.ok();
-                };
-            };
-        });
-        */
+                    };
+
+                });
+            }
+
+        }).await;
+    }).await;    
 }
 
 pub async fn main<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
