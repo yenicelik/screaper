@@ -9,6 +9,7 @@
  * 500 spiders leads to ca 60k requests / day
  * 1000 spiders leads to ca 60k requests / day
  * All inserts commented out: Seconds 680 -- Items 20 -- 32.38095 requests/s -- 1942 requests/min -- 116571 requests/h -- 2797714 requests/day
+ * Seconds 17960 -- Items 7 -- 2245 requests/s -- 134700 requests/min -- 8_082_000 requests/h -- 193_968_000 requests/day
 */
 use std::{sync::Arc, time::Duration, time::Instant, collections::HashSet};
 
@@ -126,6 +127,9 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, _args: &ArgMatches<'a>) {
         Some((iter(records), pool))
     })
     .for_each(|block| async {
+
+        // let to_be_updates: Vec<_> = Vec::new();
+
         block.for_each_concurrent(number_of_spiders, |mut record| {
 
             // TODO: Remove this proxy if there are too many failed retries
