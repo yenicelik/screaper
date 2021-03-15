@@ -113,9 +113,18 @@ impl UrlRecord {
     pub fn ready(connection: &PgConnection, max: usize) -> QueryResult<Vec<Self>> {
         url::table
             .filter(url::retries.lt(5).and(url::status.eq(UrlRecordStatus::Ready as i16)))
-            .order(url::depth.asc())
+            // .order(url::depth.desc())
             .limit(max as _)
             .load::<UrlRecord>(connection)
+    }
+
+    pub fn mark_as_processing(connection: &PgConnection, urls: &Vec<Self>) -> QueryResult<usize> {
+        // Make ready before retrieving items
+        let mut list_string = urls.into_iter().map(|x| x.id).fold(String::new(), |acc, x| acc + &x.to_string() + ", ");
+        list_string.pop();
+        list_string.pop();
+        let query = format!("UPDATE url SET status = 1 WHERE url.id IN ({});", list_string);
+        diesel::sql_query(query).execute(connection)
     }
 
     pub fn save(&mut self, connection: &PgConnection) -> QueryResult<()> {
