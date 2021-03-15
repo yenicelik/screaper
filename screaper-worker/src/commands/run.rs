@@ -8,8 +8,8 @@
  * Number of spiders 1000 = 1.87 requests / second
  * 500 spiders leads to ca 60k requests / day
  * 1000 spiders leads to ca 60k requests / day
+ * All inserts commented out: Seconds 680 -- Items 20 -- 32.38095 requests/s -- 1942 requests/min -- 116571 requests/h -- 2797714 requests/day
 */
-
 use std::{sync::Arc, time::Duration, time::Instant, collections::HashSet};
 
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -65,6 +65,8 @@ impl deadpool::managed::Manager<Connection, ConnectionError> for DatabaseManager
 
 pub async fn run<'a>(globals: &ArgMatches<'a>, _args: &ArgMatches<'a>) {
 
+    println!("Running...");
+
     let connections = ManagedPool::new(
         DatabaseManager {
             url: globals.value_of("database_url").unwrap().to_owned(),
@@ -81,7 +83,8 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, _args: &ArgMatches<'a>) {
 
     let blacklist_url_atomic_reference = std::sync::Arc::new(blacklist_urls);
     let mut rng = thread_rng();
-
+    
+    println!("Collecting proxies...");
     let proxy_response: ProxyResponse = reqwest::get("https://raw.githubusercontent.com/scidam/proxy-list/master/proxy.json").await.unwrap().json::<ProxyResponse>().await.unwrap();
     println!("Number of clients {:?}", &proxy_response.proxies.len());
     let clients = proxy_response.proxies.into_iter().filter(|proxy| proxy.google_error == "no").map(|_proxy| Arc::new(
@@ -91,7 +94,7 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, _args: &ArgMatches<'a>) {
         .build().unwrap()
     )).collect::<Vec<_>>();
 
-    let number_of_spiders = 500;
+    let number_of_spiders: usize = 500;
 
     let now = Instant::now();
     let counter = Arc::new(AtomicUsize::new(1));
@@ -133,6 +136,8 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, _args: &ArgMatches<'a>) {
 
         async move { tokio::spawn(async move {
 
+            counter_copy.fetch_add(1 as usize, Ordering::Relaxed);
+
             let request_response = client.get(record.data()).send().await;
             let connection = connections.get().await.unwrap();
 
@@ -142,28 +147,34 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, _args: &ArgMatches<'a>) {
                 Ok(v) => response = v,
                 Err(e) => {
                     // println!("E1 {:?}", e);
+                    
                     record.set_status(UrlRecordStatus::Ready);
                     record.set_retries(record.retries() + 1);
+                    /*
                     match record.save(&connection) {
                         Err(e) => {
                             println!("E2 {:?}", e);
                         }
                         _ => (),
                     }
+                    */
+                    
                     return;
                 }
             }
 
             // If unsuccessful, mark as failed
             if !response.status().is_success() {
-                // TODO: Mark as failed
+
                 record.set_status(UrlRecordStatus::Failed);
+                /*
                 match record.save(&connection) {
                     Err(e) => {
                         println!("E3 {:?}", e);
                     }
                     _ => (),
                 }
+                */
                 return;
             }
 
@@ -173,13 +184,17 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, _args: &ArgMatches<'a>) {
                 Ok(document_response) => document = document_response,
                 Err(err) => {
                     println!("E4 {:?}", err);
+                    
                     record.set_status(UrlRecordStatus::Failed);
+                    /*
                     match record.save(&connection) {
                         Err(e) => {
                             println!("E5 {:?}", e);
                         }
                         _ => (),
                     }
+                    */
+                    
                     return;
                 }
             }
@@ -244,6 +259,7 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, _args: &ArgMatches<'a>) {
                         depth = record.depth() + 1;
     
                         // Save all newly found URLs into the database
+                        /*
                         let url_record_response = UrlRecord::get_or_insert(&connection, url.as_str(), status, depth as i32);
                         match url_record_response {
                             Ok(url_record) => {
@@ -264,11 +280,13 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, _args: &ArgMatches<'a>) {
                                 println!("E8 {:?}", e);                        
                             }
                         }
+                        */
                     }
                 }
             };
 
             // Save markdown to database // Insert should always call the "0" status (a python script later will modify this)
+            /*
             let insert_result = MarkupRecord::get_or_insert(&connection, record.id(), &document.to_string(), 0 as i16);
             match insert_result {
                 Ok(_) => {
@@ -293,7 +311,9 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, _args: &ArgMatches<'a>) {
                         }
                     }
                 }
-            }
+            };*/
+
+            ()
 
         })
         .await
@@ -302,5 +322,6 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, _args: &ArgMatches<'a>) {
 }
 
 pub async fn main<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
+    println!("Starting run...");
     run(globals, args).await;
 }
