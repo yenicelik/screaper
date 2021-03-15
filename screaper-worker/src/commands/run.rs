@@ -155,7 +155,7 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
                 Ok(v) => response = v,
                 Err(e) => {
                     println!("{}", e);
-                    record.set_status(UrlRecordStatus::Failed);
+                    record.set_status(UrlRecordStatus::Ready);
                     record.set_retries(record.retries() + 1);
                     let insert_result = record.save(&connection);
                     match insert_result {
@@ -190,7 +190,7 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
                     record.set_status(UrlRecordStatus::Failed);
                     match record.save(&connection) {
                         Err(e) => {
-                            println!("{}", e);
+                            println!("{:?}", e);
                         }
                         _ => (),
                     }
@@ -204,7 +204,7 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
             let base_url: String = record.data().to_string();
             let parsed_base_url: Url = Url::parse(&base_url).unwrap();
             let base_host = parsed_base_url.host_str().unwrap();
-            let base_origin_string: String = (parsed_base_url.scheme().to_string() + &"://".to_string() + &base_host);
+            let base_origin_string: String = parsed_base_url.scheme().to_string() + &"://".to_string() + &base_host;
             let parsed_base_origin: Url = Url::parse(&base_origin_string).unwrap();
 
             // Parse all href links from the response 
@@ -216,139 +216,68 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
                 // If no base-url, include it
                 let mut current_url: String = x.to_string();
 
+                // TODO take out all utm parameters (see python code) 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'
                 match current_url.chars().next() {
                     Some(v) => {
                         if v == '/' || (current_url.len() > 3 && &current_url[..4] != "http") {
-                            // TODO The top-level current_url is changed, right?
                             current_url = parsed_base_origin.join(current_url.as_str()).unwrap().to_string();
-                            // println!("Current url is: {:?}", &current_url);
                         } 
-                        if v == '#' || base_url == "javascript:void(0)" {
-                            // TODO Mark as skipped / failed
-                            record.set_status(UrlRecordStatus::Ignored);
-                            match record.save(&connection) {
-                                Err(e) => {
-                                    println!("{}", e);
-                                }
-                                _ => (),
-                            }
+                        if v != '#' && base_url != "javascript:void(0)" {
+                            // Turn x into a URL object
+                            match Url::parse(&current_url) {
+                                Ok(parsed_url) => {
+                                    let normalized_url = normalize(parsed_url);
+                                    match normalized_url {
+                                        Ok(parsed_url) => {
+                                            collected_urls.insert(parsed_url);
+                                        },
+                                        Err(err) => { println!("{:?}", err); }
+                                    };
+                                },
+                                Err(err) => { println!("{:?}", err); }
+                            };
                         }
                     },
-                    None => {},
+                    _ => (),
                 }
-
-                // TODO CONTINUE HERE
-
-                // Turn x into a URL object
-                let parsed_url = Url::parse(&current_url);
-
-                // Normalize all links => there is this rust package that does ISO normalization
-                match parsed_url {
-                    Ok(mut v) => {
-                        // TODO take out all utm parameters (see python code) 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'
-
-                        let url: Result<Url, _> = normalize(v);
-                        match url {
-                            Ok(v) => {
-                                collected_urls.insert(v);
-                            },
-                            Err(e) => {
-                                println!("URL not parsed");
-                                // println!("{:?}", e);
-                                println!("{:?}", x);
-                            }
-                        }
-                    }, 
-                    Err(e) => {
-                        println!("URL not normalized");
-                        // println!("{:?}", e);
-                        println!("{:?}", x);
-                    }
-                }
-
             });
-
-            // Also parse the rawtext for any strings that match the URL regex scheme
-            // Parse all links extracted as regex from the response
-            // We can leave this for now, let's see how much performance this eats up
-            /*
-            for cap in re.captures_iter(document) {
-                
-                let url = URL.parse(cap);
-                // Normalize all links => there is this rust package that does ISO normalization
-                url = url_normalize(url);
-                collected_urls.insert_into(url);
-
-                println!("URL in plaintext found: {}", &cap[0]);
-            }
-            */
 
             // For all collected urls, insert them into the database
             for url in &collected_urls {
 
-                let status: UrlRecordStatus;
-                let parsed_domain_result = url.host_str();
-
-                match parsed_domain_result {
-
+                let mut status: UrlRecordStatus = UrlRecordStatus::Ready;
+                let depth;
+                match url.host_str() {
+                    None => (),
                     Some(parsed_domain) => {
                                 
                         // Maybe apply faster logic somehow
-                        if blacklist_reference_copy.contains(&parsed_domain.to_owned()) || url.cannot_be_a_base()
-                        {
-                            // println!("Ignore");
-                            // println!("{:?}", parsed_domain);
+                        if blacklist_reference_copy.contains(&parsed_domain.to_owned()) || url.cannot_be_a_base() {
                             status = UrlRecordStatus::Ignored;
-                        } else {
-                            status = UrlRecordStatus::Ready;
                         }
-                        let depth = record.depth() + 1;
+                        depth = record.depth() + 1;
     
                         // Save all newly found URLs into the database
                         let url_record_response = UrlRecord::get_or_insert(&connection, url.as_str(), status, depth as i32);
                         match url_record_response {
                             Ok(url_record) => {
                                 // Save all newly found URLs into the database queue
-                                // Increase count if record already exists
                                 let insert_result = UrlReferralRecord::get_or_insert(&connection, record.id(), url_record.id(), 1);
                                 match insert_result {
                                     Ok(_) => (),
                                     Err(e) => {
                                         // TODO: Mark as failed
                                         println!("Insert URL Referral Record");
-                                        println!("{}", e);
-                                        record.set_status(UrlRecordStatus::Failed);
-                                        let insert_result = record.save(&connection);
-                                        match insert_result {
-                                            Ok(()) => (),
-                                            Err(e) => {
-                                                println!("{}", e);
-                                            }
-                                        }
+                                        println!("{:?}", e);
                                     }
                                 }
-    
                             },
                             Err(e) => {
                                 // TODO: Mark as failed
                                 println!("Get or Insert URL Record");
-                                println!("{}", e);
-                                record.set_status(UrlRecordStatus::Failed);
-                                let insert_result = record.save(&connection);
-                                match insert_result {
-                                    Ok(()) => (),
-                                    Err(e) => {
-                                        println!("{}", e);
-                                    }
-                                }                        
+                                println!("{:?}", e);                        
                             }
                         }
-    
-                        
-
-                    },
-                    None => {
-                        // println!("No host: {:?}", url.as_str());
                     }
                 }
             };
@@ -357,28 +286,24 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
             let insert_result = MarkupRecord::get_or_insert(&connection, record.id(), &document.to_string(), 0 as i16);
             match insert_result {
                 Ok(_) => {
-                    // TODO: Mark as successful
                     record.set_status(UrlRecordStatus::Processed);
-                    let insert_result = record.save(&connection);
-                    match insert_result {
+                    match record.save(&connection) {
                         Ok(()) => {
                             counter_copy.fetch_add(1 as usize, Ordering::Relaxed);
                         },
                         Err(e) => {
-                            println!("{}", e);
+                            println!("{:?}", e);
                         }
                     }
                 },
                 Err(e) => {
-                    // TODO: Mark as failed
-                    println!("Insert Markup Record");
+                    println!("Failed Insert Markup Record");
                     println!("{}", e);
                     record.set_status(UrlRecordStatus::Failed);
-                    let insert_result = record.save(&connection);
-                    match insert_result {
+                    match record.save(&connection) {
                         Ok(()) => (),
                         Err(e) => {
-                            println!("{}", e);
+                            println!("{:?}", e);
                         }
                     }
                 }
