@@ -10,37 +10,24 @@
  * 1000 spiders leads to ca 60k requests / day
 */
 
-use std::{sync::Arc, thread, time::Duration, time::Instant, collections::HashSet};
+use std::{sync::Arc, time::Duration, time::Instant, collections::HashSet};
 
 use std::sync::atomic::{AtomicUsize, Ordering};
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, ArgMatches, SubCommand};
 use deadpool::{
-    managed::{Pool as ManagedPool, RecycleResult},
-    unmanaged::Pool as UnmanagedPool,
+    managed::{Pool as ManagedPool, RecycleResult}
 };
-use futures::future::{FutureExt, TryFutureExt};
-use futures::stream::{iter, repeat_with, unfold, StreamExt};
+use futures::stream::{iter, unfold, StreamExt};
 use rand::thread_rng;
 use rand::seq::SliceRandom;
-use regex::Regex;
-use reqwest::{Client, Error as ReqwestError};
+use reqwest::{Client};
 use select::document::Document;
 use select::predicate::Name;
 use serde::Deserialize;
-use url::{Url, Host, ParseError};
+use url::{Url};
 use url_normalizer::normalize;
 
 use screaper_data::{Connection, ConnectionError, UrlRecord, MarkupRecord, UrlRecordStatus, UrlReferralRecord};
-
-fn is_number(string: String) -> Result<(), String> {
-    let regex = Regex::new(r"^[0-9]+$").unwrap();
-
-    if regex.is_match(&string) {
-        Ok(())
-    } else {
-        Err("the provided value must be a valid number".to_string())
-    }
-}
 
 pub fn app() -> App<'static, 'static> {
     SubCommand::with_name("run")
@@ -76,7 +63,7 @@ impl deadpool::managed::Manager<Connection, ConnectionError> for DatabaseManager
     }
 }
 
-pub async fn run<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
+pub async fn run<'a>(globals: &ArgMatches<'a>, _args: &ArgMatches<'a>) {
 
     let connections = ManagedPool::new(
         DatabaseManager {
@@ -97,9 +84,9 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
 
     let proxy_response: ProxyResponse = reqwest::get("https://raw.githubusercontent.com/scidam/proxy-list/master/proxy.json").await.unwrap().json::<ProxyResponse>().await.unwrap();
     println!("Number of clients {:?}", &proxy_response.proxies.len());
-    let clients = proxy_response.proxies.into_iter().filter(|proxy| proxy.google_error == "no").map(|proxy| Arc::new(
+    let clients = proxy_response.proxies.into_iter().filter(|proxy| proxy.google_error == "no").map(|_proxy| Arc::new(
         Client::builder().timeout(Duration::from_secs(20))
-        // .proxy(reqwest::Proxy::all(&format!("socks5://{}:{}", proxy.ip, proxy.port)).unwrap())
+        //.proxy(reqwest::Proxy::all(&format!("socks5://{}:{}", _proxy.ip, _proxy.port)).unwrap())
         .user_agent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36")
         .build().unwrap()
     )).collect::<Vec<_>>();
@@ -154,13 +141,12 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
             match request_response {
                 Ok(v) => response = v,
                 Err(e) => {
-                    println!("{}", e);
+                    // println!("E1 {:?}", e);
                     record.set_status(UrlRecordStatus::Ready);
                     record.set_retries(record.retries() + 1);
-                    let insert_result = record.save(&connection);
-                    match insert_result {
+                    match record.save(&connection) {
                         Err(e) => {
-                            println!("{}", e);
+                            println!("E2 {:?}", e);
                         }
                         _ => (),
                     }
@@ -174,7 +160,7 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
                 record.set_status(UrlRecordStatus::Failed);
                 match record.save(&connection) {
                     Err(e) => {
-                        println!("{}", e);
+                        println!("E3 {:?}", e);
                     }
                     _ => (),
                 }
@@ -186,11 +172,11 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
             match response.text().await {
                 Ok(document_response) => document = document_response,
                 Err(err) => {
-                    println!("{:?}", err);
+                    println!("E4 {:?}", err);
                     record.set_status(UrlRecordStatus::Failed);
                     match record.save(&connection) {
                         Err(e) => {
-                            println!("{:?}", e);
+                            println!("E5 {:?}", e);
                         }
                         _ => (),
                     }
@@ -231,10 +217,10 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
                                         Ok(parsed_url) => {
                                             collected_urls.insert(parsed_url);
                                         },
-                                        Err(err) => { println!("{:?}", err); }
+                                        Err(err) => { println!("E5.1{:?}", err); }
                                     };
                                 },
-                                Err(err) => { println!("{:?}", err); }
+                                Err(err) => { println!("E6 {:?}", err); }
                             };
                         }
                     },
@@ -268,14 +254,14 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
                                     Err(e) => {
                                         // TODO: Mark as failed
                                         println!("Insert URL Referral Record");
-                                        println!("{:?}", e);
+                                        println!("E7 {:?}", e);
                                     }
                                 }
                             },
                             Err(e) => {
                                 // TODO: Mark as failed
                                 println!("Get or Insert URL Record");
-                                println!("{:?}", e);                        
+                                println!("E8 {:?}", e);                        
                             }
                         }
                     }
@@ -292,18 +278,18 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
                             counter_copy.fetch_add(1 as usize, Ordering::Relaxed);
                         },
                         Err(e) => {
-                            println!("{:?}", e);
+                            println!("E9 {:?}", e);
                         }
                     }
                 },
                 Err(e) => {
                     println!("Failed Insert Markup Record");
-                    println!("{}", e);
+                    println!("E10 {:?}", e);
                     record.set_status(UrlRecordStatus::Failed);
                     match record.save(&connection) {
                         Ok(()) => (),
                         Err(e) => {
-                            println!("{:?}", e);
+                            println!("E11 {:?}", e);
                         }
                     }
                 }
