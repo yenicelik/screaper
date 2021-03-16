@@ -204,7 +204,6 @@ async fn process_single_record(
                     status = UrlRecordStatus::Ignored;
                 } else {
                     status = UrlRecordStatus::Ready;
-
                 }
                 let depth = record.depth() + 1;
 
