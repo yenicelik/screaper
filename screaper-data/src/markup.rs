@@ -6,6 +6,8 @@ use diesel::{
     RunQueryDsl,
 };
 
+#[derive(Debug, Insertable)]
+#[table_name = "markup"]
 pub struct PartialMarkupRecord {
     pub url_id: i32,
     pub raw: String,
@@ -22,12 +24,26 @@ pub struct MarkupRecord {
 }
 
 impl MarkupRecord {
-    pub fn get_or_insert(
+
+    pub fn batch_insert(
+        connection: &PgConnection,
+        partial_markup_records: Vec<PartialMarkupRecord>,
+    ) -> QueryResult<usize> {
+        diesel::insert_into(markup::table)
+            .values(&partial_markup_records)
+            .on_conflict(markup::url_id)
+            .do_update()
+            .set(markup::raw.eq(markup::raw))
+            .returning(markup::all_columns)
+            .execute(connection)
+    }
+
+    pub fn insert(
         connection: &PgConnection,
         url_id: i32,
         raw: &str,
         status: i16,
-    ) -> QueryResult<Self> {
+    ) -> QueryResult<usize> {
         diesel::insert_into(markup::table)
             .values((
                 markup::url_id.eq(url_id),
@@ -39,6 +55,6 @@ impl MarkupRecord {
             .do_update()
             .set(markup::raw.eq(markup::raw))
             .returning(markup::all_columns)
-            .get_result(connection)
+            .execute(connection)
     }
 }

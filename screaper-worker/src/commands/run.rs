@@ -12,7 +12,7 @@
  * Seconds 17960 -- Items 7 -- 2245 requests/s -- 134700 requests/min -- 8_082_000 requests/h -- 193_968_000 requests/day
  * FuturesUnordered: Seconds 39410 -- Items 27 -- 1407.5 requests/s -- 84450 requests/min -- 5_067_000 requests/h -- 121_608_000 requests/day
 */
-use std::{sync::Arc, time::Duration, time::Instant, collections::HashSet};
+use std::{sync::Arc, time::Duration, time::Instant, collections::{HashSet, HashMap} };
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 use clap::{App, ArgMatches, SubCommand};
@@ -30,7 +30,9 @@ use serde::Deserialize;
 use url::{Url};
 use url_normalizer::normalize;
 
-use screaper_data::{Connection, ConnectionError, UrlRecord, MarkupRecord, UrlRecordStatus, UrlReferralRecord, PartialUrlReferralRecord, PartialMarkupRecord};
+use screaper_data::{Connection, ConnectionError, UrlRecord, MarkupRecord, 
+    UrlRecordStatus, PartialUrlReferralRecord, PartialMarkupRecord, 
+    UrlReferralRecord, PartialUrlRecord, PartialInsertableUrlReferralRecord};
 
 pub fn app() -> App<'static, 'static> {
     SubCommand::with_name("run")
@@ -87,6 +89,7 @@ enum RecordOrStringResponseType {
 
 enum SingleRecordType {
     UrlRecord(UrlRecord),
+    PartialUrlRecord(PartialUrlRecord),
     PartialMarkupRecord(PartialMarkupRecord),
     PartialUrlReferralRecord(PartialUrlReferralRecord)
 }
@@ -209,12 +212,18 @@ async fn process_single_record(
 
                 // Create new Partial URL Record, insert
                 // Create new Partial URL Referral Record
-                let partial_referral_record = PartialUrlReferralRecord {
-                    referrer_id: record_id,
+                
+                // Create a Partial URL to be inputter
+                let partial_url_record = PartialUrlRecord {
                     data: parsed_domain.to_owned(),
                     status: status as i16,
                     depth: depth 
                 };
+                let partial_referral_record = PartialUrlReferralRecord {
+                    referrer_id: record_id,
+                    referee_data: partial_url_record.data().to_owned()
+                };
+                output_vector.push(SingleRecordType::PartialUrlRecord(partial_url_record));
                 output_vector.push(SingleRecordType::PartialUrlReferralRecord(partial_referral_record));
             }
         };
@@ -295,7 +304,6 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, _args: &ArgMatches<'a>) {
             async move {
                 tokio::spawn(async move {
 
-                    // let connection = connections.get().await.unwrap();
                     let document_or_record = retrieve_html_dom(
                         client.clone(),
                         &mut record,
@@ -330,26 +338,73 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, _args: &ArgMatches<'a>) {
         .flat_map(|vec| iter(vec))
         .collect::<Vec<_>>().await;
 
-        let mut update_url_record = Vec::new();
-        let mut insert_url_referral_record = Vec::new();
-        let mut insert_url_markup_record = Vec::new();
+        let mut update_url_records: Vec<UrlRecord> = Vec::new();
+        let mut insert_url_records: Vec<PartialUrlRecord> = Vec::new();
+        let mut insert_url_referral_records: Vec<PartialUrlReferralRecord> = Vec::new();
+        let mut insert_url_markup_records = Vec::new();
 
         for partial_record in partial_records {
             match partial_record {
                 SingleRecordType::UrlRecord(url_record) => {
-                    update_url_record.push(url_record);
+                    update_url_records.push(url_record);
+                },
+                SingleRecordType::PartialUrlRecord(url_record) => {
+                    insert_url_records.push(url_record);
                 },
                 SingleRecordType::PartialMarkupRecord(markup_record) => {
-                    insert_url_referral_record.push(markup_record);
+                    insert_url_markup_records.push(markup_record);
                 },
                 SingleRecordType::PartialUrlReferralRecord(partial_url_referral_record) => {
-                    insert_url_markup_record.push(partial_url_referral_record);
+                    insert_url_referral_records.push(partial_url_referral_record);
                 }
             };
         }
 
         // Insert to DB here
-        
+        let connection = connections.get().await.unwrap();
+                
+        // update_url_records
+        let updated_urls = UrlRecord::batch_insert_and_get(
+            &connection, 
+            update_url_records
+        ).unwrap();
+        // insert url records
+        let mut inserted_urls = PartialUrlRecord::batch_insert_and_get(
+            &connection, 
+            insert_url_records
+        ).unwrap();
+        inserted_urls.extend(updated_urls);
+
+        // Hashmap for data to UrlId
+        let mut dictionary: HashMap<String, i32> = HashMap::new();
+        for inserted_url in inserted_urls {
+            dictionary.insert(inserted_url.data().to_string(), inserted_url.id());
+        };
+
+        // Translate the url's to url_id's
+        let mut insert_resolved_referral_records: Vec<PartialInsertableUrlReferralRecord> = Vec::new();
+        for referral_record in insert_url_referral_records {
+            let input_object = PartialInsertableUrlReferralRecord {
+                referrer_id: referral_record.referrer_id,
+                referee_id: *(dictionary.get(&referral_record.referee_data).unwrap())
+            };
+            insert_resolved_referral_records.push(input_object);
+        }
+        let inserted_referral_urls = UrlReferralRecord::batch_insert(&connection, insert_resolved_referral_records);
+        match inserted_referral_urls {
+            Err(err) => println!("{:?}", err),
+            _ => {},
+        }
+
+        // insert_url_referral_records
+        let insert_markup_result = MarkupRecord::batch_insert(
+            &connection, 
+            insert_url_markup_records
+        );
+        match insert_markup_result {
+            Err(err) => println!("{:?}", err),
+            _ => {},
+        }
 
     }).await;    
 }

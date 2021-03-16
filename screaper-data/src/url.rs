@@ -29,7 +29,46 @@ impl From<i16> for UrlRecordStatus {
     }
 }
 
-#[derive(Clone, Debug, Queryable, Insertable, AsChangeset)]
+#[derive(Debug, Insertable)]
+#[table_name = "url"]
+pub struct PartialUrlRecord {
+    pub data: String, // Could this be a URL datatype?
+    pub status: i16,
+    pub depth: i32,
+}
+
+impl PartialUrlRecord {
+    
+    pub fn data(&self) -> &str {
+        &self.data
+    }
+
+}
+
+impl PartialUrlRecord {
+
+    pub fn batch_insert_and_get(
+        connection: &PgConnection,
+        partial_url_records: Vec<PartialUrlRecord>,
+    ) -> QueryResult<Vec<UrlRecord>> {
+        diesel::insert_into(url::table)
+            .values(&partial_url_records)
+            .on_conflict(url::data)
+            .do_update()
+            .set((
+                url::status.eq(url::status),
+                url::retries.eq(url::retries),
+                url::score.eq(url::score),
+                url::depth.eq(url::depth),
+            ))
+            .returning(url::all_columns)
+            .get_results(connection)
+    }
+
+}
+
+
+#[derive(Clone, Debug, Identifiable, Queryable, Insertable, AsChangeset)]
 #[table_name = "url"]
 pub struct UrlRecord {
     pub id: i32,
@@ -94,6 +133,24 @@ impl UrlRecord {
 
 impl UrlRecord {
 
+    pub fn batch_insert_and_get(
+        connection: &PgConnection,
+        url_records: Vec<UrlRecord>,
+    ) -> QueryResult<Vec<UrlRecord>> {
+        diesel::insert_into(url::table)
+            .values(&url_records)
+            .on_conflict(url::data)
+            .do_update()
+            .set((
+                url::status.eq(url::status),
+                url::retries.eq(url::retries),
+                url::score.eq(url::score),
+                url::depth.eq(url::depth),
+            ))
+            .returning(url::all_columns)
+            .get_results(connection)
+    }
+
     pub fn get_or_insert(
         connection: &PgConnection,
         data: &str,
@@ -117,6 +174,17 @@ impl UrlRecord {
             .limit(max as _)
             .load::<UrlRecord>(connection)
     }
+
+    /*
+    pub fn update_urls(connection: &PgConnection, urls: &Vec<Self>) -> QueryResult<usize> {
+        // Make ready before retrieving items
+        let mut list_string = urls.into_iter().map(|x| x.id).fold(String::new(), |acc, x| acc + &x.to_string() + ", ");
+        list_string.pop();
+        list_string.pop();
+        let query = format!("UPDATE url SET status = 1 WHERE url.id IN ({});", list_string);
+        diesel::sql_query(query).execute(connection)
+    }
+    */
 
     pub fn mark_as_processing(connection: &PgConnection, urls: &Vec<Self>) -> QueryResult<usize> {
         // Make ready before retrieving items
