@@ -81,7 +81,7 @@ fn print_progress(counter: &std::sync::Arc<std::sync::atomic::AtomicUsize>, now:
 }
 
 enum RecordOrStringResponseType {
-    UrlRecord(UrlRecord),
+    UrlRecord,
     String(std::string::String)
 }
 
@@ -93,7 +93,7 @@ enum SingleRecordType {
 
 async fn retrieve_html_dom(
     client: std::sync::Arc<reqwest::Client>,
-    mut record: screaper_data::UrlRecord,
+    record: &mut screaper_data::UrlRecord,
     global_counter_copy: std::sync::Arc<std::sync::atomic::AtomicUsize>,
     counter_copy: std::sync::Arc<std::sync::atomic::AtomicUsize>
 ) -> RecordOrStringResponseType {
@@ -111,14 +111,14 @@ async fn retrieve_html_dom(
             // println!("E1 {:?}", e);
             record.set_status(UrlRecordStatus::Ready);
             record.set_retries(record.retries() + 1);
-            return RecordOrStringResponseType::UrlRecord(record);
+            return RecordOrStringResponseType::UrlRecord;
         }
     }
     
     // If unsuccessful, mark as failed
     if !response.status().is_success() {
         record.set_status(UrlRecordStatus::Failed);
-        return RecordOrStringResponseType::UrlRecord(record);
+        return RecordOrStringResponseType::UrlRecord;
     }
 
     // Extract string from HTML document
@@ -130,7 +130,7 @@ async fn retrieve_html_dom(
         Err(err) => {
             println!("E4 {:?}", err);
             record.set_status(UrlRecordStatus::Failed);
-            return RecordOrStringResponseType::UrlRecord(record);
+            return RecordOrStringResponseType::UrlRecord;
         }
     }
 }
@@ -280,7 +280,7 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, _args: &ArgMatches<'a>) {
     })
     .for_each(|block| async {
 
-        let save_tuples = block.map(|record| {
+        let mut partial_records = block.map(|mut record| {
 
             // TODO: Remove this proxy if there are too many failed retries
             let client = clients.choose(&mut thread_rng()).unwrap().clone();
@@ -298,15 +298,15 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, _args: &ArgMatches<'a>) {
                     // let connection = connections.get().await.unwrap();
                     let document_or_record = retrieve_html_dom(
                         client.clone(),
-                        record,
+                        &mut record,
                         global_counter_copy.clone(),
                         counter_copy.clone(),
                     ).await;
 
                     match document_or_record {
-                        RecordOrStringResponseType::UrlRecord(failed_record) => { 
+                        RecordOrStringResponseType::UrlRecord => { 
                             let mut output_vector: Vec<SingleRecordType> = Vec::new();
-                            output_vector.push(SingleRecordType::UrlRecord(failed_record));
+                            output_vector.push(SingleRecordType::UrlRecord(record));
                             output_vector
                         },
                         RecordOrStringResponseType::String(document) => {
@@ -322,12 +322,34 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, _args: &ArgMatches<'a>) {
                         }
                     }
 
-                });
+                }).await
             }
 
         }).collect::<FuturesUnordered<_>>().await
+        .filter_map(|result| async {result.ok()})
+        .flat_map(|vec| iter(vec))
         .collect::<Vec<_>>().await;
 
+        let mut update_url_record = Vec::new();
+        let mut insert_url_referral_record = Vec::new();
+        let mut insert_url_markup_record = Vec::new();
+
+        for partial_record in partial_records {
+            match partial_record {
+                SingleRecordType::UrlRecord(url_record) => {
+                    update_url_record.push(url_record);
+                },
+                SingleRecordType::PartialMarkupRecord(markup_record) => {
+                    insert_url_referral_record.push(markup_record);
+                },
+                SingleRecordType::PartialUrlReferralRecord(partial_url_referral_record) => {
+                    insert_url_markup_record.push(partial_url_referral_record);
+                }
+            };
+        }
+
+        // Insert to DB here
+        
 
     }).await;    
 }
