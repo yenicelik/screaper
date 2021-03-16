@@ -6,6 +6,13 @@ use diesel::{
     Connection, ExpressionMethods, Insertable, QueryResult, Queryable, RunQueryDsl,
 };
 
+pub struct PartialUrlReferralRecord {
+    pub referrer_id: i32,
+    pub data: String, // Could this be a URL datatype?
+    pub status: i16,
+    pub depth: i32,
+}
+
 #[derive(Debug, Queryable, Insertable)]
 #[table_name = "url_referral"]
 pub struct UrlReferralRecord {

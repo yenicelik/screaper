@@ -10,6 +10,7 @@
  * 1000 spiders leads to ca 60k requests / day
  * All inserts commented out: Seconds 680 -- Items 20 -- 32.38095 requests/s -- 1942 requests/min -- 116571 requests/h -- 2797714 requests/day
  * Seconds 17960 -- Items 7 -- 2245 requests/s -- 134700 requests/min -- 8_082_000 requests/h -- 193_968_000 requests/day
+ * FuturesUnordered: Seconds 39410 -- Items 27 -- 1407.5 requests/s -- 84450 requests/min -- 5_067_000 requests/h -- 121_608_000 requests/day
 */
 use std::{sync::Arc, time::Duration, time::Instant, collections::HashSet};
 
@@ -18,7 +19,8 @@ use clap::{App, ArgMatches, SubCommand};
 use deadpool::{
     managed::{Pool as ManagedPool, RecycleResult}
 };
-use futures::stream::{iter, unfold, StreamExt};
+use diesel;
+use futures::stream::{iter, unfold, StreamExt, FuturesUnordered};
 use rand::thread_rng;
 use rand::seq::SliceRandom;
 use reqwest::{Client};
@@ -28,7 +30,7 @@ use serde::Deserialize;
 use url::{Url};
 use url_normalizer::normalize;
 
-use screaper_data::{Connection, ConnectionError, UrlRecord, MarkupRecord, UrlRecordStatus, UrlReferralRecord};
+use screaper_data::{Connection, ConnectionError, UrlRecord, MarkupRecord, UrlRecordStatus, UrlReferralRecord, PartialUrlReferralRecord, PartialMarkupRecord};
 
 pub fn app() -> App<'static, 'static> {
     SubCommand::with_name("run")
@@ -76,6 +78,157 @@ fn print_progress(counter: &std::sync::Arc<std::sync::atomic::AtomicUsize>, now:
             (req_per_sec * 60.0 * 60.0 * 24.0) as i64
         );
     }
+}
+
+enum RecordOrStringResponseType {
+    UrlRecord(UrlRecord),
+    String(std::string::String)
+}
+
+enum SingleRecordType {
+    UrlRecord(UrlRecord),
+    PartialMarkupRecord(PartialMarkupRecord),
+    PartialUrlReferralRecord(PartialUrlReferralRecord)
+}
+
+async fn retrieve_html_dom(
+    client: std::sync::Arc<reqwest::Client>,
+    mut record: screaper_data::UrlRecord,
+    global_counter_copy: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+    counter_copy: std::sync::Arc<std::sync::atomic::AtomicUsize>
+) -> RecordOrStringResponseType {
+
+    global_counter_copy.fetch_add(1 as usize, Ordering::Relaxed);
+
+    let request_response = client.get(record.data()).send().await;
+    let failed = false;
+
+    // Unpack response and mark as failed if cannot unpack
+    let response: reqwest::Response; 
+    match request_response {
+        Ok(v) => response = v,
+        Err(e) => {
+            // println!("E1 {:?}", e);
+            record.set_status(UrlRecordStatus::Ready);
+            record.set_retries(record.retries() + 1);
+            return RecordOrStringResponseType::UrlRecord(record);
+        }
+    }
+    
+    // If unsuccessful, mark as failed
+    if !response.status().is_success() {
+        record.set_status(UrlRecordStatus::Failed);
+        return RecordOrStringResponseType::UrlRecord(record);
+    }
+
+    // Extract string from HTML document
+    // let document: std::string::String;
+    match response.text().await {
+        Ok(document) => {
+            return RecordOrStringResponseType::String(document);
+        },
+        Err(err) => {
+            println!("E4 {:?}", err);
+            record.set_status(UrlRecordStatus::Failed);
+            return RecordOrStringResponseType::UrlRecord(record);
+        }
+    }
+}
+
+async fn process_single_record(
+    client: std::sync::Arc<reqwest::Client>,
+    record: screaper_data::UrlRecord,
+    blacklist_reference_copy: std::sync::Arc<std::collections::HashSet<std::string::String>>,
+    global_counter_copy: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+    counter_copy: std::sync::Arc<std::sync::atomic::AtomicUsize>, 
+    document: std::string::String
+) -> Vec<SingleRecordType> {
+
+    let mut output_vector: Vec<SingleRecordType> = Vec::new();
+
+    // A bunch of logic to extract the links
+    let mut collected_urls: HashSet<Url> = HashSet::new();
+
+    let base_url: String = record.data().to_string();
+    let parsed_base_url: Url = Url::parse(&base_url).unwrap();
+    let base_host = parsed_base_url.host_str().unwrap();
+    let base_origin_string: String = parsed_base_url.scheme().to_string() + &"://".to_string() + &base_host;
+    let parsed_base_origin: Url = Url::parse(&base_origin_string).unwrap();
+
+    // Parse all href links from the response 
+    Document::from(document.as_str())
+    .find(Name("a"))
+    .filter_map(|n| n.attr("href"))
+    .for_each(|x| {
+        
+        // If no base-url, include it
+        let mut current_url: String = x.to_string();
+
+        // TODO take out all utm parameters (see python code) 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'
+        match current_url.chars().next() {
+            Some(v) => {
+                if v == '/' || (current_url.len() > 3 && &current_url[..4] != "http") {
+                    current_url = parsed_base_origin.join(current_url.as_str()).unwrap().to_string();
+                } 
+                if v != '#' && base_url != "javascript:void(0)" {
+                    // Turn x into a URL object
+                    match Url::parse(&current_url) {
+                        Ok(parsed_url) => {
+                            let normalized_url = normalize(parsed_url);
+                            match normalized_url {
+                                Ok(parsed_url) => {
+                                    collected_urls.insert(parsed_url);
+                                },
+                                Err(err) => { println!("E5.1{:?}", err); }
+                            };
+                        },
+                        Err(err) => { println!("E6 {:?}", err); }
+                    };
+                }
+            },
+            _ => (),
+        }
+    });
+
+    let record_id = record.id();
+    // For all collected urls, insert them into the database
+    for url in &collected_urls {
+
+        match url.host_str() {
+            None => (),
+            Some(parsed_domain) => {
+                        
+                let status: UrlRecordStatus;
+                // Maybe apply faster logic somehow
+                if blacklist_reference_copy.contains(&parsed_domain.to_owned()) || url.cannot_be_a_base() {
+                    status = UrlRecordStatus::Ignored;
+                } else {
+                    status = UrlRecordStatus::Ready;
+
+                }
+                let depth = record.depth() + 1;
+
+                // Create new Partial URL Record, insert
+                // Create new Partial URL Referral Record
+                let partial_referral_record = PartialUrlReferralRecord {
+                    referrer_id: record_id,
+                    data: parsed_domain.to_owned(),
+                    status: status as i16,
+                    depth: depth 
+                };
+                output_vector.push(SingleRecordType::PartialUrlReferralRecord(partial_referral_record));
+            }
+        };
+    };
+
+    // Create a PartialMarkupRecord
+    let new_markup_record = PartialMarkupRecord {
+        url_id: record_id,
+        raw: document
+    };
+    output_vector.push(SingleRecordType::PartialMarkupRecord(new_markup_record));
+
+    return output_vector;
 }
 
 pub async fn run<'a>(globals: &ArgMatches<'a>, _args: &ArgMatches<'a>) {
@@ -128,9 +281,7 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, _args: &ArgMatches<'a>) {
     })
     .for_each(|block| async {
 
-        // let to_be_updates: Vec<_> = Vec::new();
-
-        block.for_each_concurrent(number_of_spiders, |mut record| {
+        let save_tuples = block.map(|record| {
 
             // TODO: Remove this proxy if there are too many failed retries
             let client = clients.choose(&mut thread_rng()).unwrap().clone();
@@ -144,180 +295,41 @@ pub async fn run<'a>(globals: &ArgMatches<'a>, _args: &ArgMatches<'a>) {
 
             async move {
                 tokio::spawn(async move {
-                    global_counter_copy.fetch_add(1 as usize, Ordering::Relaxed);
 
-                    let request_response = client.get(record.data()).send().await;
-                    let connection = connections.get().await.unwrap();
+                    // let connection = connections.get().await.unwrap();
+                    let document_or_record = retrieve_html_dom(
+                        client.clone(),
+                        record,
+                        global_counter_copy.clone(),
+                        counter_copy.clone(),
+                    ).await;
 
-                    // Unpack response and mark as failed if cannot unpack
-                    let response: reqwest::Response; 
-                    match request_response {
-                        Ok(v) => response = v,
-                        Err(e) => {
-                            // println!("E1 {:?}", e);
-                            record.set_status(UrlRecordStatus::Ready);
-                            record.set_retries(record.retries() + 1);
-                            /*
-                            match record.save(&connection) {
-                                Err(e) => {
-                                    println!("E2 {:?}", e);
-                                }
-                                _ => (),
-                            }
-                            */
-                            return;
-                        }
-                    }
-
-                    // If unsuccessful, mark as failed
-                    if !response.status().is_success() {
-                        record.set_status(UrlRecordStatus::Failed);
-                        /*
-                        match record.save(&connection) {
-                            Err(e) => {
-                                println!("E3 {:?}", e);
-                            }
-                            _ => (),
-                        }
-                        */
-                        return;
-                    }
-
-                    // Extract string from HTML document
-                    let document: std::string::String;
-                    match response.text().await {
-                        Ok(document_response) => document = document_response,
-                        Err(err) => {
-                            println!("E4 {:?}", err);
-                            record.set_status(UrlRecordStatus::Failed);
-                            /*
-                            match record.save(&connection) {
-                                Err(e) => {
-                                    println!("E5 {:?}", e);
-                                }
-                                _ => (),
-                            }
-                            */
-                            return;
-                        }
-                    }
-
-                    // A bunch of logic to extract the links
-                    let mut collected_urls: HashSet<Url> = HashSet::new();
-
-                    let base_url: String = record.data().to_string();
-                    let parsed_base_url: Url = Url::parse(&base_url).unwrap();
-                    let base_host = parsed_base_url.host_str().unwrap();
-                    let base_origin_string: String = parsed_base_url.scheme().to_string() + &"://".to_string() + &base_host;
-                    let parsed_base_origin: Url = Url::parse(&base_origin_string).unwrap();
-        
-                    // Parse all href links from the response 
-                    Document::from(document.as_str())
-                    .find(Name("a"))
-                    .filter_map(|n| n.attr("href"))
-                    .for_each(|x| {
-                        
-                        // If no base-url, include it
-                        let mut current_url: String = x.to_string();
-        
-                        // TODO take out all utm parameters (see python code) 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'
-                        match current_url.chars().next() {
-                            Some(v) => {
-                                if v == '/' || (current_url.len() > 3 && &current_url[..4] != "http") {
-                                    current_url = parsed_base_origin.join(current_url.as_str()).unwrap().to_string();
-                                } 
-                                if v != '#' && base_url != "javascript:void(0)" {
-                                    // Turn x into a URL object
-                                    match Url::parse(&current_url) {
-                                        Ok(parsed_url) => {
-                                            let normalized_url = normalize(parsed_url);
-                                            match normalized_url {
-                                                Ok(parsed_url) => {
-                                                    collected_urls.insert(parsed_url);
-                                                },
-                                                Err(err) => { println!("E5.1{:?}", err); }
-                                            };
-                                        },
-                                        Err(err) => { println!("E6 {:?}", err); }
-                                    };
-                                }
-                            },
-                            _ => (),
-                        }
-                    });
-
-                    // For all collected urls, insert them into the database
-                    for url in &collected_urls {
-
-                        let mut status: UrlRecordStatus = UrlRecordStatus::Ready;
-                        let depth;
-                        match url.host_str() {
-                            None => (),
-                            Some(parsed_domain) => {
-                                        
-                                // Maybe apply faster logic somehow
-                                if blacklist_reference_copy.contains(&parsed_domain.to_owned()) || url.cannot_be_a_base() {
-                                    status = UrlRecordStatus::Ignored;
-                                }
-                                depth = record.depth() + 1;
-            
-                                // Save all newly found URLs into the database
-                                /*
-                                let url_record_response = UrlRecord::get_or_insert(&connection, url.as_str(), status, depth as i32);
-                                match url_record_response {
-                                    Ok(url_record) => {
-                                        // Save all newly found URLs into the database queue
-                                        let insert_result = UrlReferralRecord::get_or_insert(&connection, record.id(), url_record.id(), 1);
-                                        match insert_result {
-                                            Ok(_) => (),
-                                            Err(e) => {
-                                                // TODO: Mark as failed
-                                                println!("Insert URL Referral Record");
-                                                println!("E7 {:?}", e);
-                                            }
-                                        }
-                                    },
-                                    Err(e) => {
-                                        // TODO: Mark as failed
-                                        println!("Get or Insert URL Record");
-                                        println!("E8 {:?}", e);                        
-                                    }
-                                }
-                                */
-                            }
-                        }
-                    };
-
-                    let insert_result = MarkupRecord::get_or_insert(&connection, record.id(), &document.to_string(), 0 as i16);
-                    match insert_result {
-                        Ok(_) => {
-                            record.set_status(UrlRecordStatus::Processed);
-                            match record.save(&connection) {
-                                Ok(()) => {
-                                    counter_copy.fetch_add(1 as usize, Ordering::Relaxed);
-                                },
-                                Err(e) => {
-                                    println!("E9 {:?}", e);
-                                }
-                            }
+                    match document_or_record {
+                        RecordOrStringResponseType::UrlRecord(failed_record) => { 
+                            let mut output_vector: Vec<SingleRecordType> = Vec::new();
+                            output_vector.push(SingleRecordType::UrlRecord(failed_record));
+                            output_vector
                         },
-                        Err(e) => {
-                            println!("Failed Insert Markup Record");
-                            println!("E10 {:?}", e);
-                            record.set_status(UrlRecordStatus::Failed);
-                            match record.save(&connection) {
-                                Ok(()) => (),
-                                Err(e) => {
-                                    println!("E11 {:?}", e);
-                                }
-                            }
+                        RecordOrStringResponseType::String(document) => {
+                            let output_vector: Vec<SingleRecordType> = process_single_record(
+                                client,
+                                record,
+                                blacklist_reference_copy,
+                                global_counter_copy,
+                                counter_copy,
+                                document
+                            ).await;
+                            output_vector
                         }
-                    };
+                    }
 
                 });
             }
 
-        }).await;
+        }).collect::<FuturesUnordered<_>>().await
+        .collect::<Vec<_>>().await;
+
+
     }).await;    
 }
 
@@ -325,3 +337,62 @@ pub async fn main<'a>(globals: &ArgMatches<'a>, args: &ArgMatches<'a>) {
     println!("Starting run...");
     run(globals, args).await;
 }
+
+// Save all newly found URLs into the database
+/*
+let url_record_response = UrlRecord::get_or_insert(&connection, url.as_str(), status, depth as i32);
+match url_record_response {
+    Ok(url_record) => {
+        // Save all newly found URLs into the database queue
+        let insert_result = UrlReferralRecord::get_or_insert(&connection, record.id(), url_record.id(), 1);
+        match insert_result {
+            Ok(_) => (),
+            Err(e) => {
+                // TODO: Mark as failed
+                println!("Insert URL Referral Record");
+                println!("E7 {:?}", e);
+            }
+        }
+    },
+    Err(e) => {
+        // TODO: Mark as failed
+        println!("Get or Insert URL Record");
+        println!("E8 {:?}", e);                        
+    }
+}
+*/
+
+/*
+let insert_result = MarkupRecord::get_or_insert(&connection, record.id(), &document.to_string(), 0 as i16);
+match insert_result {
+    Ok(_) => {
+        record.set_status(UrlRecordStatus::Processed);
+        match record.save(&connection) {
+            Ok(()) => {
+                counter_copy.fetch_add(1 as usize, Ordering::Relaxed);
+            },
+            Err(e) => {
+                println!("E9 {:?}", e);
+            }
+        }
+    },
+    Err(e) => {
+        println!("Failed Insert Markup Record");
+        println!("E10 {:?}", e);
+        record.set_status(UrlRecordStatus::Failed);
+        match record.save(&connection) {
+            Ok(()) => (),
+            Err(e) => {
+                println!("E11 {:?}", e);
+            }
+        }
+    }
+}*/
+/*
+    match record.save(&connection) {
+        Err(e) => {
+            println!("E5 {:?}", e);
+        }
+        _ => (),
+    }
+*/

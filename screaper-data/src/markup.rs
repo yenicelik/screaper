@@ -6,6 +6,11 @@ use diesel::{
     RunQueryDsl,
 };
 
+pub struct PartialMarkupRecord {
+    pub url_id: i32,
+    pub raw: String,
+}
+
 #[derive(Debug, Queryable, Insertable)]
 #[table_name = "markup"]
 pub struct MarkupRecord {
