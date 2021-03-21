@@ -171,9 +171,19 @@ async fn process_single_record(
         match current_url.chars().next() {
             Some(v) => {
                 if v == '/' || (current_url.len() > 3 && &current_url[..4] != "http") {
-                    current_url = parsed_base_origin.join(current_url.as_str()).unwrap().to_string();
+                    let joined_url = parsed_base_origin.join(current_url.as_str());
+                    match joined_url {
+                        Err(err) => {
+                            println!("E1 {:?} {:?} {:?} {:?}", err, parsed_base_origin, current_url, joined_url);
+                            // Skip this URL if there is an error
+                            current_url = "".to_string();
+                        },
+                        Ok(joined_url) => {
+                            current_url = joined_url.to_string();    
+                        }
+                    }
                 } 
-                if v != '#' && base_url != "javascript:void(0)" {
+                if v != '#' && base_url != "javascript:void(0)" && current_url != "" {
                     // Turn x into a URL object
                     match Url::parse(&current_url) {
                         Ok(parsed_url) => {
