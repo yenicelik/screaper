@@ -19,6 +19,8 @@ class User(UserMixin, db.Model):
     password = db.Column(db.String(120), nullable=False)
     email = db.Column(db.String(64))
 
+    # TODO: Make a connection to the customer type
+
 
 class Part(db.Model, SerializerMixin):
     # Whenever a new catalogue comes in, just append these parts! (and update the timestamp)

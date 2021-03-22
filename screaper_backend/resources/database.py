@@ -29,16 +29,17 @@ class Database:
         #     OrderItem
         # ]
 
-        # Create all tables (DEV)
-        if dev:
-            db.create_all()
-
         self.session = self.db.session
-
-        # Populate tables (?) Probably not, actually
-        self._populate_union_special_partslist_into_db()
-        self._create_mock_customers()
-        self._create_mock_order()
+        # Create all tables (DEV)
+        #
+        # if dev:
+        #     db.create_all()
+        #
+        #
+        # # Populate tables (?) Probably not, actually
+        # self._populate_union_special_partslist_into_db()
+        # self._create_mock_customers()
+        # self._create_mock_order()
 
         # Count number of items in the tables
         print("Count Order: ", self.session.query(Order).count())

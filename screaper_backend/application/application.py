@@ -3,11 +3,10 @@ import json
 
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, Response
-from flask_login import LoginManager, login_required
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 
-from werkzeug.security import check_password_hash
+from screaper_backend.resources.firebase_wrapper import check_authentication_token
 
 load_dotenv()
 
@@ -18,42 +17,19 @@ application.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(application)
 CORS(application)
 
-login_manager = LoginManager()
-# login_manager.login_view = 'auth.login'
-login_manager.init_app(application)
-
 from screaper_backend.algorithms.product_similarity import AlgorithmProductSimilarity
-from screaper_backend.application.authentication import authentication_token, whitelisted_ips
 from screaper_backend.exporter.exporter_offer_excel import ExporterOfferExcel
 from screaper_backend.models.orders import model_orders
 from screaper_backend.models.customers import model_customers
 from screaper_backend.models.parts import model_parts
-from screaper_backend.models.users import model_users
 from screaper_backend.resources.database import screaper_database
 
 # Algorithms
 algorithm_product_similarity = AlgorithmProductSimilarity()
 
-# TODO: Will this do the trick?
-@login_manager.user_loader
 def load_user(user_id):
     # since the user_id is just the primary key of our user table, use it in the query for the user
     return screaper_database.User.query.get(int(user_id))
-
-
-def authenticate(request):
-    header_token = request.headers.get('token')
-    if header_token not in authentication_token:
-        return jsonify({
-            "errors": ["Permission denied", str(request.headers)]
-        }), 403
-
-    # if str(request.remote_addr) not in whitelisted_ips:
-    #     return jsonify({
-    #         "errors": ["Permission denied", request.headers]
-    #     }), 403
-
-    return None
 
 
 def check_property_is_included(input_json, property_name, type_def):
@@ -94,42 +70,13 @@ def healthcheckpoint():
         }
 
     """
-    tmp = authenticate(request)
-    if tmp is not None:
-        return tmp
-
     return jsonify({
         "response": "API is up and running!"
     }), 200
 
 
-@application.route('/login', methods=['POST'])
-def login():
-    username = str(request.form.get('username'))
-    password = str(request.form.get('password'))
-    remember = True if request.form.get('remember') else False
-
-    user = model_users.user_by_username(username)
-
-    if not user:
-        return jsonify({
-            "errors": [f"Username Password combination wrong!!"]
-        }), 400
-
-    if check_password_hash(user.password, password):
-        # Provide token to the front-end application
-
-        return jsonify({
-            "errors": [f"Username Password combination wrong!"]
-        }), 400
-
-    return jsonify({
-        "errors": [f"Username Password combination wrong!"]
-    }), 400
-
-
 @application.route('/products', methods=["GET", "POST"])
-@login_required
+@check_authentication_token
 def list_products():
     """
         Example request could look as follows:
@@ -138,10 +85,6 @@ def list_products():
         }
 
     """
-    tmp = authenticate(request)
-    if tmp is not None:
-        return tmp
-
     try:
         input_json = json.loads(request.data, strict=False)
     except Exception as e:
@@ -185,7 +128,7 @@ def list_products():
 
 
 @application.route('/orders-get', methods=["GET", "POST"])
-@login_required
+@check_authentication_token
 def orders_get():
     """
         Example request could look as follows:
@@ -194,10 +137,6 @@ def orders_get():
         }
 
     """
-    tmp = authenticate(request)
-    if tmp is not None:
-        return tmp
-
     try:
         input_json = json.loads(request.data, strict=False)
     except Exception as e:
@@ -231,19 +170,14 @@ def orders_get():
 
 
 @application.route('/customers-get', methods=["GET", "POST"])
-@login_required
+@check_authentication_token
 def customers_get():
     """
         Example request could look as follows:
         {
             "user_uuid": "b6347351-7fbb-406b-9b4d-4e90e9021834"
         }
-
     """
-    tmp = authenticate(request)
-    if tmp is not None:
-        return tmp
-
     try:
         input_json = json.loads(request.data, strict=False)
     except Exception as e:
@@ -253,19 +187,6 @@ def customers_get():
         }), 400
 
     print("Got request: ", input_json)
-
-    if "user_uuid" not in input_json:
-        return jsonify({
-            "errors": ["user_uuid not fund!", str(input_json)]
-        }), 400
-
-    if not input_json["user_uuid"]:
-        return jsonify({
-            "errors": ["user_uuid empty!", str(input_json)]
-        }), 400
-
-    # Ignore input, and return all mockups
-    user_uuid = input_json["user_uuid"]
 
     out = model_customers.customers()
     # Turn into one mega-dictionary per object
@@ -277,7 +198,7 @@ def customers_get():
 
 
 @application.route('/orders-post', methods=["GET", "POST"])
-@login_required
+@check_authentication_token
 def orders_post():
     """
         Example request could look as follows:
@@ -316,10 +237,6 @@ def orders_post():
         }
 
     """
-    tmp = authenticate(request)
-    if tmp is not None:
-        return tmp
-
     try:
         input_json = json.loads(request.data, strict=False)
     except Exception as e:
