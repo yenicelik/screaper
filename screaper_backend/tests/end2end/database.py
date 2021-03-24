@@ -3,13 +3,11 @@
 """
 
 import unittest
-from random import random
-
-from screaper_backend.application.application import db
 
 from screaper_backend.models.customers import model_customers
 from screaper_backend.models.orders import model_orders
 from screaper_backend.resources.database import screaper_database
+from screaper_backend.scripts.database.initialize_mock import _create_mock_customers, _create_mock_order
 
 
 class TestDatabase(unittest.TestCase):
@@ -67,6 +65,10 @@ class TestDatabase(unittest.TestCase):
 
     def test_order_submit(self):
 
+        # Create mock customers
+        _create_mock_customers(screaper_database)
+        _create_mock_order(screaper_database)
+
         customer_username = "gulsan_sentetik"
         reference = "REF MCY-GÜLSAN"
         items = self.item_set_1()
@@ -91,7 +93,7 @@ class TestDatabase(unittest.TestCase):
 
         # Check number of customers
         customers = model_customers.customers()
-        assert len(customers) == 3, (len(customers), customers)
+        assert len(customers) == 175, (len(customers), customers)
 
         # Check number of orders
         orders = model_orders.orders()

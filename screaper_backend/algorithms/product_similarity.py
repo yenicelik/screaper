@@ -1,9 +1,10 @@
 """
     Part Similarity Algorithm
 """
-from screaper_backend.models.parts import model_parts
-from screaper_backend.models.product_similarity import ProductSimilarity
+import gc
 
+from screaper_backend.models.product_similarity import ProductSimilarity
+from screaper_backend.models.parts import model_parts
 
 class AlgorithmProductSimilarity:
 
@@ -17,6 +18,8 @@ class AlgorithmProductSimilarity:
 
         # Populate the language model with the searchstring from the part_list
         self.model_tfidf.fit(model_parts.searchstring_list())
+        model_parts._searchstring = None  # Garbagecollect then
+        gc.collect()
 
     def predict(self, query):
 

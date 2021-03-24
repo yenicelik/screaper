@@ -6,9 +6,9 @@ import datetime
 
 from flask_login import UserMixin
 from sqlalchemy_serializer import SerializerMixin
-from screaper_backend.application.application import db
 
-# TODO: Add NOT NULL declarations
+from screaper_backend.application import db
+
 
 class User(UserMixin, db.Model):
 
