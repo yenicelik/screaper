@@ -60,6 +60,29 @@ def check_property_is_included(input_json, property_name, type_def):
 
     return None
 
+def check_property_is_included_formdata(input_json, property_name, type_def, multiple=False):
+    assert property_name, property_name
+
+    if not input_json.get(property_name):
+        return jsonify({
+            "errors": [f"{property_name} not found or empty!", str(input_json)]
+        }), 400
+
+    if type_def == float:
+        if not isinstance(input_json.get(property_name), float) and not isinstance(input_json.get(property_name), int):
+            return jsonify({
+                "errors": [f"{property_name} not of type {type_def}!", str(type(input_json.get(property_name))),
+                           str(input_json)]
+            }), 400
+    else:
+        if not isinstance(input_json.get(property_name), type_def):
+            return jsonify({
+                "errors": [f"{property_name} not of type {type_def}!", str(type(input_json.get(property_name))),
+                           str(input_json)]
+            }), 400
+
+    return None
+
 
 @application.route('/')
 def healthcheckpoint():
@@ -237,8 +260,9 @@ def orders_post():
         }
 
     """
+
     try:
-        input_json = json.loads(request.data, strict=False)
+        input_json = request.form
     except Exception as e:
         print("Request body could not be parsed!", str(e), str(request.data))
         return jsonify({
@@ -247,19 +271,25 @@ def orders_post():
 
     print("Got request: ", input_json)
 
-    err = check_property_is_included(input_json, "user_uuid", type_def=str)
+    # Ignore input, and return all mockups
+    user_uuid = input_json.get("user_uuid")
+    reference = input_json.get("reference")
+    customer_username = input_json.get("customer_username")
+    items = input_json.getlist("items")
+
+    err = check_property_is_included_formdata(input_json, "user_uuid", type_def=str)
     if err is not None:
         return err
 
-    err = check_property_is_included(input_json, "items", type_def=list)
+    # err = check_property_is_included_formdata(input_json, "items", type_def=list)
+    # if err is not None:
+    #     return err
+
+    err = check_property_is_included_formdata(input_json, "customer_username", type_def=str)
     if err is not None:
         return err
 
-    err = check_property_is_included(input_json, "customer_username", type_def=str)
-    if err is not None:
-        return err
-
-    err = check_property_is_included(input_json, "reference", type_def=str)
+    err = check_property_is_included_formdata(input_json, "reference", type_def=str)
     if err is not None:
         return err
 
@@ -290,19 +320,27 @@ def orders_post():
         ("total_final_profit", float),  # number
     ]
 
-    for item_json in input_json['items']:
+    if not items or len(items) == 0:
+        return jsonify({
+            "errors": ["No items found in request!", str(items), str(request.form)]
+        }), 400
+
+    # decode the json into json objects
+    # Also pass try catc around this?
+    items = [json.loads(x) for x in items]
+    items = sorted(items, key=lambda x: x['sequence_order'])
+
+    # Check all types for items now
+    for item_json in items:
+        # turn into json
         for item_name, item_type in item_key_value_pairs:
+            print("Item types are: ")
+            print(items)
+            print(item_name)
+            print(item_type)
             err = check_property_is_included(item_json, item_name, type_def=item_type)
             if err is not None:
                 return err
-
-    # Ignore input, and return all mockups
-    user_uuid = input_json["user_uuid"]
-    reference = input_json["reference"]
-    customer_username = input_json["customer_username"]
-
-    items = input_json["items"]
-    items = sorted(items, key=lambda x: x['sequence_order'])
 
     # Check if customer username is existent
     customers = model_customers.customer_usernames()

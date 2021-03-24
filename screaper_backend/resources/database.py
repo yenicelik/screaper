@@ -327,6 +327,7 @@ class Database:
         print("Customers are: ", customers)
 
         # Expand this object to a tree-like structure
+        # Only select top 50 orders
         out = []
         for customer in customers:
             print(customer)
@@ -354,6 +355,8 @@ class Database:
         print("Orders out are:")
         for order in out[:5]:
             print(order)
+
+        out = out[:20]
 
         return out
 
