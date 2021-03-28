@@ -96,6 +96,8 @@ class Order(db.Model, SerializerMixin):
 
     rel_order_items = db.relationship('OrderItem', backref='owner')
 
+    rel_files = db.relationship('FileRecord', back_populates="order")
+
 
 class OrderItem(db.Model, SerializerMixin):
     __tablename__ = 'order_items'
@@ -111,3 +113,16 @@ class OrderItem(db.Model, SerializerMixin):
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
     rel_part = db.relationship("Part", uselist=False, back_populates="_children")
+
+
+class FileRecord(UserMixin, db.Model):
+
+    __tablename__ = "files"
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True)
+    file = db.Column(db.LargeBinary(), nullable=False)
+    filename = db.Column(db.String(), nullable=False)
+    order_id = db.Column(db.Integer, db.ForeignKey("orders.id"))
+
+    order = db.relationship("Order", back_populates="rel_files")
+

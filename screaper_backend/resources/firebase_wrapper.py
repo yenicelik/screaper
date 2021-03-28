@@ -66,7 +66,6 @@ class FirebaseWrapper:
         else:
             return False
 
-
 firebase_wrapper = FirebaseWrapper()
 
 if __name__ == "__main__":

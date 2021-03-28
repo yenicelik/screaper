@@ -18,6 +18,7 @@ class Customers:
         return self._customers
 
     def customer_usernames(self):
+        print("Customer usernames are: ", [x["user_name"] for x in self._customers])
         return set(x["user_name"]for x in self._customers)
 
     def customer_by_username(self, username):

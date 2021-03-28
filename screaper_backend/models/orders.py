@@ -1,7 +1,9 @@
 """
     Get orders for a certain user
 """
+
 from dotenv import load_dotenv
+from werkzeug.datastructures import FileStorage
 
 from screaper_backend.resources.database import screaper_database
 
@@ -18,7 +20,12 @@ class Orders:
         self._orders = screaper_database.read_orders()
         return self._orders
 
-    def create_order(self, customer_username, reference, order_items):
+    # Also insert files if there are any
+    def create_order(self, customer_username, reference, order_items, files):
+
+        if files is not None:
+            assert isinstance(files, dict), files
+
         # Get customer object
         customer = screaper_database.read_customers_by_customer_username(username=customer_username)
 
@@ -39,9 +46,18 @@ class Orders:
                 item_single_price=order_item["item_single_price"]
             )
 
-        screaper_database.session.commit()
-
         print(f"Crated {i} new order items")
+        i = 0
+        for filename, file in files.items():
+            i += 1
+            assert isinstance(file, FileStorage), (file, type(file))
+            screaper_database.create_file_item(
+                order=order,
+                file=file.read(),
+                filename=filename
+            )
+
+        screaper_database.session.commit()
 
         # Make sure that there are more items in the database now (?)
 

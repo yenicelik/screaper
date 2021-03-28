@@ -2,6 +2,8 @@
     Union Special Data Importer
 """
 import os
+import random
+
 import pandas as pd
 import uuid
 from dotenv import load_dotenv
@@ -62,6 +64,11 @@ class DataImporterBakerCustomers:
 
         print("self df is: ")
         print(self.df.head())
+
+        # Create the same kind of UUIDs each time by setting the random seed
+        rd = random.Random()
+        rd.seed(0)
+        uuid.uuid4 = lambda: uuid.UUID(int=rd.getrandbits(128))
 
         self.df['user_name'] = self.df['user_name'].apply(lambda x: str(uuid.uuid4()))
 

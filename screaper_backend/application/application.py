@@ -1,19 +1,12 @@
 import json
+import random
 
 from flask import jsonify, request, Response
 
+from werkzeug.utils import secure_filename
+
 from screaper_backend.resources.firebase_wrapper import check_authentication_token
 
-load_dotenv()
-
-# These need to run before further imports, otherwise circular (maybe just put them into __init__
-application = Flask(__name__)
-application.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DatabaseUrlApplication')
-application.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(application)
-CORS(application)
-
-from screaper_backend.algorithms.product_similarity import AlgorithmProductSimilarity
 from screaper_backend.exporter.exporter_offer_excel import ExporterOfferExcel
 
 from screaper_backend.models.orders import model_orders
@@ -23,13 +16,9 @@ from screaper_backend.algorithms.product_similarity import AlgorithmProductSimil
 
 from screaper_backend.application import application
 
+ALLOWED_EXTENSIONS = {'pdf'}  # later also add excel format 'txt' 'png', 'jpg', 'jpeg'
 # Algorithms
 algorithm_product_similarity = AlgorithmProductSimilarity()
-
-def load_user(user_id):
-    # since the user_id is just the primary key of our user table, use it in the query for the user
-    return screaper_database.User.query.get(int(user_id))
-
 
 def check_property_is_included(input_json, property_name, type_def):
     assert property_name, property_name
@@ -106,7 +95,6 @@ def check_optional_property(input_json, property_name, type_def):
             }), 400
 
     return None
-
 
 
 @application.route('/')
@@ -249,6 +237,9 @@ def customers_get():
 @check_authentication_token
 def orders_post():
     """
+        good tutorial on how to read in form data
+        https://stackoverflow.com/questions/10434599/get-the-data-received-in-a-flask-request
+
         Example request could look as follows:
         {
             "user_uuid": "b6347351-7fbb-406b-9b4d-4e90e9021834"
@@ -287,34 +278,74 @@ def orders_post():
     """
 
     try:
-        input_json = request.form
+        input_form_data = request.form
+        input_form_files = request.files
     except Exception as e:
         print("Request body could not be parsed!", str(e), str(request.data))
         return jsonify({
             "errors": ["Request body could not be parsed!", str(e), str(request.data)]
         }), 400
 
-    print("Got request: ", input_json)
+    print("Got request: ", input_form_data)
+    print("Files are: ", input_form_files)
+
+
+    ######################
+    #
+    # HANDLE FILE IF ANY
+    #
+    ######################
+
+    files = {}
+    if input_form_files:
+        print("File was provided!", input_form_files)
+
+        _files = request.files
+        _files = {k: v for k, v in _files.items()}
+
+        print("Files are: ", _files)
+
+        # if user does not select file, browser also
+        # submit an empty part without filename
+        for filename, file in _files.items():
+
+            print("Looking at file: ", file)
+
+            if filename == '':
+                return jsonify({
+                    "errors": ["No File provided!", str(input_form_files)]
+                }), 400
+
+            filename = secure_filename(file.filename)
+            if filename == '':
+                return jsonify({
+                    "errors": ["No File provided!", str(input_form_files)]
+                }), 400
+
+            filename = str(random.randint(10000, 99999)) + "_" + filename
+
+            # Change this to saving the file in the filesystem (or as a blob), and referencing this save in the database
+            # import os
+            # file.save(os.path.join("/Users/david/screaper/data", filename))
+            files[filename] = file
+    else:
+        print("No files provided!", input_form_files)
 
     # Ignore input, and return all mockups
-    user_uuid = input_json.get("user_uuid")
-    reference = input_json.get("reference")
-    customer_username = input_json.get("customer_username")
-    items = input_json.getlist("items")
+    user_uuid = input_form_data.get("user_uuid")
+    reference = input_form_data.get("reference")
+    customer_username = input_form_data.get("customer_username")
+    items = input_form_data.getlist("items")
 
-    err = check_property_is_included_formdata(input_json, "user_uuid", type_def=str)
+    err = check_property_is_included_formdata(input_form_data, "user_uuid", type_def=str)
     if err is not None:
         return err
 
-    # err = check_property_is_included_formdata(input_json, "items", type_def=list)
-    # if err is not None:
-    #     return err
-
-    err = check_property_is_included_formdata(input_json, "customer_username", type_def=str)
+    err = check_property_is_included_formdata(input_form_data, "customer_username", type_def=str)
     if err is not None:
         return err
 
-    err = check_property_is_included_formdata(input_json, "reference", type_def=str)
+    err = check_property_is_included_formdata(input_form_data, "reference", type_def=str)
     if err is not None:
         return err
 
@@ -358,58 +389,55 @@ def orders_post():
             if err is not None:
                 return err
 
-    optional_item_key_value_pairs = [
-        ("manufacturer_status", str),  # string
-        ("manufacturer_stock", float),  # string
-        ("weight_in_g", float),  # number
-        ("replaced_by", str),  # string
-        ("changes", float),  # number
-        ("shortcut", str),  # string
-        ("hs_code", str),  # string
-        ("important", str),  # string
-        ("description_de", str),  # string
-    ]
-    for item_json in input_json['items']:
-        for item_name, item_type in optional_item_key_value_pairs:
-            err = check_optional_property(item_json, item_name, type_def=item_type)
-            if err is not None:
-                return err
+    # optional_item_key_value_pairs = [
+    #     ("manufacturer_status", str),  # string
+    #     ("manufacturer_stock", float),  # string
+    #     ("weight_in_g", float),  # number
+    #     ("replaced_by", str),  # string
+    #     ("changes", float),  # number
+    #     ("shortcut", str),  # string
+    #     ("hs_code", str),  # string
+    #     ("important", str),  # string
+    #     ("description_de", str),  # string
+    # ]
+    # for item_json in input_json['items']:
+    #     for item_name, item_type in optional_item_key_value_pairs:
+    #         err = check_optional_property(item_json, item_name, type_def=item_type)
+    #         if err is not None:
+    #             return err
 
-    # Ignore input, and return all mockups
-    user_uuid = input_json["user_uuid"]
-    reference = input_json["reference"]
-    customer_username = input_json["customer_username"]
-
-    items = input_json["items"]
-    items = sorted(items, key=lambda x: x['sequence_order'])
+    # email = request.user['email']
+    #
+    # # Based on the email
 
     # Check if customer username is existent
     customers = model_customers.customer_usernames()
     if customer_username not in customers:
-        print(f"customer_username not recognized!!", str(customer_username), str(input_json))
+        print(f"customer_username not recognized!!", str(customer_username), str(input_form_data))
         return jsonify({
-            "errors": [f"customer_username not recognized!!", str(customer_username), str(input_json)]
+            "errors": [f"customer_username not recognized!!", str(customer_username), str(input_form_data)]
         }), 400
 
     if not reference:
-        print(f"reference not recognized!!", str(reference), str(input_json))
+        print(f"reference not recognized!!", str(reference), str(input_form_data))
         return jsonify({
-            "errors": [f"reference not recognized!!", str(reference), str(input_json)]
+            "errors": [f"reference not recognized!!", str(reference), str(input_form_data)]
         }), 400
 
     for item in items:
         part_id = item['id']
         if part_id not in model_parts.part_ids():
-            print(f"part id not recognized!!", str(part_id), str(input_json))
+            print(f"part id not recognized!!", str(part_id), str(input_form_data))
             return jsonify({
-                "errors": [f"part id not recognized!!", str(part_id), str(input_json)]
+                "errors": [f"part id not recognized!!", str(part_id), str(input_form_data)]
             }), 400
 
     # Insert this into the database
     model_orders.create_order(
         customer_username=customer_username,
         reference=reference,
-        order_items=items
+        order_items=items,
+        files=files
     )
 
     exporter = ExporterOfferExcel()

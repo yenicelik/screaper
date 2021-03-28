@@ -1,8 +1,11 @@
 """
     Database
 """
+import screaper_backend.scripts.database.initialize_db
+import screaper_backend.scripts.database.initialize_mock
 from screaper_backend.application import db
-from screaper_backend.entities.entities_db import OrderItem, Order, Part, Customer
+from screaper_backend.entities.entities_db import OrderItem, Order, Part, Customer, User, FileRecord
+
 
 class Database:
     """
@@ -33,15 +36,15 @@ class Database:
         print("Count Customers: ", self.session.query(Customer).count())
         print("Count Customers (All): ", self.session.query(Customer.id).all())
 
+        # if the database connection string is a in-memory sqlalchemy one
+        # then create the mock users
+        if dev:
+            # from screaper_backend.scripts.database.initialize_db import initialize_db
+            # from screaper_backend.scripts.database.initialize_mock import _create_mock_customers, _create_mock_order
 
-    def create_mock_user(self):
-        user = User(
-            username="yenicelik",
-            password=generate_password_hash("example_password"),
-            email="baker"
-        )
-        self.session.add(user)
-        self.session.commit()
+            screaper_backend.scripts.database.initialize_db.initialize_db(self)
+            # screaper_backend.scripts.database.initialize_mock._create_mock_customers(self)
+            screaper_backend.scripts.database.initialize_mock._create_mock_order(self)
 
     ########################
     # CREATE Operations
@@ -142,6 +145,25 @@ class Database:
         self.session.refresh(order_item)
         assert order_item.id
         return order_item
+
+    def create_file_item(
+            self,
+            order,
+            file,
+            filename
+    ):
+        # Make some type-tests, fail if not sufficient
+        file_item = FileRecord(
+            order=order,
+            file=file,
+            filename=filename
+        )
+        self.session.add(file_item)
+        self.session.commit()
+        self.session.refresh(file_item)
+        assert file_item.id
+        return file_item
+
 
     ########################
     # READ Operations
