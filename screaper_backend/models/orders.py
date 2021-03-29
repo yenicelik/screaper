@@ -1,6 +1,7 @@
 """
     Get orders for a certain user
 """
+import base64
 
 from dotenv import load_dotenv
 from werkzeug.datastructures import FileStorage
@@ -53,7 +54,7 @@ class Orders:
             assert isinstance(file, FileStorage), (file, type(file))
             screaper_database.create_file_item(
                 order=order,
-                file=file.read(),
+                file=base64.b64encode(file.read()),
                 filename=filename
             )
 

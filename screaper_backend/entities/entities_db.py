@@ -4,13 +4,12 @@
 """
 import datetime
 
-from flask_login import UserMixin
 from sqlalchemy_serializer import SerializerMixin
 
 from screaper_backend.application import db
 
 
-class User(UserMixin, db.Model):
+class User(db.Model):
 
     __tablename__ = "users"
 
@@ -83,7 +82,7 @@ class Customer(db.Model, SerializerMixin):
 
 class Order(db.Model, SerializerMixin):
     __tablename__ = "orders"
-    serialize_rules = ("-rel_order_items", "-owner")
+    serialize_rules = ("-rel_files", "-rel_order_items", "-owner", "-order")
 
     id = db.Column(db.Integer, autoincrement=True, primary_key=True)
 
@@ -96,7 +95,7 @@ class Order(db.Model, SerializerMixin):
 
     rel_order_items = db.relationship('OrderItem', backref='owner')
 
-    rel_files = db.relationship('FileRecord', back_populates="order")
+    rel_files = db.relationship('FileRecord', back_populates='order')
 
 
 class OrderItem(db.Model, SerializerMixin):
@@ -115,9 +114,9 @@ class OrderItem(db.Model, SerializerMixin):
     rel_part = db.relationship("Part", uselist=False, back_populates="_children")
 
 
-class FileRecord(UserMixin, db.Model):
-
+class FileRecord(db.Model, SerializerMixin):
     __tablename__ = "files"
+    serialize_rules = ("-rel_files", "-order")
 
     id = db.Column(db.Integer, autoincrement=True, primary_key=True)
     file = db.Column(db.LargeBinary(), nullable=False)

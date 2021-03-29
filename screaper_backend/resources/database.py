@@ -1,6 +1,8 @@
 """
     Database
 """
+from base64 import b64encode
+
 import screaper_backend.scripts.database.initialize_db
 import screaper_backend.scripts.database.initialize_mock
 from screaper_backend.application import db
@@ -28,13 +30,13 @@ class Database:
 
         # Count number of items in the tables
         print("Count Order: ", self.session.query(Order).count())
-        print("Count Order: ", self.session.query(Order.id).all())
+        # print("Count Order: ", self.session.query(Order.id).all())
         print("Count OrderItem: ", self.session.query(OrderItem).count())
-        print("Count OrderItem: ", self.session.query(OrderItem.id).all())
+        # print("Count OrderItem: ", self.session.query(OrderItem.id).all())
         print("Count Parts: ", self.session.query(Part).count())
-        print("Count Parts: ", self.session.query(Part.id).all())
+        # print("Count Parts: ", self.session.query(Part.id).all())
         print("Count Customers: ", self.session.query(Customer).count())
-        print("Count Customers (All): ", self.session.query(Customer.id).all())
+        # print("Count Customers (All): ", self.session.query(Customer.id).all())
 
         # if the database connection string is a in-memory sqlalchemy one
         # then create the mock users
@@ -171,22 +173,20 @@ class Database:
     def read_orders(self):
         customers = self.session.query(Customer).all()
 
-        print("Customers are: ", customers)
-
         # Expand this object to a tree-like structure
         # Only select top 50 orders
+        # Also include to read all files associated to this order ...
         out = []
         for customer in customers:
-            print(customer)
-            print(customer.rel_orders)
             for order in customer.rel_orders:
                 tmp1 = order.to_dict()
                 # print("tmp is: ")
                 # print(tmp1)
                 tmp1.update(customer.to_dict())
                 tmp1['items'] = []
+                tmp1['files'] = []
                 # print("tmp after is: ")
-                print(tmp1)
+                # print(tmp1)
                 for order_item in order.rel_order_items:
                     tmp2 = order_item.to_dict()
                     del tmp2['owner']
@@ -194,9 +194,22 @@ class Database:
                     # print("tmp 2 is: ", tmp2)
                     tmp1['items'].append(tmp2)
                     # print("Adding following object to the list (1):")
-                    print(tmp2)
-                # print("Adding following object to the list (2):")
+                    # print(tmp2)
+                print("rel files are: ", order.rel_files)
                 print(tmp1)
+                for file_item in order.rel_files:
+                    tmp2 = file_item.to_dict()
+                    del tmp2['order_id']
+                    del tmp2['id']
+                    print("tmp 2 bfr is: ", tmp2['filename'])
+                    # this has type of filestorage FileStorage(
+                    # tmp2['file'] = b64encode(tmp2['file'])
+                    print("tmp 2 is: ", tmp2['filename'])
+                    tmp1['files'].append(tmp2)
+                    # TODO: Generate a random ID
+                    # print("Adding following object to the list (1):")
+                # print("Adding following object to the list (2):")
+                print("tmp1 files are: ", len(tmp1['files']))
                 out.append(tmp1)
 
         print("Orders out are:")
@@ -215,19 +228,11 @@ class Database:
     def read_customers(self):
         customers = self.session.query(Customer).all()
 
-        print("Customers are: ", customers)
-
         # Expand this object to a tree-like structure
         out = []
         for customer in customers:
-            print(customer)
-            print(customer.rel_orders)
             tmp = customer.to_dict()
             out.append(tmp)
-
-        # print("Out length is: ", len(out))
-        # print("Out length is: ", out[0])
-        # print("Out length is: ", out)
 
         return out
 
