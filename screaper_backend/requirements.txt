@@ -18,3 +18,6 @@ gevent==20.9.0
 psycopg2-binary==2.8.6
 pg8000==1.16.5
 Pillow==8.1.1
+
+firebase_admin
+pyrebase
