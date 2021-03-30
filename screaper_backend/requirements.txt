@@ -19,5 +19,6 @@ psycopg2-binary==2.8.6
 pg8000==1.16.5
 Pillow==8.1.1
 
-firebase_admin
-pyrebase
+requests==2.25.1
+pyrebase==3.0.27
+firebase-admin==4.5.3
