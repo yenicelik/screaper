@@ -21,7 +21,7 @@ requests==2.25.1
 
 psycopg2
 psycopg2-binary
-pg8000==1.16.5
+pg8000
 Pillow==8.1.1
 
 # gevent==20.9.0
