@@ -54,7 +54,7 @@ class FirebaseWrapper:
     def __init__(self):
         self.cred = credentials.Certificate(os.getenv("FIREBASE_CRED"))
         self.firebase = firebase_admin.initialize_app(self.cred)
-        self.pb = pyrebase.initialize_app(json.load(open("FIREBASE_APP")))
+        self.pb = pyrebase.initialize_app(json.load(open(os.getenv("FIREBASE_APP"))))
 
     def verify_token(self, id_token):
         decoded_token = auth.verify_id_token(id_token)
