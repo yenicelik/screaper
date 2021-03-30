@@ -2,12 +2,16 @@
     Following this medium post
     https://medium.com/@nschairer/flask-api-authentication-with-firebase-9affc7b64715
 """
+import os
+import json
 import firebase_admin
 import pyrebase
-import json
+from dotenv import load_dotenv
 from firebase_admin import credentials, auth
 from flask import Flask, request, jsonify
 from six import wraps
+
+load_dotenv()
 
 from screaper_backend.application.authentication import whitelist_emails
 
@@ -48,9 +52,9 @@ def check_authentication_token(f):
 class FirebaseWrapper:
 
     def __init__(self):
-        self.cred = credentials.Certificate('/Users/david/screaper/screaper_backend/resources/spare-market-firebase-adminsdk-u8c4g-f2357bb6a9.json')
+        self.cred = credentials.Certificate(os.getenv("FIREBASE_CRED"))
         self.firebase = firebase_admin.initialize_app(self.cred)
-        self.pb = pyrebase.initialize_app(json.load(open('/Users/david/screaper/screaper_backend/resources/fbconfig.json')))
+        self.pb = pyrebase.initialize_app(json.load(open("FIREBASE_APP")))
 
     def verify_token(self, id_token):
         decoded_token = auth.verify_id_token(id_token)

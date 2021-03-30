@@ -18,7 +18,7 @@ class Database:
         Delete
     """
 
-    def __init__(self, dev=True):
+    def __init__(self, dev=False):
         # Create sqlalchemy database connection
         self.db = db
 
