@@ -11,6 +11,17 @@ authentication_token = [
 ]
 
 whitelist_emails = [
+    # Five rando's
     "yedavid@ethz.ch",
-    "auguryenicelik@hotmail.com"
+    "rayan.armani@hotmail.com",
+    "tiankongguangzi@gmail.com",
+    "spacephoton@gmail.com",
+    "ivan.hanselmann@sph.ethz.ch",
+    "anton.moritz@sph.ethz.ch",
+
+    # Three specialists
+    "mcyenicelik@hotmail.com",
+    "baker@bakermagnetics.com.tr",
+    "auguryenicelik@hotmail.com",
+    "mcyenicelik@bakermagnetics.com.tr"
 ]
