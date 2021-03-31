@@ -13,11 +13,19 @@ authentication_token = [
 whitelist_emails = [
     # Five rando's
     "yedavid@ethz.ch",
-    "rayan.armani@hotmail.com",
+    "rayan.armani@gmail.com",
     "tiankongguangzi@gmail.com",
     "spacephoton@gmail.com",
     "ivan.hanselmann@sph.ethz.ch",
     "anton.moritz@sph.ethz.ch",
+    "sven98@me.com",
+    "laurin.paech@gmail.com",
+    "ldisse@student.ethz.ch",
+
+    # Roman
+    # Sebastian
+
+    # Look for more supply-chain people, or just ask your friends about supply-chain friends
 
     # Three specialists
     "mcyenicelik@hotmail.com",
