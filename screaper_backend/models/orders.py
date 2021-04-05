@@ -21,6 +21,10 @@ class Orders:
         self._orders = screaper_database.read_orders()
         return self._orders
 
+    def orders_by_user(self, user_email):
+        self._orders = screaper_database.read_orders_by_user(user_email=user_email)
+        return self._orders
+
     # Also insert files if there are any
     def create_order(self, customer_username, reference, order_items, files):
 

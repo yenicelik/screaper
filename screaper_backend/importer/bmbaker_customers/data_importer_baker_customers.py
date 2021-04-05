@@ -72,6 +72,13 @@ class DataImporterBakerCustomers:
 
         self.df['user_name'] = self.df['user_name'].apply(lambda x: str(uuid.uuid4()))
 
+        # Drop duplicates by email
+        # TODO: Gotta remove this sometime in future!
+        if len(self.df['email']) - len(self.df['email'].drop_duplicates()):
+            print("DUPLICATES IN EMAILS DETECTED! MAKE SURE TO CLEANSE THE FILE!")
+
+        self.df = self.df.drop_duplicates(subset="email")
+
     def customers_list(self):
         return self.df
 

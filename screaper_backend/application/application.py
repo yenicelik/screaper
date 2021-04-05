@@ -196,7 +196,13 @@ def orders_get():
     # Ignore input, and return all mockups
     user_uuid = input_json["user_uuid"]
 
-    out = model_orders.orders()
+    # Get orders for this user only!
+    print("User is: ", request.user)
+    user_email = request.user.get("email")
+
+    print("User uuid and user email are: ", user_uuid, user_email)
+
+    out = model_orders.orders_by_user(user_email=user_email)
     # Turn into one mega-dictionary per object
     out = [x for x in out]
 
