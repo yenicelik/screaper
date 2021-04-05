@@ -296,6 +296,11 @@ class Database:
 
         return customer
 
+    def read_customers_by_customer_email(self, email):
+        customer = self.session.query(Customer).filter(Customer.email == email).one_or_none()
+        assert customer, ("We previously had checked if this customer exists. There is something wrong in the code", customer)
+        return customer
+
     def read_parts(self):
         parts = self.session.query(Part).all()
 

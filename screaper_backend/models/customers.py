@@ -21,6 +21,10 @@ class Customers:
         print("Customer usernames are: ", [x["user_name"] for x in self._customers])
         return set(x["user_name"]for x in self._customers)
 
+    def customer_emails(self):
+        print("Customer emails are: ", [x["email"] for x in self._customers])
+        return set(x["email"]for x in self._customers)
+
     def customer_by_username(self, username):
         return screaper_database.read_customers_by_customer_username(username=username)
 

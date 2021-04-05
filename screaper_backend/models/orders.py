@@ -26,13 +26,13 @@ class Orders:
         return self._orders
 
     # Also insert files if there are any
-    def create_order(self, customer_username, reference, order_items, files):
+    def create_order(self, customer_email, reference, order_items, files):
 
         if files is not None:
             assert isinstance(files, dict), files
 
         # Get customer object
-        customer = screaper_database.read_customers_by_customer_username(username=customer_username)
+        customer = screaper_database.read_customers_by_customer_email(email=customer_email)
 
         order = screaper_database.create_single_order(customer=customer, reference=reference)
         i = 0

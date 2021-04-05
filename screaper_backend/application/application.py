@@ -250,7 +250,6 @@ def orders_post():
         {
             "user_uuid": "b6347351-7fbb-406b-9b4d-4e90e9021834"
             "reference": "",
-            "customer_username": "",
             "items": [
                 {
                     id: number,
@@ -340,14 +339,11 @@ def orders_post():
     # Ignore input, and return all mockups
     user_uuid = input_form_data.get("user_uuid")
     reference = input_form_data.get("reference")
-    customer_username = input_form_data.get("customer_username")
     items = input_form_data.getlist("items")
 
-    err = check_property_is_included_formdata(input_form_data, "user_uuid", type_def=str)
-    if err is not None:
-        return err
+    customer_email = request.user.get('email')
 
-    err = check_property_is_included_formdata(input_form_data, "customer_username", type_def=str)
+    err = check_property_is_included_formdata(input_form_data, "user_uuid", type_def=str)
     if err is not None:
         return err
 
@@ -416,12 +412,15 @@ def orders_post():
     #
     # # Based on the email
 
+    # the customer username will basically be taken over through the customer email
+
     # Check if customer username is existent
-    customers = model_customers.customer_usernames()
-    if customer_username not in customers:
-        print(f"customer_username not recognized!!", str(customer_username), str(input_form_data))
+    customers = model_customers.customer_emails()
+    if (not customer_email) or (customer_email not in customers):
+        print("Customers are: ", customers)
+        print(f"customer_email not recognized!!", str(customer_email), str(input_form_data))
         return jsonify({
-            "errors": [f"customer_username not recognized!!", str(customer_username), str(input_form_data)]
+            "errors": [f"customer_email not recognized!!", str(customer_email), str(input_form_data)]
         }), 400
 
     if not reference:
@@ -440,42 +439,20 @@ def orders_post():
 
     # Insert this into the database
     model_orders.create_order(
-        customer_username=customer_username,
+        customer_email=customer_email,
         reference=reference,
         order_items=items,
         files=files
     )
 
-    exporter = ExporterOfferExcel()
+    return jsonify({
+        "response": "Order successfully filled!"
+    }), 200
 
-    # Input parts to the Excel
-    for part_json in items:
-        # Identify the unit number
-        # Will not include this because this does not work well yet
-        exporter.insert_item(
-            partnumber=part_json['part_external_identifier'],
-            description=part_json['description_en'],
-            listprice=part_json['manufacturer_price'],
-            requested_units=part_json['quantity'],
-            margin_multiplier=part_json['cost_multiple'],
+    # Do not send a file back, as this is only input from the customer
+    # This file should not be generated yet, I guess, think about it later
 
-            stock=part_json['manufacturer_stock'],
-            status=part_json['manufacturer_status'],
-            weight=part_json['weight_in_g'],
-            replaced=part_json['replaced_by']
-        )
-
-    customer_obj = model_customers.customer_by_username(customer_username)
-    exporter.insert_customer(customer_obj)
-    # exporter.insert_reference(reference)
-
-    exporter.update_date()
-
-    wrapped_file = exporter.get_bytestring()
-
-    print("Sending file: ", wrapped_file)
-    print("Sending file... ")
-    return Response(wrapped_file, mimetype="text/plain", direct_passthrough=True)
+    # return Response(wrapped_file, mimetype="text/plain", direct_passthrough=True)
 
 # @application.route('/orders', methods=["POST"])
 # def list_orders():
