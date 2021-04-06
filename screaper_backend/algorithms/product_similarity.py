@@ -28,7 +28,7 @@ class AlgorithmProductSimilarity:
 
         # Return this sorted list of items to the frontend
         out = []
-        for idx, similarity_item_idx in enumerate(ranked_most_similar_idx[:50]):
+        for idx, similarity_item_idx in enumerate(ranked_most_similar_idx[:20]):
             print("Most similar searchstring is: ")
             print(self.model_tfidf._documents[similarity_item_idx])
 

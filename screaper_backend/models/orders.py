@@ -44,11 +44,12 @@ class Orders:
 
             # TODO: Fetch the part as given by the external identifier
             print("Inserting: ", order_item)
+            # Gotta replace the price by internally feteched price
             screaper_database.create_order_item(
                 order=order,
                 part=part,
                 quantity=order_item["quantity"],
-                item_single_price=order_item["item_single_price"]
+                item_single_price=None, #  order_item["item_single_price"]
             )
 
         print(f"Crated {i} new order items")

@@ -95,12 +95,12 @@ class OrderItem(db.Model, SerializerMixin):
 
     id = db.Column(db.Integer, autoincrement=True, primary_key=True)
 
-    order_id = db.Column(db.Integer, db.ForeignKey("orders.id"))
-    part_id = db.Column(db.Integer, db.ForeignKey("parts.id"))
-    quantity = db.Column(db.Integer)
-    item_single_price = db.Column(db.Float)
+    order_id = db.Column(db.Integer, db.ForeignKey("orders.id"), nullable=False)
+    part_id = db.Column(db.Integer, db.ForeignKey("parts.id"), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    item_single_price = db.Column(db.Float, nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, nullable=False)
 
     rel_part = db.relationship("Part", uselist=False, back_populates="_children")
 

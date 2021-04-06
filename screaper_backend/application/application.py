@@ -153,7 +153,36 @@ def list_products():
     query = input_json["query"]
 
     # Pass the query through the model
-    out = algorithm_product_similarity.predict(query)
+    tmp_out = algorithm_product_similarity.predict(query)
+
+    out = []
+    for x in tmp_out:
+        print(x)
+        if "manufacturer_price" in x:
+            del x["manufacturer_price"]
+        if "price_currency" in x:
+            del x["price_currency"]
+        if "manufacturer_status" in x:
+            del x["manufacturer_status"]
+        if "manufacturer_stock" in x:
+            del x["manufacturer_stock"]
+        if "created_at" in x:
+            del x["created_at"]
+        if "weight_in_g" in x:
+            del x["weight_in_g"]
+        if "changes" in x:
+            del x["changes"]
+        if "hs_code" in x:
+            del x["hs_code"]
+        if "origin" in x:
+            del x["origin"]
+        if "shortcut" in x:
+            del x["shortcut"]
+        if "important" in x:
+            del x["important"]
+        if "replaced_by" in x:
+            del x["replaced_by"]
+        out.append(x)
 
     # Save into the json
     print("out items are: ", out)
@@ -353,20 +382,25 @@ def orders_post():
 
     item_key_value_pairs = [
         ("part_external_identifier", str),  # string
-        ("manufacturer_price", float),  # number
+
         ("manufacturer", str),  # string
         ("manufacturer_abbreviation", str),  # string
         ("description_en", str),  # string
-        ("price_currency", str),  # string
-        ("cost_multiple", float),  # float
 
-        ("item_single_price", float),
+        # All these price-related items need to be provided in a separate, internal tool (if at all!)
+        # alternatively, we need to make this accessible programmatically
+        # ("price_currency", str),  # string
+        # ("manufacturer_price", float),  # number
+        # ("cost_multiple", float),  # float
+        # ("item_single_price", float),
+        # ("total_manufacturing_price", float),  # number
+        # ("cost_multiple", float),  # number
+        # ("total_final_price", float),  # number
+        # ("total_final_profit", float),  # number
+
         ("sequence_order", float),  # number
         ("quantity", float),  # number
-        ("total_manufacturing_price", float),  # number
-        ("cost_multiple", float),  # number
-        ("total_final_price", float),  # number
-        ("total_final_profit", float),  # number
+
     ]
 
     if not items or len(items) == 0:
