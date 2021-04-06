@@ -8,19 +8,6 @@ from sqlalchemy_serializer import SerializerMixin
 
 from screaper_backend.application import db
 
-
-class User(db.Model):
-
-    __tablename__ = "users"
-
-    id = db.Column(db.Integer, autoincrement=True, primary_key=True)
-    username = db.Column(db.String(64), unique=True, nullable=False)
-    password = db.Column(db.String(120), nullable=False)
-    email = db.Column(db.String(64))
-
-    # TODO: Make a connection to the customer type
-
-
 class Part(db.Model, SerializerMixin):
     # Whenever a new catalogue comes in, just append these parts! (and update the timestamp)
     __tablename__ = 'parts'
@@ -56,6 +43,9 @@ class Part(db.Model, SerializerMixin):
 
 
 class Customer(db.Model, SerializerMixin):
+    # These are also the users
+    # TODO: Implement some unique user-id to this! e-mail is probably alright,
+    # but then everyone needs to have an e-mail
     __tablename__ = "customers"
     serialize_rules = ("-rel_orders", "-owner")
 
@@ -63,13 +53,14 @@ class Customer(db.Model, SerializerMixin):
 
     # Personal information
     user_name = db.Column(db.String, index=True, unique=True)
+    # The email is the respective username, which we use to connect this with an order
+    email = db.Column(db.String, index=True, unique=True)
 
     # Company information
     company_name = db.Column(db.String)
     domain_name = db.Column(db.String)
     phone_number = db.Column(db.String)
     fax_number = db.Column(db.String)
-    email = db.Column(db.String)
     address = db.Column(db.String)
     city = db.Column(db.String)
     country = db.Column(db.String)
@@ -104,12 +95,12 @@ class OrderItem(db.Model, SerializerMixin):
 
     id = db.Column(db.Integer, autoincrement=True, primary_key=True)
 
-    order_id = db.Column(db.Integer, db.ForeignKey("orders.id"))
-    part_id = db.Column(db.Integer, db.ForeignKey("parts.id"))
-    quantity = db.Column(db.Integer)
-    item_single_price = db.Column(db.Float)
+    order_id = db.Column(db.Integer, db.ForeignKey("orders.id"), nullable=False)
+    part_id = db.Column(db.Integer, db.ForeignKey("parts.id"), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    item_single_price = db.Column(db.Float, nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, nullable=False)
 
     rel_part = db.relationship("Part", uselist=False, back_populates="_children")
 

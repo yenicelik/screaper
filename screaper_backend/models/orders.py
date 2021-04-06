@@ -21,14 +21,18 @@ class Orders:
         self._orders = screaper_database.read_orders()
         return self._orders
 
+    def orders_by_user(self, user_email):
+        self._orders = screaper_database.read_orders_by_user(user_email=user_email)
+        return self._orders
+
     # Also insert files if there are any
-    def create_order(self, customer_username, reference, order_items, files):
+    def create_order(self, customer_email, reference, order_items, files):
 
         if files is not None:
             assert isinstance(files, dict), files
 
         # Get customer object
-        customer = screaper_database.read_customers_by_customer_username(username=customer_username)
+        customer = screaper_database.read_customers_by_customer_email(email=customer_email)
 
         order = screaper_database.create_single_order(customer=customer, reference=reference)
         i = 0
@@ -40,11 +44,12 @@ class Orders:
 
             # TODO: Fetch the part as given by the external identifier
             print("Inserting: ", order_item)
+            # Gotta replace the price by internally feteched price
             screaper_database.create_order_item(
                 order=order,
                 part=part,
                 quantity=order_item["quantity"],
-                item_single_price=order_item["item_single_price"]
+                item_single_price=None, #  order_item["item_single_price"]
             )
 
         print(f"Crated {i} new order items")

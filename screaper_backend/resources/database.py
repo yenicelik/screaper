@@ -1,12 +1,10 @@
 """
     Database
 """
-from base64 import b64encode
-
 import screaper_backend.scripts.database.initialize_db
 import screaper_backend.scripts.database.initialize_mock
 from screaper_backend.application import db
-from screaper_backend.entities.entities_db import OrderItem, Order, Part, Customer, User, FileRecord
+from screaper_backend.entities.entities_db import OrderItem, Order, Part, Customer, FileRecord
 
 
 class Database:
@@ -220,10 +218,55 @@ class Database:
 
         return out
 
-    def read_user_obj(self, username):
-        user = self.session.query(User).filter(User.username == username).one_or_none()
+    def read_orders_by_user(self, user_email):
+        customers = self.session.query(Customer).filter(Customer.email == user_email).all()
 
-        return user
+        # Expand this object to a tree-like structure
+        # Only select top 50 orders
+        # Also include to read all files associated to this order ...
+        out = []
+        for customer in customers:
+            for order in customer.rel_orders:
+                tmp1 = order.to_dict()
+                # print("tmp is: ")
+                # print(tmp1)
+                tmp1.update(customer.to_dict())
+                tmp1['items'] = []
+                tmp1['files'] = []
+                # print("tmp after is: ")
+                # print(tmp1)
+                for order_item in order.rel_order_items:
+                    tmp2 = order_item.to_dict()
+                    del tmp2['owner']
+                    tmp2.update(order_item.rel_part.to_dict())
+                    # print("tmp 2 is: ", tmp2)
+                    tmp1['items'].append(tmp2)
+                    # print("Adding following object to the list (1):")
+                    # print(tmp2)
+                print("rel files are: ", order.rel_files)
+                print(tmp1)
+                for file_item in order.rel_files:
+                    tmp2 = file_item.to_dict()
+                    del tmp2['order_id']
+                    del tmp2['id']
+                    print("tmp 2 bfr is: ", tmp2['filename'])
+                    # this has type of filestorage FileStorage(
+                    # tmp2['file'] = b64encode(tmp2['file'])
+                    print("tmp 2 is: ", tmp2['filename'])
+                    tmp1['files'].append(tmp2)
+                    # TODO: Generate a random ID
+                    # print("Adding following object to the list (1):")
+                # print("Adding following object to the list (2):")
+                print("tmp1 files are: ", len(tmp1['files']))
+                out.append(tmp1)
+
+        print("Orders out are:")
+        for order in out[:5]:
+            print(order)
+
+        out = out[:20]
+
+        return out
 
     def read_customers(self):
         customers = self.session.query(Customer).all()
@@ -251,6 +294,11 @@ class Database:
         print(customer)
         print(customer.rel_orders)
 
+        return customer
+
+    def read_customers_by_customer_email(self, email):
+        customer = self.session.query(Customer).filter(Customer.email == email).one_or_none()
+        assert customer, ("We previously had checked if this customer exists. There is something wrong in the code", customer)
         return customer
 
     def read_parts(self):

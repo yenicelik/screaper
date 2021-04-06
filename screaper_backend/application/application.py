@@ -153,7 +153,36 @@ def list_products():
     query = input_json["query"]
 
     # Pass the query through the model
-    out = algorithm_product_similarity.predict(query)
+    tmp_out = algorithm_product_similarity.predict(query)
+
+    out = []
+    for x in tmp_out:
+        print(x)
+        if "manufacturer_price" in x:
+            del x["manufacturer_price"]
+        if "price_currency" in x:
+            del x["price_currency"]
+        if "manufacturer_status" in x:
+            del x["manufacturer_status"]
+        if "manufacturer_stock" in x:
+            del x["manufacturer_stock"]
+        if "created_at" in x:
+            del x["created_at"]
+        if "weight_in_g" in x:
+            del x["weight_in_g"]
+        if "changes" in x:
+            del x["changes"]
+        if "hs_code" in x:
+            del x["hs_code"]
+        if "origin" in x:
+            del x["origin"]
+        if "shortcut" in x:
+            del x["shortcut"]
+        if "important" in x:
+            del x["important"]
+        if "replaced_by" in x:
+            del x["replaced_by"]
+        out.append(x)
 
     # Save into the json
     print("out items are: ", out)
@@ -196,7 +225,13 @@ def orders_get():
     # Ignore input, and return all mockups
     user_uuid = input_json["user_uuid"]
 
-    out = model_orders.orders()
+    # Get orders for this user only!
+    print("User is: ", request.user)
+    user_email = request.user.get("email")
+
+    print("User uuid and user email are: ", user_uuid, user_email)
+
+    out = model_orders.orders_by_user(user_email=user_email)
     # Turn into one mega-dictionary per object
     out = [x for x in out]
 
@@ -244,7 +279,6 @@ def orders_post():
         {
             "user_uuid": "b6347351-7fbb-406b-9b4d-4e90e9021834"
             "reference": "",
-            "customer_username": "",
             "items": [
                 {
                     id: number,
@@ -334,14 +368,11 @@ def orders_post():
     # Ignore input, and return all mockups
     user_uuid = input_form_data.get("user_uuid")
     reference = input_form_data.get("reference")
-    customer_username = input_form_data.get("customer_username")
     items = input_form_data.getlist("items")
 
-    err = check_property_is_included_formdata(input_form_data, "user_uuid", type_def=str)
-    if err is not None:
-        return err
+    customer_email = request.user.get('email')
 
-    err = check_property_is_included_formdata(input_form_data, "customer_username", type_def=str)
+    err = check_property_is_included_formdata(input_form_data, "user_uuid", type_def=str)
     if err is not None:
         return err
 
@@ -351,20 +382,25 @@ def orders_post():
 
     item_key_value_pairs = [
         ("part_external_identifier", str),  # string
-        ("manufacturer_price", float),  # number
+
         ("manufacturer", str),  # string
         ("manufacturer_abbreviation", str),  # string
         ("description_en", str),  # string
-        ("price_currency", str),  # string
-        ("cost_multiple", float),  # float
 
-        ("item_single_price", float),
+        # All these price-related items need to be provided in a separate, internal tool (if at all!)
+        # alternatively, we need to make this accessible programmatically
+        # ("price_currency", str),  # string
+        # ("manufacturer_price", float),  # number
+        # ("cost_multiple", float),  # float
+        # ("item_single_price", float),
+        # ("total_manufacturing_price", float),  # number
+        # ("cost_multiple", float),  # number
+        # ("total_final_price", float),  # number
+        # ("total_final_profit", float),  # number
+
         ("sequence_order", float),  # number
         ("quantity", float),  # number
-        ("total_manufacturing_price", float),  # number
-        ("cost_multiple", float),  # number
-        ("total_final_price", float),  # number
-        ("total_final_profit", float),  # number
+
     ]
 
     if not items or len(items) == 0:
@@ -410,12 +446,15 @@ def orders_post():
     #
     # # Based on the email
 
+    # the customer username will basically be taken over through the customer email
+
     # Check if customer username is existent
-    customers = model_customers.customer_usernames()
-    if customer_username not in customers:
-        print(f"customer_username not recognized!!", str(customer_username), str(input_form_data))
+    customers = model_customers.customer_emails()
+    if (not customer_email) or (customer_email not in customers):
+        print("Customers are: ", customers)
+        print(f"customer_email not recognized!!", str(customer_email), str(input_form_data))
         return jsonify({
-            "errors": [f"customer_username not recognized!!", str(customer_username), str(input_form_data)]
+            "errors": [f"customer_email not recognized!!", str(customer_email), str(input_form_data)]
         }), 400
 
     if not reference:
@@ -434,42 +473,20 @@ def orders_post():
 
     # Insert this into the database
     model_orders.create_order(
-        customer_username=customer_username,
+        customer_email=customer_email,
         reference=reference,
         order_items=items,
         files=files
     )
 
-    exporter = ExporterOfferExcel()
+    return jsonify({
+        "response": "Order successfully filled!"
+    }), 200
 
-    # Input parts to the Excel
-    for part_json in items:
-        # Identify the unit number
-        # Will not include this because this does not work well yet
-        exporter.insert_item(
-            partnumber=part_json['part_external_identifier'],
-            description=part_json['description_en'],
-            listprice=part_json['manufacturer_price'],
-            requested_units=part_json['quantity'],
-            margin_multiplier=part_json['cost_multiple'],
+    # Do not send a file back, as this is only input from the customer
+    # This file should not be generated yet, I guess, think about it later
 
-            stock=part_json['manufacturer_stock'],
-            status=part_json['manufacturer_status'],
-            weight=part_json['weight_in_g'],
-            replaced=part_json['replaced_by']
-        )
-
-    customer_obj = model_customers.customer_by_username(customer_username)
-    exporter.insert_customer(customer_obj)
-    # exporter.insert_reference(reference)
-
-    exporter.update_date()
-
-    wrapped_file = exporter.get_bytestring()
-
-    print("Sending file: ", wrapped_file)
-    print("Sending file... ")
-    return Response(wrapped_file, mimetype="text/plain", direct_passthrough=True)
+    # return Response(wrapped_file, mimetype="text/plain", direct_passthrough=True)
 
 # @application.route('/orders', methods=["POST"])
 # def list_orders():
