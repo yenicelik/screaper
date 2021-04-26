@@ -16,7 +16,7 @@ class Database:
         Delete
     """
 
-    def __init__(self, dev=False):
+    def __init__(self, dev=True):
         # Create sqlalchemy database connection
         self.db = db
 
@@ -109,16 +109,23 @@ class Database:
     def create_single_order(
             self,
             customer,
-            reference
+            reference,
+            shipment_address,
+            note=None
     ):
         # Make some type-tests, fail if not sufficient
         assert customer is not None, customer
         assert reference, reference
 
+        if shipment_address is None:
+            shipment_address = customer.address
+
         order = Order(
             owner=customer,
             reference=reference,
-            status="offer created"
+            status="waiting_for_offer",
+            shipment_address=shipment_address,
+            note=note
         )
         self.session.add(order)
         self.session.commit()
@@ -138,7 +145,7 @@ class Database:
             owner=order,
             rel_part=part,
             quantity=quantity,
-            item_single_price=item_single_price
+            item_single_price=item_single_price,
         )
         self.session.add(order_item)
         self.session.commit()
@@ -328,13 +335,80 @@ class Database:
         assert part, ("We previously had checked if this part exists. There is something wrong in the code", part)
         return part
 
+    def read_order_exists_by_customer(self, order_id, customer_id):
+        # First, get the
+        order = self.session.query(Order).filter(Order.customer_id == customer_id).filter(Order.id == order_id)
+        assert order, ("Bad input!")
+        # Gotta do some handling here!
+        return order
+
     ########################
     # UPDATE Operations
     ########################
+    def update_single_order(
+            self,
+            old_order,
+            order_id,
+            tax_rate=None,
+            absolute_discount=None,
+            note=None,
+            date_submitted=None,
+            valid_through_date=None,
+            expected_delivery_date=None,
+            reference=None,
+            shipment_address=None,
+            paid_date=None,
+            total_price=None,
+    ):
+        # Make some type-tests, fail if not sufficient
+        assert order_id is not None, order_id
+        # order id must be provided, because this is an update operation!
+        # we can safely ignore the customer to whom this belongs, also for the same reason
+        update_dicts = {
+            "order_id": order_id,
+            "tax_rate": tax_rate if tax_rate is not None else old_order.tax_rate,
+            "absolute_discount": absolute_discount if absolute_discount is not None else old_order.absolute_discount,
+            "note": note if note is not None else old_order.note,
+            "date_submitted": date_submitted if date_submitted is not None else old_order.date_submitted,
+            "valid_through_date": valid_through_date if valid_through_date is not None else old_order.valid_through_date,
+            "expected_delivery_date": expected_delivery_date if expected_delivery_date is not None else old_order.expected_delivery_date,
+            "reference": reference if reference is not None else old_order.reference,
+            "shipment_address": shipment_address if shipment_address is not None else old_order.shipment_address,
+            "paid_date": paid_date if paid_date is not None else old_order.paid_date,
+            "total_price": total_price if total_price is not None else old_order.total_price,
+        }
+        for key, val in update_dicts.items():
+            if val is not None:
+                setattr(old_order, key, val)
+
+        self.session.commit()
+        self.session.refresh(old_order)
+        assert old_order.id
+        return old_order
 
     ########################
     # DELETE Operations
     ########################
+    def drop_order_items_for_order(
+            self,
+            order
+    ):
+        # Drop all such items
+        # (I hope, this also deletes the backreference (?) )
+        self.session.query(OrderItem).filter(OrderItem.order_id == order.id).delete()
+
+    def drop_files_for_order(
+            self,
+            order
+    ):
+        # Drop all such items
+        # (I hope, this also deletes the backreference (?) )
+        self.session.query(FileRecord).filter(FileRecord.order_id == order.id).delete()
+
+
+
+
+
 
 
 screaper_database = Database()

@@ -1,117 +1,20 @@
+import datetime
 import json
 import random
 
-from flask import jsonify, request, Response
-
+from flask import jsonify, request
 from werkzeug.utils import secure_filename
 
+from screaper_backend.application import application
+from screaper_backend.application.utils import algorithm_product_similarity, check_property_is_included_formdata, \
+    check_property_is_included
+from screaper_backend.models.customers import model_customers
+from screaper_backend.models.orders import model_orders
+from screaper_backend.models.parts import model_parts
 from screaper_backend.resources.firebase_wrapper import check_authentication_token
 
-from screaper_backend.exporter.exporter_offer_excel import ExporterOfferExcel
 
-from screaper_backend.models.orders import model_orders
-from screaper_backend.models.customers import model_customers
-from screaper_backend.models.parts import model_parts
-from screaper_backend.algorithms.product_similarity import AlgorithmProductSimilarity
-
-from screaper_backend.application import application
-
-ALLOWED_EXTENSIONS = {'pdf'}  # later also add excel format 'txt' 'png', 'jpg', 'jpeg'
-# Algorithms
-algorithm_product_similarity = AlgorithmProductSimilarity()
-
-def check_property_is_included(input_json, property_name, type_def):
-    assert property_name, property_name
-
-    if property_name not in input_json:
-        return jsonify({
-            "errors": [f"{property_name} not found!", str(input_json)]
-        }), 400
-
-    if input_json[property_name] is None:
-        return jsonify({
-            "errors": [f"{property_name} empty!", str(input_json)]
-        }), 400
-
-    if type_def == float:
-        if not isinstance(input_json[property_name], float) and not isinstance(input_json[property_name], int):
-            return jsonify({
-                "errors": [f"{property_name} not of type {type_def}!", str(type(input_json[property_name])),
-                           str(input_json)]
-            }), 400
-    else:
-        if not isinstance(input_json[property_name], type_def):
-            return jsonify({
-                "errors": [f"{property_name} not of type {type_def}!", str(type(input_json[property_name])),
-                           str(input_json)]
-            }), 400
-
-    return None
-
-def check_property_is_included_formdata(input_json, property_name, type_def, multiple=False):
-    assert property_name, property_name
-
-    if not input_json.get(property_name):
-        return jsonify({
-            "errors": [f"{property_name} not found or empty!", str(input_json)]
-        }), 400
-
-    if type_def == float:
-        if not isinstance(input_json.get(property_name), float) and not isinstance(input_json.get(property_name), int):
-            return jsonify({
-                "errors": [f"{property_name} not of type {type_def}!", str(type(input_json.get(property_name))),
-                           str(input_json)]
-            }), 400
-    else:
-        if not isinstance(input_json.get(property_name), type_def):
-            return jsonify({
-                "errors": [f"{property_name} not of type {type_def}!", str(type(input_json.get(property_name))),
-                           str(input_json)]
-            }), 400
-
-    return None
-
-def check_optional_property(input_json, property_name, type_def):
-
-    assert property_name, property_name
-
-    if property_name not in input_json:
-        return jsonify({
-            "errors": [f"{property_name} not found!", str(input_json)]
-        }), 400
-
-    if input_json[property_name] is None:
-        return None
-
-    if type_def == float:
-        if not isinstance(input_json[property_name], float) and not isinstance(input_json[property_name], int):
-            return jsonify({
-                "errors": [f"{property_name} not of type {type_def}!", str(type(input_json[property_name])), str(input_json)]
-            }), 400
-    else:
-        if not isinstance(input_json[property_name], type_def):
-            return jsonify({
-                "errors": [f"{property_name} not of type {type_def}!", str(type(input_json[property_name])), str(input_json)]
-            }), 400
-
-    return None
-
-
-@application.route('/')
-def healthcheckpoint():
-    """
-        Example request could look as follows:
-        {
-            "search_query": "bearings"
-        }
-
-    """
-    return jsonify({
-        "response": "API is up and running!"
-    }), 200
-
-
-@application.route('/products', methods=["GET", "POST"])
+@application.route('/external/products', methods=["GET", "POST"])
 @check_authentication_token
 def list_products():
     """
@@ -157,31 +60,21 @@ def list_products():
 
     out = []
     for x in tmp_out:
-        print(x)
-        if "manufacturer_price" in x:
-            del x["manufacturer_price"]
-        if "price_currency" in x:
-            del x["price_currency"]
-        if "manufacturer_status" in x:
-            del x["manufacturer_status"]
-        if "manufacturer_stock" in x:
-            del x["manufacturer_stock"]
-        if "created_at" in x:
-            del x["created_at"]
-        if "weight_in_g" in x:
-            del x["weight_in_g"]
-        if "changes" in x:
-            del x["changes"]
-        if "hs_code" in x:
-            del x["hs_code"]
-        if "origin" in x:
-            del x["origin"]
-        if "shortcut" in x:
-            del x["shortcut"]
-        if "important" in x:
-            del x["important"]
-        if "replaced_by" in x:
-            del x["replaced_by"]
+        keys_to_delete = set()
+        for key in x.keys():
+            # whitelabel allowed properties
+            if key not in [
+                "description_de",
+                "description_en",
+                "id",
+                "manufacturer",
+                "manufacturer_abbreviation",
+                "part_external_identifier",
+                "sequence_order",
+            ]:
+                keys_to_delete.add(key)
+        for key in keys_to_delete:
+            del x[key]
         out.append(x)
 
     # Save into the json
@@ -192,14 +85,12 @@ def list_products():
     }), 200
 
 
-@application.route('/orders-get', methods=["GET", "POST"])
+@application.route('/external/orders-get', methods=["GET", "POST"])
 @check_authentication_token
 def orders_get():
     """
         Example request could look as follows:
-        {
-            "user_uuid": "b6347351-7fbb-406b-9b4d-4e90e9021834"
-        }
+        {}
 
     """
     try:
@@ -211,64 +102,55 @@ def orders_get():
         }), 400
 
     print("Got request: ", input_json)
-
-    if "user_uuid" not in input_json:
-        return jsonify({
-            "errors": ["user_uuid not fund!", str(input_json)]
-        }), 400
-
-    if not input_json["user_uuid"]:
-        return jsonify({
-            "errors": ["user_uuid empty!", str(input_json)]
-        }), 400
-
-    # Ignore input, and return all mockups
-    user_uuid = input_json["user_uuid"]
 
     # Get orders for this user only!
     print("User is: ", request.user)
     user_email = request.user.get("email")
 
-    print("User uuid and user email are: ", user_uuid, user_email)
+    print("User uuid and user email are: ", user_email)
 
-    out = model_orders.orders_by_user(user_email=user_email)
+    all_orders = model_orders.orders_by_user(user_email=user_email)
     # Turn into one mega-dictionary per object
-    out = [x for x in out]
+    # out = [x for x in out]
+
+    # TODO: Gotta delete all items' non-needed properties
+    # all_orders = []
+    # for order in all_unfiltered_orders:
+    #
+    #     del order['items']
+    #     out = []
+    #     for item in order['items']:
+    #         keys_to_delete = set()
+    #         for key in item.keys():
+    #             # whitelabel allowed properties
+    #             if key not in [
+    #                 "description_de",
+    #                 "description_en",
+    #                 "id",
+    #                 "manufacturer",
+    #                 "manufacturer_abbreviation",
+    #                 "part_external_identifier",
+    #                 "sequence_order",
+    #                 # TODO: Add the few other items as well (!)
+    #             ]:
+    #                 keys_to_delete.add(key)
+    #         for key in keys_to_delete:
+    #             del item[key]
+    #         out.append(item)
+    #     order['items'] = out
+    #     all_orders.append(order)
+
+    # Save into the json
+    print("out items are: ", all_orders)
+
+    print("Orders founr are: ", all_orders)
 
     return jsonify({
-        "response": out
+        "response": all_orders
     }), 200
 
 
-@application.route('/customers-get', methods=["GET", "POST"])
-@check_authentication_token
-def customers_get():
-    """
-        Example request could look as follows:
-        {
-            "user_uuid": "b6347351-7fbb-406b-9b4d-4e90e9021834"
-        }
-    """
-    try:
-        input_json = json.loads(request.data, strict=False)
-    except Exception as e:
-        print("Request body could not be parsed!", str(e), str(request.data))
-        return jsonify({
-            "errors": ["Request body could not be parsed!", str(e), str(request.data)]
-        }), 400
-
-    print("Got request: ", input_json)
-
-    out = model_customers.customers()
-    # Turn into one mega-dictionary per object
-    out = [x for x in out]
-
-    return jsonify({
-        "response": out
-    }), 200
-
-
-@application.route('/orders-post', methods=["GET", "POST"])
+@application.route('/external/orders-post', methods=["GET", "POST"])
 @check_authentication_token
 def orders_post():
     """
@@ -277,8 +159,8 @@ def orders_post():
 
         Example request could look as follows:
         {
-            "user_uuid": "b6347351-7fbb-406b-9b4d-4e90e9021834"
-            "reference": "",
+            # "reference": "",
+            "shipment_address": "Seker Fabrika Athena Yenimahalle sk. 16-1 60999 Türkiye",
             "items": [
                 {
                     id: number,
@@ -366,17 +248,22 @@ def orders_post():
         print("No files provided!", input_form_files)
 
     # Ignore input, and return all mockups
-    user_uuid = input_form_data.get("user_uuid")
-    reference = input_form_data.get("reference")
+    # reference = input_form_data.get("reference")
+    shipment_address = input_form_data.get("shipment_address")
+    note = input_form_data.get("note")
     items = input_form_data.getlist("items")
 
     customer_email = request.user.get('email')
 
-    err = check_property_is_included_formdata(input_form_data, "user_uuid", type_def=str)
+    # err = check_property_is_included_formdata(input_form_data, "reference", type_def=str)
+    # if err is not None:
+    #     return err
+
+    err = check_property_is_included_formdata(input_form_data, "shipment_address", type_def=str)
     if err is not None:
         return err
 
-    err = check_property_is_included_formdata(input_form_data, "reference", type_def=str)
+    err = check_property_is_included_formdata(input_form_data, "note", type_def=str)
     if err is not None:
         return err
 
@@ -457,11 +344,11 @@ def orders_post():
             "errors": [f"customer_email not recognized!!", str(customer_email), str(input_form_data)]
         }), 400
 
-    if not reference:
-        print(f"reference not recognized!!", str(reference), str(input_form_data))
-        return jsonify({
-            "errors": [f"reference not recognized!!", str(reference), str(input_form_data)]
-        }), 400
+    # if not reference:
+    #     print(f"reference not recognized!!", str(reference), str(input_form_data))
+    #     return jsonify({
+    #         "errors": [f"reference not recognized!!", str(reference), str(input_form_data)]
+    #     }), 400
 
     for item in items:
         part_id = item['id']
@@ -472,21 +359,17 @@ def orders_post():
             }), 400
 
     # Insert this into the database
+    # Automatically create the reference
+    reference = "BMBaker-" + datetime.datetime.today().strftime('%Y-%m-%d-%H:%M')
     model_orders.create_order(
         customer_email=customer_email,
         reference=reference,
         order_items=items,
+        shipment_address=shipment_address,
+        note=note,
         files=files
     )
 
     return jsonify({
         "response": "Order successfully filled!"
     }), 200
-
-    # Do not send a file back, as this is only input from the customer
-    # This file should not be generated yet, I guess, think about it later
-
-    # return Response(wrapped_file, mimetype="text/plain", direct_passthrough=True)
-
-# @application.route('/orders', methods=["POST"])
-# def list_orders():

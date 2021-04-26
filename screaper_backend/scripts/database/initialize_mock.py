@@ -42,7 +42,11 @@ def _create_mock_order(database_wrapper):
     # Get first customer
     customer = database_wrapper.read_customers_obj()[0]
 
-    order = database_wrapper.create_single_order(customer=customer, reference="ref MCY-GLS")
+    order = database_wrapper.create_single_order(
+        customer=customer,
+        reference="ref MCY-GLS",
+        shipment_address="pearl_harbour"
+    )
     print("Created order with orderid: ", order.id)
 
     # print parts that we're gonna input:

@@ -10,6 +10,16 @@ authentication_token = [
     "5a9caeb2-809d-4254-a985-eec3e9868c8c",   # Cengiz
 ]
 
+admin_emails = [
+    "yedavid@ethz.ch",
+    # Look for more supply-chain people, or just ask your friends about supply-chain friends
+    # Three specialists
+    "mcyenicelik@hotmail.com",
+    "baker@bakermagnetics.com.tr",
+    "auguryenicelik@hotmail.com",
+    "mcyenicelik@bakermagnetics.com.tr"
+]
+
 whitelist_emails = [
     # Five rando's
     "yedavid@ethz.ch",
@@ -19,11 +29,13 @@ whitelist_emails = [
     "ivan.hanselmann@sph.ethz.ch",
     "anton.moritz@sph.ethz.ch",
     "sven98@me.com",
-    "laurin.paech@gmail.com",
+    "paech.laurin@gmail.com",
     "ldisse@student.ethz.ch",
 
     # Roman
     # Sebastian
+    "muenkel.sebastian@gmail.com",
+    "gertrudeyenicelik@gmail.com",
 
     # Look for more supply-chain people, or just ask your friends about supply-chain friends
 

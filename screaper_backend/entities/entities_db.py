@@ -15,6 +15,8 @@ class Part(db.Model, SerializerMixin):
 
     id = db.Column(db.Integer, autoincrement=True, primary_key=True)
 
+    # part_uuid = db.Column(db.String, unique=True, nullable=False)
+
     part_external_identifier = db.Column(db.String, nullable=False)
     manufacturer_status = db.Column(db.String)
     manufacturer_price = db.Column(db.Float)
@@ -26,7 +28,6 @@ class Part(db.Model, SerializerMixin):
 
     searchstring = db.Column(db.String, nullable=False)
 
-    origin = db.Column(db.String)
     changes = db.Column(db.Integer)
     shortcut = db.Column(db.String)
     hs_code = db.Column(db.String)
@@ -52,6 +53,7 @@ class Customer(db.Model, SerializerMixin):
     id = db.Column(db.Integer, autoincrement=True, primary_key=True)
 
     # Personal information
+    # Use as UUID
     user_name = db.Column(db.String, index=True, unique=True)
     # The email is the respective username, which we use to connect this with an order
     email = db.Column(db.String, index=True, unique=True)
@@ -77,10 +79,25 @@ class Order(db.Model, SerializerMixin):
 
     id = db.Column(db.Integer, autoincrement=True, primary_key=True)
 
-    customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"))
+    customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"), nullable=False)
 
-    reference = db.Column(db.String)
-    status = db.Column(db.String)
+    reference = db.Column(db.String, nullable=False)
+    shipment_address = db.Column(db.String, nullable=False)
+    note = db.Column(db.String)
+
+    # All these things will be null at start
+    expected_delivery_date = db.Column(db.DateTime)
+    absolute_discount = db.Column(db.Float, default=0.00, nullable=False)
+    tax_rate = db.Column(db.Float, default=0.18, nullable=False)
+    origin = db.Column(db.String)
+    paid_on = db.Column(db.String)
+
+    total_price = db.Column(db.Float)
+
+    valid_through_date = db.Column(db.DateTime, default=lambda x: datetime.datetime.utcnow() + datetime.timedelta(days=21))
+
+    # Is one of: waiting_for_offer, waiting_for_confirmation, waiting_for_delivery, delivery_sent
+    status = db.Column(db.String, nullable=False)  # Have a limited number of 'stati' here
 
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
@@ -95,9 +112,13 @@ class OrderItem(db.Model, SerializerMixin):
 
     id = db.Column(db.Integer, autoincrement=True, primary_key=True)
 
+    # order_item_uuid = db.Column(db.String, nullable=False)
+
     order_id = db.Column(db.Integer, db.ForeignKey("orders.id"), nullable=False)
     part_id = db.Column(db.Integer, db.ForeignKey("parts.id"), nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
+
+    item_list_price = db.Column(db.Float, nullable=True)
     item_single_price = db.Column(db.Float, nullable=True)
 
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, nullable=False)
@@ -110,6 +131,9 @@ class FileRecord(db.Model, SerializerMixin):
     serialize_rules = ("-rel_files", "-order")
 
     id = db.Column(db.Integer, autoincrement=True, primary_key=True)
+
+    # file_uuid = db.Column(db.String, unique=True, nullable=False)
+
     file = db.Column(db.LargeBinary(), nullable=False)
     filename = db.Column(db.String(), nullable=False)
     order_id = db.Column(db.Integer, db.ForeignKey("orders.id"))
