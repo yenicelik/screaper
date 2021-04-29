@@ -2,7 +2,7 @@
     Running the flask application
 """
 from os import environ
-from screaper_backend.application.application_external import application
+from screaper_backend.application import application
 
 if __name__ == "__main__":
     print("Starting flask application ")

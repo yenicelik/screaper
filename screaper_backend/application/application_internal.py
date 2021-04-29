@@ -50,7 +50,7 @@ def customers_get():
 
 @application.route('/internal/products', methods=["GET", "POST"])
 @check_authentication_token
-def list_products():
+def internal_list_products():
     """
         Example request could look as follows:
         {
@@ -109,7 +109,7 @@ def list_products():
 
 @application.route('/internal/orders-get', methods=["GET", "POST"])
 @check_authentication_token
-def orders_get():
+def internal_orders_get():
     """
         Example request could look as follows:
         {}
@@ -149,7 +149,7 @@ def orders_get():
 
 @application.route('/internal/orders-post', methods=["GET", "POST"])
 @check_authentication_token
-def orders_post():
+def internal_orders_post():
     """
         good tutorial on how to read in form data
         https://stackoverflow.com/questions/10434599/get-the-data-received-in-a-flask-request
@@ -261,19 +261,70 @@ def orders_post():
     note = input_form_data.get("note")
     items = input_form_data.getlist("items")
 
+    order_id = input_form_data.get("order_id")
+    tax_rate = input_form_data.get("tax_rate")
+    absolute_discount = input_form_data.get("absolute_discount")
+    date_submitted = input_form_data.get("date_submitted")
+    valid_through_date = input_form_data.get("valid_through_date")
+    expected_delivery_date = input_form_data.get("expected_delivery_date")
+    reference = input_form_data.get("reference")
+    paid_date = input_form_data.get("paid_date")
+    total_price = input_form_data.get("total_price")
+    currency = input_form_data.get("currency")
+    order_items = input_form_data.get("order_items")
+
     customer_email = request.user.get('email')
 
     # err = check_property_is_included_formdata(input_form_data, "reference", type_def=str)
     # if err is not None:
     #     return err
 
-    err = check_property_is_included_formdata(input_form_data, "shipment_address", type_def=str)
-    if err is not None:
+    # Should also just write a for loop for this
+    err = check_property_is_included_formdata(input_form_data, "order_id", type_def=float)
+    if order_id and (err is not None):
         return err
 
-    err = check_property_is_included_formdata(input_form_data, "note", type_def=str)
-    if err is not None:
+    err = check_property_is_included_formdata(input_form_data, "tax_rate", type_def=float)
+    if tax_rate and (err is not None):
         return err
+
+    # The optional parameters
+    err = check_property_is_included_formdata(input_form_data, "absolute_discount", type_def=float)
+    if absolute_discount and (err is not None):
+        return err
+
+    err = check_property_is_included_formdata(input_form_data, "date_submitted", type_def=str)
+    if date_submitted and (err is not None):
+        return err
+
+    err = check_property_is_included_formdata(input_form_data, "valid_through_date", type_def=str)
+    if valid_through_date and (err is not None):
+        return err
+
+    err = check_property_is_included_formdata(input_form_data, "expected_delivery_date", type_def=str)
+    if expected_delivery_date and (err is not None):
+        return err
+
+    err = check_property_is_included_formdata(input_form_data, "reference", type_def=str)
+    if reference and (err is not None):
+        return err
+
+    err = check_property_is_included_formdata(input_form_data, "paid_date", type_def=str)
+    if paid_date and (err is not None):
+        return err
+
+    err = check_property_is_included_formdata(input_form_data, "total_price", type_def=float)
+    if total_price and (err is not None):
+        return err
+
+    err = check_property_is_included_formdata(input_form_data, "currency", type_def=str)
+    if currency and (err is not None):
+        return err
+
+    err = check_property_is_included_formdata(input_form_data, "order_items", type_def=list)
+    if order_items and (err is not None):
+        return err
+
 
     item_key_value_pairs = [
         ("part_external_identifier", str),  # string
@@ -322,29 +373,6 @@ def orders_post():
             if err is not None:
                 return err
 
-    # optional_item_key_value_pairs = [
-    #     ("manufacturer_status", str),  # string
-    #     ("manufacturer_stock", float),  # string
-    #     ("weight_in_g", float),  # number
-    #     ("replaced_by", str),  # string
-    #     ("changes", float),  # number
-    #     ("shortcut", str),  # string
-    #     ("hs_code", str),  # string
-    #     ("important", str),  # string
-    #     ("description_de", str),  # string
-    # ]
-    # for item_json in input_json['items']:
-    #     for item_name, item_type in optional_item_key_value_pairs:
-    #         err = check_optional_property(item_json, item_name, type_def=item_type)
-    #         if err is not None:
-    #             return err
-
-    # email = request.user['email']
-    #
-    # # Based on the email
-
-    # the customer username will basically be taken over through the customer email
-
     # Check if customer username is existent
     customers = model_customers.customer_emails()
     if (not customer_email) or (customer_email not in customers):
@@ -353,12 +381,6 @@ def orders_post():
         return jsonify({
             "errors": [f"customer_email not recognized!!", str(customer_email), str(input_form_data)]
         }), 400
-
-    # if not reference:
-    #     print(f"reference not recognized!!", str(reference), str(input_form_data))
-    #     return jsonify({
-    #         "errors": [f"reference not recognized!!", str(reference), str(input_form_data)]
-    #     }), 400
 
     for item in items:
         part_id = item['id']

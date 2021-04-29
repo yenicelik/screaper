@@ -16,7 +16,7 @@ from screaper_backend.resources.firebase_wrapper import check_authentication_tok
 
 @application.route('/external/products', methods=["GET", "POST"])
 @check_authentication_token
-def list_products():
+def external_list_products():
     """
         Example request could look as follows:
         {
@@ -87,7 +87,7 @@ def list_products():
 
 @application.route('/external/orders-get', methods=["GET", "POST"])
 @check_authentication_token
-def orders_get():
+def external_orders_get():
     """
         Example request could look as follows:
         {}
@@ -152,7 +152,7 @@ def orders_get():
 
 @application.route('/external/orders-post', methods=["GET", "POST"])
 @check_authentication_token
-def orders_post():
+def external_orders_post():
     """
         good tutorial on how to read in form data
         https://stackoverflow.com/questions/10434599/get-the-data-received-in-a-flask-request

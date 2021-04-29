@@ -110,6 +110,8 @@ class OrderItem(db.Model, SerializerMixin):
     __tablename__ = 'order_items'
     serialize_rules = ("-rel_part", "-_children")
 
+    rel_part = db.relationship("Part", uselist=False, back_populates="_children")
+
     id = db.Column(db.Integer, autoincrement=True, primary_key=True)
 
     # order_item_uuid = db.Column(db.String, nullable=False)
@@ -123,7 +125,6 @@ class OrderItem(db.Model, SerializerMixin):
 
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, nullable=False)
 
-    rel_part = db.relationship("Part", uselist=False, back_populates="_children")
 
 
 class FileRecord(db.Model, SerializerMixin):

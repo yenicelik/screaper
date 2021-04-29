@@ -141,10 +141,12 @@ class Database:
             item_single_price
     ):
         # Make some type-tests, fail if not sufficient
+        # save both the item single price, as well as the list price
         order_item = OrderItem(
             owner=order,
             rel_part=part,
             quantity=quantity,
+            item_list_price=part.manufacturer_price,
             item_single_price=item_single_price,
         )
         self.session.add(order_item)
