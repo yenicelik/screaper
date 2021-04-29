@@ -89,16 +89,19 @@ class Order(db.Model, SerializerMixin):
     expected_delivery_date = db.Column(db.DateTime)
     absolute_discount = db.Column(db.Float, default=0.00, nullable=False)
     tax_rate = db.Column(db.Float, default=0.18, nullable=False)
-    origin = db.Column(db.String)
-    paid_on = db.Column(db.String)
+    currency = db.Column(db.String, default="EUR", nullable=False)
 
-    total_price = db.Column(db.Float)
+    origin = db.Column(db.String)
+    paid_on_date = db.Column(db.String)
+
+    total_price_including_discount_and_taxrate = db.Column(db.Float)
 
     valid_through_date = db.Column(db.DateTime, default=lambda x: datetime.datetime.utcnow() + datetime.timedelta(days=21))
 
     # Is one of: waiting_for_offer, waiting_for_confirmation, waiting_for_delivery, delivery_sent
     status = db.Column(db.String, nullable=False)  # Have a limited number of 'stati' here
 
+    date_submitted = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
     rel_order_items = db.relationship('OrderItem', backref='owner')

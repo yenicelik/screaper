@@ -32,6 +32,29 @@ def check_property_is_included(input_json, property_name, type_def):
 
     return None
 
+def check_property_is_included_typed(variable, type_def, multiple=False):
+    assert variable is not None, variable
+
+    if not variable:
+        return jsonify({
+            "errors": [f"{variable} not found or empty!", str(variable)]
+        }), 400
+
+    if type_def == float:
+        if not isinstance(variable, float) and not isinstance(variable, int):
+            return jsonify({
+                "errors": [f"{variable} not of type {type_def}!", str(type(variable)),
+                           str(variable)]
+            }), 400
+    else:
+        if not isinstance(variable, type_def):
+            return jsonify({
+                "errors": [f"{variable} not of type {type_def}!", str(type(variable)),
+                           str(variable)]
+            }), 400
+
+    return None
+
 def check_property_is_included_formdata(input_json, property_name, type_def, multiple=False):
     assert property_name, property_name
 

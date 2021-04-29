@@ -76,11 +76,11 @@ class Database:
         # Make some type-tests, fail if not sufficient
         customer = Customer(
             user_name=user_name,
+            email=email,
             company_name=company_name,
+            domain_name=domain_name,
             phone_number=phone_number,
             fax_number=fax_number,
-            domain_name=domain_name,
-            email=email,
             address=address,
             city=city,
             country=country,
@@ -92,18 +92,25 @@ class Database:
         assert customer.id
         return customer
 
-    def create_order(self, order, order_items):
+    def create_order(self, customer, order, order_items, shipment_address,):
 
         assert order, order
         assert order_items, order_items
 
-        order = self.create_single_order(order.customer_id, order.reference)
+        order = self.create_single_order(
+            customer=customer,
+            reference=order.reference,
+            shipment_address=shipment_address
+        )
         for order_item in order_items:
+            # TODO: Maybe retrieve part first
+            part = self.read_part_by_part_id_obj(order_item.part_id)
+
             self.create_order_item(
-                part_id=order_item.part_id,
                 order=order,
+                part=part,
                 quantity=order_item.quantity,
-                item_price=order_item.item_price
+                item_single_price=order_item.item_single_price,  #
             )
 
     def create_single_order(
@@ -120,6 +127,7 @@ class Database:
         if shipment_address is None:
             shipment_address = customer.address
 
+        # owner=customer,
         order = Order(
             owner=customer,
             reference=reference,
@@ -142,17 +150,19 @@ class Database:
     ):
         # Make some type-tests, fail if not sufficient
         # save both the item single price, as well as the list price
+        print("Entering new part into this now: ")
+        # owner=order,
         order_item = OrderItem(
-            owner=order,
+            order_id=order.id,
             rel_part=part,
             quantity=quantity,
             item_list_price=part.manufacturer_price,
             item_single_price=item_single_price,
         )
+        print("New part is: ", order_item)
         self.session.add(order_item)
         self.session.commit()
-        self.session.refresh(order_item)
-        assert order_item.id
+        assert order_item.id, order_item.id
         return order_item
 
     def create_file_item(
@@ -339,8 +349,17 @@ class Database:
 
     def read_order_exists_by_customer(self, order_id, customer_id):
         # First, get the
-        order = self.session.query(Order).filter(Order.customer_id == customer_id).filter(Order.id == order_id)
-        assert order, ("Bad input!")
+        print("Customer id is: ", order_id, customer_id)
+        order = self.session.query(Order).filter(Order.customer_id == customer_id).filter(Order.id == order_id).one_or_none()
+        assert order, (order, "Bad input!")
+        # Gotta do some handling here!
+        return order
+
+    def read_order_exists_admin(self, order_id):
+        # First, get the
+        print("Customer id is: ", order_id)
+        order = self.session.query(Order).filter(Order.id == order_id).one_or_none()
+        assert order, (order, "Bad input!")
         # Gotta do some handling here!
         return order
 
@@ -350,7 +369,6 @@ class Database:
     def update_single_order(
             self,
             old_order,
-            order_id,
             tax_rate=None,
             absolute_discount=None,
             note=None,
@@ -359,33 +377,42 @@ class Database:
             expected_delivery_date=None,
             reference=None,
             shipment_address=None,
-            paid_date=None,
-            total_price=None,
+            paid_on_date=None,
+            total_price_including_discount_and_taxrate=None,
+            currency=None,
     ):
         # Make some type-tests, fail if not sufficient
-        assert order_id is not None, order_id
+        assert old_order is not None, old_order
         # order id must be provided, because this is an update operation!
         # we can safely ignore the customer to whom this belongs, also for the same reason
-        update_dicts = {
-            "order_id": order_id,
-            "tax_rate": tax_rate if tax_rate is not None else old_order.tax_rate,
-            "absolute_discount": absolute_discount if absolute_discount is not None else old_order.absolute_discount,
-            "note": note if note is not None else old_order.note,
-            "date_submitted": date_submitted if date_submitted is not None else old_order.date_submitted,
-            "valid_through_date": valid_through_date if valid_through_date is not None else old_order.valid_through_date,
-            "expected_delivery_date": expected_delivery_date if expected_delivery_date is not None else old_order.expected_delivery_date,
-            "reference": reference if reference is not None else old_order.reference,
-            "shipment_address": shipment_address if shipment_address is not None else old_order.shipment_address,
-            "paid_date": paid_date if paid_date is not None else old_order.paid_date,
-            "total_price": total_price if total_price is not None else old_order.total_price,
-        }
-        for key, val in update_dicts.items():
-            if val is not None:
-                setattr(old_order, key, val)
+        # Ignore the order_id here lol, you already have received the actual object
+        if tax_rate is not None:
+            old_order.tax_rate = tax_rate
+        if absolute_discount is not None:
+            old_order.absolute_discount = absolute_discount
+        if note is not None:
+            old_order.note = note
+        if date_submitted is not None:
+            old_order.date_submitted = date_submitted
+        if valid_through_date is not None:
+            old_order.valid_through_date = valid_through_date
+        if expected_delivery_date is not None:
+            old_order.expected_delivery_date = expected_delivery_date
+        if reference is not None:
+            old_order.reference = reference
+        if shipment_address is not None:
+            old_order.shipment_address = shipment_address
+        if paid_on_date is not None:
+            old_order.paid_on_date = paid_on_date
+        if currency is not None:
+            old_order.currency = currency
+        if total_price_including_discount_and_taxrate is not None:
+            old_order.total_price_including_discount_and_taxrate = total_price_including_discount_and_taxrate
 
         self.session.commit()
-        self.session.refresh(old_order)
-        assert old_order.id
+        print("Old order is: ", old_order)
+        # self.session.refresh(old_order)
+        # assert old_order.id
         return old_order
 
     ########################
@@ -398,6 +425,7 @@ class Database:
         # Drop all such items
         # (I hope, this also deletes the backreference (?) )
         self.session.query(OrderItem).filter(OrderItem.order_id == order.id).delete()
+        self.session.commit()
 
     def drop_files_for_order(
             self,
@@ -406,6 +434,7 @@ class Database:
         # Drop all such items
         # (I hope, this also deletes the backreference (?) )
         self.session.query(FileRecord).filter(FileRecord.order_id == order.id).delete()
+        self.session.commit()
 
 
 
