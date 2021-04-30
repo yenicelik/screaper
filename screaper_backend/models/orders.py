@@ -54,7 +54,7 @@ class Orders:
                 order=order,
                 part=part,
                 quantity=order_item["quantity"],
-                item_single_price=None, #  order_item["item_single_price"]
+                item_single_including_margin_price=None, #  order_item["item_single_price"]
             )
 
         print(f"Crated {i} new order items")
@@ -242,7 +242,7 @@ class Orders:
                     order=existing_order,
                     part=part,
                     quantity=order_item["quantity"],
-                    item_single_price=order_item["item_single_price"]
+                    item_single_including_margin_price=order_item["item_single_including_margin_price"]
                 )
 
         if files:

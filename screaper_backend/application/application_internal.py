@@ -339,7 +339,7 @@ def internal_orders_post():
         ("price_currency", str),  # string
         ("manufacturer_price", float),  # number
         ("cost_multiple", float),  # float
-        ("item_single_price", float),
+        ("item_single_including_margin_price", float),
         ("total_manufacturing_price", float),  # number
         ("cost_multiple", float),  # number
         ("total_final_price", float),  # number
@@ -646,7 +646,7 @@ def internal_orders_edit():
         ("price_currency", str),  # string
         ("manufacturer_price", float),  # number
         ("cost_multiple", float),  # float
-        ("item_single_price", float),
+        ("item_single_including_margin_price", float),
         ("total_manufacturing_price", float),  # number
         ("cost_multiple", float),  # number
         ("total_final_price", float),  # number
@@ -658,6 +658,7 @@ def internal_orders_edit():
     ]
 
     if not items or len(items) == 0:
+        print("errors", ["No items found in request!", str(items), str(request.form)])
         return jsonify({
             "errors": ["No items found in request!", str(items), str(request.form)]
         }), 400

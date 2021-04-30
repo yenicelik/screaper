@@ -146,7 +146,7 @@ class Database:
             order,
             part,
             quantity,
-            item_single_price
+            item_single_including_margin_price
     ):
         # Make some type-tests, fail if not sufficient
         # save both the item single price, as well as the list price
@@ -157,7 +157,7 @@ class Database:
             rel_part=part,
             quantity=quantity,
             item_list_price=part.manufacturer_price,
-            item_single_price=item_single_price,
+            item_single_including_margin_price=item_single_including_margin_price,
         )
         print("New part is: ", order_item)
         self.session.add(order_item)
@@ -197,9 +197,14 @@ class Database:
         for customer in customers:
             for order in customer.rel_orders:
                 tmp1 = order.to_dict()
+                tmp1["order_id"] = tmp1["id"]
                 # print("tmp is: ")
                 # print(tmp1)
-                tmp1.update(customer.to_dict())
+                customer_dict = customer.to_dict()
+                customer_dict["customer_id"] = customer_dict["id"]
+                del customer_dict["id"]
+                # TODO: The id in this should refer to the order_id
+                tmp1.update(customer_dict)
                 tmp1['items'] = []
                 tmp1['files'] = []
                 # print("tmp after is: ")
@@ -357,7 +362,7 @@ class Database:
 
     def read_order_exists_admin(self, order_id):
         # First, get the
-        print("Customer id is: ", order_id)
+        print("Order id is: ", order_id)
         order = self.session.query(Order).filter(Order.id == order_id).one_or_none()
         assert order, (order, "Bad input!")
         # Gotta do some handling here!

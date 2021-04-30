@@ -124,7 +124,7 @@ class OrderItem(db.Model, SerializerMixin):
     quantity = db.Column(db.Integer, nullable=False)
 
     item_list_price = db.Column(db.Float, nullable=True)
-    item_single_price = db.Column(db.Float, nullable=True)
+    item_single_including_margin_price = db.Column(db.Float, nullable=True)
 
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, nullable=False)
 

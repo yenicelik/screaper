@@ -262,9 +262,9 @@ def external_orders_post():
     if err is not None:
         return err
 
-    err = check_property_is_included_formdata(input_form_data, "note", type_def=str)
-    if err is not None:
-        return err
+    # err = check_property_is_included_formdata(input_form_data, "note", type_def=str)
+    # if err is not None:
+    #     return err
 
     item_key_value_pairs = [
         ("part_external_identifier", str),  # string
