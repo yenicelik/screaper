@@ -286,7 +286,6 @@ def external_orders_post():
 
         ("sequence_order", float),  # number
         ("quantity", float),  # number
-
     ]
 
     if not items or len(items) == 0:

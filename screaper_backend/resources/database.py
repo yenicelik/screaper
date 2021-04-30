@@ -146,12 +146,18 @@ class Database:
             order,
             part,
             quantity,
-            item_single_including_margin_price
+            item_single_including_margin_price=None,
+            cost_multiple=None
     ):
         # Make some type-tests, fail if not sufficient
         # save both the item single price, as well as the list price
         print("Entering new part into this now: ")
         # owner=order,
+        # Put a default value on the final price
+        if item_single_including_margin_price is None and cost_multiple is None:
+            item_single_including_margin_price = 2.5 * part.manufacturer_price
+        if cost_multiple:
+            item_single_including_margin_price = cost_multiple * part.manufacturer_price
         order_item = OrderItem(
             order_id=order.id,
             rel_part=part,
@@ -213,6 +219,8 @@ class Database:
                     tmp2 = order_item.to_dict()
                     del tmp2['owner']
                     tmp2.update(order_item.rel_part.to_dict())
+                    # Calculate the cost multiple
+                    tmp2['cost_multiple'] = order_item.item_single_including_margin_price / order_item.item_list_price
                     # print("tmp 2 is: ", tmp2)
                     tmp1['items'].append(tmp2)
                     # print("Adding following object to the list (1):")

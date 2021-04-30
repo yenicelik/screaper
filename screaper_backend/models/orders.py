@@ -220,6 +220,7 @@ class Orders:
         # Overwrite files if any files array was provided
         # Overwrite parts if any parts array was provided
         i = 0
+        print("Order items are: ", order_items)
         if order_items:
             # Easiest to just delete, and override
             print("Dropping all items for order", existing_order)
@@ -229,11 +230,13 @@ class Orders:
                 assert "id" in order_item, order_item
 
                 part = screaper_database.read_part_by_part_id_obj(idx=order_item["id"])
-                print("Adding part: ", part)
+                print("Adding order item with part: ", part)
 
                 # get the order item id
 
                 # probably easiest to just delete everything, and re-instantiate all again
+
+                # get the cost multiple from the order item
 
                 # TODO: Fetch the part as given by the external identifier
                 print("Inserting: ", order_item)
@@ -242,7 +245,8 @@ class Orders:
                     order=existing_order,
                     part=part,
                     quantity=order_item["quantity"],
-                    item_single_including_margin_price=order_item["item_single_including_margin_price"]
+                    item_single_including_margin_price=order_item["item_single_including_margin_price"],
+                    cost_multiple=order_item["cost_multiple"]
                 )
 
         if files:
