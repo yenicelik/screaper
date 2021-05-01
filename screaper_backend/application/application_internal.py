@@ -362,8 +362,8 @@ def internal_orders_edit():
     print("Date Submitted: ", date_submitted, type(date_submitted))
     valid_through_date = datetime.datetime.strptime(valid_through_date, '%Y-%m-%d') if valid_through_date else None
     print("Valid Through Date after: ", valid_through_date, type(valid_through_date))
-    expected_delivery_date = datetime.datetime.strptime(expected_delivery_date, '%Y-%m-%d') if expected_delivery_date else None
-    print("Expected date: ", expected_delivery_date, type(expected_delivery_date))
+    # expected_delivery_date = datetime.datetime.strptime(expected_delivery_date, '%Y-%m-%d') if expected_delivery_date else None
+    # print("Expected date: ", expected_delivery_date, type(expected_delivery_date))
     paid_on_date = datetime.datetime.strptime(paid_on_date, '%Y-%m-%d') if paid_on_date else None
     print("Paid after: ", paid_on_date, type(paid_on_date))
 
@@ -428,6 +428,9 @@ def internal_orders_edit():
         return jsonify({
             "errors": [f"customer_email not recognized!!", str(customer_email), str(input_form_data)]
         }), 400
+
+    # Make sure only accessible to admins
+    # TODO: Make sure only accessible to admins
 
     for item in items:
         part_id = item['id']

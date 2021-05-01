@@ -86,7 +86,7 @@ class Order(db.Model, SerializerMixin):
     note = db.Column(db.String)
 
     # All these things will be null at start
-    expected_delivery_date = db.Column(db.DateTime)
+    expected_delivery_date = db.Column(db.String)
     absolute_discount = db.Column(db.Float, default=0.00, nullable=False)
     tax_rate = db.Column(db.Float, default=0.18, nullable=False)
     currency = db.Column(db.String, default="EUR", nullable=False)
@@ -99,7 +99,7 @@ class Order(db.Model, SerializerMixin):
     valid_through_date = db.Column(db.DateTime, default=lambda x: datetime.datetime.utcnow() + datetime.timedelta(days=21))
 
     # Is one of: waiting_for_offer, waiting_for_confirmation, waiting_for_delivery, delivery_sent
-    status = db.Column(db.String, nullable=False)  # Have a limited number of 'stati' here
+    status = db.Column(db.String, default="waiting_for_offer", nullable=False)  # Have a limited number of 'stati' here
 
     date_submitted = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
