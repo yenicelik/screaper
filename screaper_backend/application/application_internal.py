@@ -283,6 +283,7 @@ def internal_orders_edit():
     shipment_address = input_form_data.get("shipment_address")
     note = input_form_data.get("note")
     reference = input_form_data.get("reference")
+    status = input_form_data.get("status")
 
     order_id = input_form_data.get("order_id")
     # Parse integer if possible
@@ -340,6 +341,10 @@ def internal_orders_edit():
         return err
 
     err = check_property_is_included_formdata(input_form_data, "paid_on_date", type_def=str)
+    if paid_on_date and (err is not None):
+        return err
+
+    err = check_property_is_included_formdata(input_form_data, "status", type_def=str)
     if paid_on_date and (err is not None):
         return err
 
@@ -439,6 +444,7 @@ def internal_orders_edit():
         tax_rate=tax_rate,
         absolute_discount=absolute_discount,
         note=note,
+        status=status,
         date_submitted=date_submitted,
         valid_through_date=valid_through_date,
         expected_delivery_date=expected_delivery_date,

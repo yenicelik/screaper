@@ -7,7 +7,7 @@ from werkzeug.utils import secure_filename
 
 from screaper_backend.application import application
 from screaper_backend.application.utils import algorithm_product_similarity, check_property_is_included_formdata, \
-    check_property_is_included
+    check_property_is_included, check_property_is_included_typed
 from screaper_backend.models.customers import model_customers
 from screaper_backend.models.orders import model_orders
 from screaper_backend.models.parts import model_parts
@@ -113,36 +113,82 @@ def external_orders_get():
     # Turn into one mega-dictionary per object
     # out = [x for x in out]
 
-    # TODO: Gotta delete all items' non-needed properties
-    # all_orders = []
-    # for order in all_unfiltered_orders:
-    #
-    #     del order['items']
-    #     out = []
-    #     for item in order['items']:
-    #         keys_to_delete = set()
-    #         for key in item.keys():
-    #             # whitelabel allowed properties
-    #             if key not in [
-    #                 "description_de",
-    #                 "description_en",
-    #                 "id",
-    #                 "manufacturer",
-    #                 "manufacturer_abbreviation",
-    #                 "part_external_identifier",
-    #                 "sequence_order",
-    #                 # TODO: Add the few other items as well (!)
-    #             ]:
-    #                 keys_to_delete.add(key)
-    #         for key in keys_to_delete:
-    #             del item[key]
-    #         out.append(item)
-    #     order['items'] = out
-    #     all_orders.append(order)
+    # Based on status of the order, delete non-needed properties
 
-    # Save into the json
-    # print("out items are: ", all_orders)
-    # print("Orders founr are: ", all_orders)
+    out = []
+
+    all_possible_part_keys = {
+        "quantity",
+        "item_single_including_margin_price",
+        "item_list_price",
+        "id",
+        "part_external_identifier",
+        "manufacturer",
+        "manufacturer_abbreviation",
+        "description_en",
+        "description_de",
+        "price_currency",
+        "searchstring",
+    }
+
+    all_possible_order_keys = {
+        "id",  # is the order_id
+        "order_id",
+        "user_name",
+        "reference",
+        "company_name",
+        "shipment_address",
+        "tax_rate",
+        "absolute_discount",
+        "note",
+        "date_submitted",
+        "valid_through_date",
+        "expected_delivery_date",
+        "paid_on_date",
+        "status",
+        "items",
+        "files",
+        # "totalNetPrice",
+        # "totalPriceMinusDiscount",
+        "total_price_including_discount_and_taxrate",
+        "currency",
+    }
+
+    for order in all_orders:
+
+        if order["status"] == "waiting_for_offer":
+            keep_part_keys = {"quantity", "id", "part_external_identifier",
+                              "manufacturer", "manufacturer_abbreviation", "description_en",
+                              "description_de", "price_currency", "searchstring", "order_id"
+                              }
+            keep_order_keys = {
+                "id", "user_name", "reference",
+                "company_name", "shipment_address", "note",
+                "date_submitted", "status", "items", "files",
+                "currency", "order_id"
+            }
+
+        elif order["status"] in {"waiting_for_confirmation", "delivery_sent", "waiting_for_delivery"}:
+            keep_part_keys = all_possible_part_keys
+            keep_order_keys = all_possible_order_keys
+
+        else:
+            assert False, ("Order status is not well-defined!", order["status"])
+
+        # Only keep certain part-items in order
+        items_arr = order["items"]
+        order["items"] = [{k: item_dict[k] for k in keep_part_keys} for item_dict in items_arr]
+
+        # Only keep certain keys in order
+        print("Order is: ", order.keys())
+        order = {k: order[k] for k in keep_order_keys}
+
+        # Other thigs to keep / not keep
+
+        # Only keep certain items within the order parts
+        out.append(order)
+
+    all_orders = out
 
     return jsonify({
         "response": all_orders
@@ -203,7 +249,6 @@ def external_orders_post():
 
     print("Got request: ", input_form_data)
     print("Files are: ", input_form_files)
-
 
     ######################
     #
@@ -428,6 +473,7 @@ def external_orders_edit():
     print("Got request: ", input_form_data)
     print("Files are: ", input_form_files)
 
+    # TODO: Make sure that status is not delivered, etc.
 
     ######################
     #
@@ -535,27 +581,6 @@ def external_orders_edit():
             if err is not None:
                 return err
 
-    # optional_item_key_value_pairs = [
-    #     ("manufacturer_status", str),  # string
-    #     ("manufacturer_stock", float),  # string
-    #     ("weight_in_g", float),  # number
-    #     ("replaced_by", str),  # string
-    #     ("changes", float),  # number
-    #     ("shortcut", str),  # string
-    #     ("hs_code", str),  # string
-    #     ("important", str),  # string
-    #     ("description_de", str),  # string
-    # ]
-    # for item_json in input_json['items']:
-    #     for item_name, item_type in optional_item_key_value_pairs:
-    #         err = check_optional_property(item_json, item_name, type_def=item_type)
-    #         if err is not None:
-    #             return err
-
-    # email = request.user['email']
-    #
-    # # Based on the email
-
     # the customer username will basically be taken over through the customer email
 
     # Check if customer username is existent
@@ -566,12 +591,6 @@ def external_orders_edit():
         return jsonify({
             "errors": [f"customer_email not recognized!!", str(customer_email), str(input_form_data)]
         }), 400
-
-    # if not reference:
-    #     print(f"reference not recognized!!", str(reference), str(input_form_data))
-    #     return jsonify({
-    #         "errors": [f"reference not recognized!!", str(reference), str(input_form_data)]
-    #     }), 400
 
     for item in items:
         part_id = item['id']
@@ -584,6 +603,7 @@ def external_orders_edit():
     # Insert this into the database
     # Automatically create the reference
     reference = "BMBaker-" + datetime.datetime.today().strftime('%Y-%m-%d-%H:%M')
+    # TODO: Gotta make it edit, not create an order!
     model_orders.create_order(
         customer_email=customer_email,
         reference=reference,
@@ -591,6 +611,66 @@ def external_orders_edit():
         shipment_address=shipment_address,
         note=note,
         files=files
+    )
+
+    return jsonify({
+        "response": "Order successfully filled!"
+    }), 200
+
+
+@application.route('/external/orders-confirm', methods=["GET", "POST"])
+@check_authentication_token
+def external_orders_confirm():
+    """
+        Update any data that was submitted by the user
+
+        Example request could look as follows:
+        {
+            "order_id"
+        }
+
+    """
+
+    try:
+        input_form_data = request.form
+        input_form_files = request.files
+    except Exception as e:
+        print("Request body could not be parsed!", str(e), str(request.data))
+        return jsonify({
+            "errors": ["Request body could not be parsed!", str(e), str(request.data)]
+        }), 400
+
+    print("Got request: ", input_form_data)
+    print("Files are: ", input_form_files)
+
+    # TODO: Make sure that status is not delivered, etc.
+
+    # TODO: Generate the excel file, and save it as a file to the folder (?)
+    # That is for waiting for offer, though
+    order_id = input_form_data.get("order_id")
+    # Parse integer if possible
+    order_id = int(order_id) if order_id else order_id
+
+    # Should also just write a for loop for this
+    err = check_property_is_included_typed(order_id, type_def=int)
+    if order_id and (err is not None):
+        return err
+
+    customer_email = request.user.get('email')
+    # Check if customer username is existent
+    customers = model_customers.customer_emails()
+    if (not customer_email) or (customer_email not in customers):
+        print("Customers are: ", customers)
+        print(f"customer_email not recognized!!", str(customer_email), str(input_form_data))
+        return jsonify({
+            "errors": [f"customer_email not recognized!!", str(customer_email), str(input_form_data)]
+        }), 400
+
+    # Insert this into the database
+    # Automatically create the reference
+    model_orders.confirm_order_status_to_waiting_for_delivery(
+        order_id=order_id,
+        customer_email=customer_email
     )
 
     return jsonify({

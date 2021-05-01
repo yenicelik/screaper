@@ -220,7 +220,13 @@ class Database:
                     del tmp2['owner']
                     tmp2.update(order_item.rel_part.to_dict())
                     # Calculate the cost multiple
-                    tmp2['cost_multiple'] = order_item.item_single_including_margin_price / order_item.item_list_price
+                    if (order_item.item_list_price):
+                        tmp2['cost_multiple'] = order_item.item_single_including_margin_price / order_item.item_list_price
+                    else:
+                        # If the list price is zero, the item doesn't exist.
+                        # put the listprice to negative, and then
+                        tmp2['item_list_price'] = -1.
+                        tmp2['cost_multiple'] = order_item.item_single_including_margin_price / -1.
                     # print("tmp 2 is: ", tmp2)
                     tmp1['items'].append(tmp2)
                     # print("Adding following object to the list (1):")
@@ -262,6 +268,7 @@ class Database:
                 tmp1 = order.to_dict()
                 # print("tmp is: ")
                 # print(tmp1)
+                tmp1["order_id"] = tmp1["id"]
                 tmp1.update(customer.to_dict())
                 tmp1['items'] = []
                 tmp1['files'] = []
@@ -386,6 +393,7 @@ class Database:
             absolute_discount=None,
             note=None,
             date_submitted=None,
+            status=None,
             valid_through_date=None,
             expected_delivery_date=None,
             reference=None,
@@ -409,6 +417,8 @@ class Database:
             old_order.date_submitted = date_submitted
         if valid_through_date is not None:
             old_order.valid_through_date = valid_through_date
+        if status is not None:
+            old_order.status = status
         if expected_delivery_date is not None:
             old_order.expected_delivery_date = expected_delivery_date
         if reference is not None:

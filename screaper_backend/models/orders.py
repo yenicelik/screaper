@@ -176,6 +176,7 @@ class Orders:
             absolute_discount=None,
             note=None,
             date_submitted=None,
+            status=None,
             valid_through_date=None,
             expected_delivery_date=None,
             reference=None,
@@ -205,6 +206,7 @@ class Orders:
             "absolute_discount": absolute_discount if absolute_discount is not None else existing_order.absolute_discount,
             "note": note if note is not None else existing_order.note,
             "date_submitted": date_submitted if date_submitted is not None else existing_order.date_submitted,
+            "status": status if status is not None else existing_order.status,
             "valid_through_date": valid_through_date if valid_through_date is not None else existing_order.valid_through_date,
             "expected_delivery_date": expected_delivery_date if expected_delivery_date is not None else existing_order.expected_delivery_date,
             "reference": reference if reference is not None else existing_order.reference,
@@ -265,6 +267,24 @@ class Orders:
         screaper_database.session.commit()
 
         # Make sure that there are more items in the database now (?)
+
+    def confirm_order_status_to_waiting_for_delivery(
+            self,
+            order_id,
+            customer_email
+    ):
+
+        # Get customer object
+        customer = screaper_database.read_customers_by_customer_email(email=customer_email)
+
+        # Read orders by order_id AND customer id
+        print("Order id is: ", order_id)
+        existing_order = screaper_database.read_order_exists_by_customer(order_id=order_id, customer_id=customer.id)
+
+        assert existing_order, (existing_order, order_id, customer.id)
+
+        # Now set the status to "waiting_for_delivery"
+        screaper_database.update_single_order(old_order=existing_order, status="waiting_for_delivery")
 
 
 model_orders = Orders()
