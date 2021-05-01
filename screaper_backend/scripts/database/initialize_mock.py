@@ -42,7 +42,11 @@ def _create_mock_order(database_wrapper):
     # Get first customer
     customer = database_wrapper.read_customers_obj()[0]
 
-    order = database_wrapper.create_single_order(customer=customer, reference="ref MCY-GLS")
+    order = database_wrapper.create_single_order(
+        customer=customer,
+        reference="ref MCY-GLS",
+        shipment_address="pearl_harbour"
+    )
     print("Created order with orderid: ", order.id)
 
     # print parts that we're gonna input:
@@ -52,7 +56,7 @@ def _create_mock_order(database_wrapper):
         order=order,
         part=part,
         quantity=50,
-        item_single_price=50,
+        item_single_including_margin_price=50,
     )
     part = database_wrapper.read_part_by_part_id_obj(100)
     print("buying part: ", part.to_dict())
@@ -60,7 +64,7 @@ def _create_mock_order(database_wrapper):
         order=order,
         part=part,
         quantity=12,
-        item_single_price=684.13 * 2.5,
+        item_single_including_margin_price=684.13 * 2.5,
     )
     part = database_wrapper.read_part_by_part_id_obj(52)
     print("buying part: ", part.to_dict())
@@ -68,7 +72,7 @@ def _create_mock_order(database_wrapper):
         order=order,
         part=part,
         quantity=12,
-        item_single_price=100 * 2.5,
+        item_single_including_margin_price=100 * 2.5,
     )
     part = database_wrapper.read_part_by_part_id_obj(53)
     print("buying part: ", part.to_dict())
@@ -76,7 +80,7 @@ def _create_mock_order(database_wrapper):
         order=order,
         part=part,
         quantity=12,
-        item_single_price=100 * 2.5,
+        item_single_including_margin_price=100 * 2.5,
     )
     part = database_wrapper.read_part_by_part_id_obj(23)
     print("buying part: ", part.to_dict())
@@ -84,7 +88,7 @@ def _create_mock_order(database_wrapper):
         order=order,
         part=part,
         quantity=12,
-        item_single_price=100 * 2.5,
+        item_single_including_margin_price=100 * 2.5,
     )
     part = database_wrapper.read_part_by_part_id_obj(64)
     print("buying part: ", part.to_dict())
@@ -92,7 +96,7 @@ def _create_mock_order(database_wrapper):
         order=order,
         part=part,
         quantity=12,
-        item_single_price=100 * 2.5,
+        item_single_including_margin_price=100 * 2.5,
     )
     part = database_wrapper.read_part_by_part_id_obj(24)
     print("buying part: ", part.to_dict())
@@ -100,7 +104,7 @@ def _create_mock_order(database_wrapper):
         order=order,
         part=part,
         quantity=12,
-        item_single_price=100 * 2.5,
+        item_single_including_margin_price=100 * 2.5,
     )
     part = database_wrapper.read_part_by_part_id_obj(64)
     print("buying part: ", part.to_dict())
@@ -108,7 +112,7 @@ def _create_mock_order(database_wrapper):
         order=order,
         part=part,
         quantity=12,
-        item_single_price=100 * 2.5,
+        item_single_including_margin_price=100 * 2.5,
     )
     part = database_wrapper.read_part_by_part_id_obj(75)
     print("buying part: ", part.to_dict())
@@ -116,7 +120,7 @@ def _create_mock_order(database_wrapper):
         order=order,
         part=part,
         quantity=12,
-        item_single_price=100 * 2.5,
+        item_single_including_margin_price=100 * 2.5,
     )
     part = database_wrapper.read_part_by_part_id_obj(86)
     print("buying part: ", part.to_dict())
@@ -124,6 +128,6 @@ def _create_mock_order(database_wrapper):
         order=order,
         part=part,
         quantity=12,
-        item_single_price=100 * 2.5,
+        item_single_including_margin_price=100 * 2.5,
     )
     database_wrapper.session.commit()

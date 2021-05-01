@@ -6,7 +6,6 @@ from screaper_backend.importer.fischbein.data_importer_fischbein import DataImpo
 from screaper_backend.importer.unionspecial.data_importer_unionspecial import DataImporterUnionSpecial
 
 from screaper_backend.entities.entities_db import Part, Customer
-from screaper_backend.resources.database import screaper_database
 
 def _populate_union_special_partslist_into_db(session):
     """
@@ -81,7 +80,7 @@ def _create_default_customers(database_wrapper):
     database_wrapper.session.commit()
 
 
-def initialize_db():
+def initialize_db(screaper_database):
 
     print("Initializing the database...")
 
