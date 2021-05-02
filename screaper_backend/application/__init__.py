@@ -14,5 +14,6 @@ application.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 CORS(application)
 db = SQLAlchemy(application)
 
+import screaper_backend.application.application_common
 import screaper_backend.application.application_external
 import screaper_backend.application.application_internal
