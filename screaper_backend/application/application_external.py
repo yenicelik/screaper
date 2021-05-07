@@ -340,7 +340,12 @@ def external_orders_post():
 
     # decode the json into json objects
     # Also pass try catc around this?
-    items = [json.loads(x) for x in items]
+    tmp_items = [json.loads(x) for x in items]
+    items = []
+    for item in tmp_items
+        if item['sequence_order'] is None:
+            item['sequence_order'] = -1
+        items.append(item)
     items = sorted(items, key=lambda x: x['sequence_order'])
 
     # Check all types for items now
