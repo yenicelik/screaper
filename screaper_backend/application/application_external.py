@@ -342,7 +342,7 @@ def external_orders_post():
     # Also pass try catc around this?
     tmp_items = [json.loads(x) for x in items]
     items = []
-    for item in tmp_items
+    for item in tmp_items:
         if item['sequence_order'] is None:
             item['sequence_order'] = -1
         items.append(item)
