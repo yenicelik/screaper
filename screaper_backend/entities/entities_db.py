@@ -5,8 +5,10 @@
 import datetime
 
 from sqlalchemy_serializer import SerializerMixin
+from sqlalchemy.sql import func
 
 from screaper_backend.application import db
+
 
 class Part(db.Model, SerializerMixin):
     # Whenever a new catalogue comes in, just append these parts! (and update the timestamp)
@@ -38,7 +40,7 @@ class Part(db.Model, SerializerMixin):
 
     price_currency = db.Column(db.String)
 
-    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    created_at = db.Column(db.DateTime, server_default=func.now())
 
     _children = db.relationship('OrderItem', back_populates="rel_part")
 
@@ -68,7 +70,7 @@ class Customer(db.Model, SerializerMixin):
     country = db.Column(db.String)
     contact_name = db.Column(db.String)
 
-    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    created_at = db.Column(db.DateTime, server_default=func.now())
 
     rel_orders = db.relationship('Order', backref='owner')
 
@@ -96,13 +98,14 @@ class Order(db.Model, SerializerMixin):
 
     total_price_including_discount_and_taxrate = db.Column(db.Float)
 
-    valid_through_date = db.Column(db.DateTime, default=lambda x: datetime.datetime.utcnow() + datetime.timedelta(days=21))
+    valid_through_date = db.Column(db.DateTime,
+                                   default=lambda x: datetime.datetime.utcnow() + datetime.timedelta(days=21))
 
     # Is one of: waiting_for_offer, waiting_for_confirmation, waiting_for_delivery, delivery_sent
     status = db.Column(db.String, default="waiting_for_offer", nullable=False)  # Have a limited number of 'stati' here
 
-    date_submitted = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    date_submitted = db.Column(db.DateTime, server_default=func.now())
+    created_at = db.Column(db.DateTime, server_default=func.now())
 
     rel_order_items = db.relationship('OrderItem', backref='owner')
 
@@ -126,8 +129,7 @@ class OrderItem(db.Model, SerializerMixin):
     item_list_price = db.Column(db.Float, nullable=True)
     item_single_including_margin_price = db.Column(db.Float, nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, nullable=False)
-
+    created_at = db.Column(db.DateTime, server_default=func.now(), nullable=False)
 
 
 class FileRecord(db.Model, SerializerMixin):
@@ -143,4 +145,3 @@ class FileRecord(db.Model, SerializerMixin):
     order_id = db.Column(db.Integer, db.ForeignKey("orders.id"))
 
     order = db.relationship("Order", back_populates="rel_files")
-
