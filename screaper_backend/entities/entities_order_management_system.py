@@ -4,10 +4,16 @@
 """
 import datetime
 
+import enum
 from sqlalchemy_serializer import SerializerMixin
 from sqlalchemy.sql import func
 
 from screaper_backend.application import db
+
+
+class StatusType(enum.Enum):
+    APPLE = "Crunchy apple"
+    BANANA = "Sweet banana"
 
 
 class Part(db.Model, SerializerMixin):
@@ -102,7 +108,9 @@ class Order(db.Model, SerializerMixin):
                                    default=lambda x: datetime.datetime.utcnow() + datetime.timedelta(days=21))
 
     # Is one of: waiting_for_offer, waiting_for_confirmation, waiting_for_delivery, delivery_sent
-    status = db.Column(db.String, default="waiting_for_offer", nullable=False)  # Have a limited number of 'stati' here
+    status = db.Column(Enum("PERSON", "NORP", "FACILITY", "ORGANIZATION", "GPE", "LOCATION", "PRODUCT", "EVENT", "WORK OF ART", "LAW",
+             "LANGUAGE", "DATE", "TIME", "PERCENT", "MONEY", "QUANTITY", "ORDINAL", "CARDINAL", "OTHER",
+             name="ner_types_enum"), default="waiting_for_offer", nullable=False)  # Have a limited number of 'stati' here
 
     date_submitted = db.Column(db.DateTime, server_default=func.now())
     created_at = db.Column(db.DateTime, server_default=func.now())
