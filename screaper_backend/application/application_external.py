@@ -35,11 +35,13 @@ def external_list_products():
     print("Got request: ", input_json)
 
     if "query" not in input_json:
+        print(["errors", "query not fund!", str(input_json)])
         return jsonify({
             "errors": ["query not fund!", str(input_json)]
         }), 400
 
     if not input_json["query"]:
+        print(["errors", "query empty!", str(input_json)])
         return jsonify({
             "errors": ["query empty!", str(input_json)]
         }), 400
@@ -272,12 +274,14 @@ def external_orders_post():
             print("Looking at file: ", file)
 
             if filename == '':
+                print("errors", ["No File provided!", str(input_form_files)])
                 return jsonify({
                     "errors": ["No File provided!", str(input_form_files)]
                 }), 400
 
             filename = secure_filename(file.filename)
             if filename == '':
+                print("errors", ["No File provided!", str(input_form_files)])
                 return jsonify({
                     "errors": ["No File provided!", str(input_form_files)]
                 }), 400
@@ -334,6 +338,7 @@ def external_orders_post():
     ]
 
     if not items or len(items) == 0:
+        print("errors", ["No items found in request!", str(items), str(request.form)])
         return jsonify({
             "errors": ["No items found in request!", str(items), str(request.form)]
         }), 400
@@ -502,12 +507,14 @@ def external_orders_edit():
             print("Looking at file: ", file)
 
             if filename == '':
+                print("errors", ["No File provided!", str(input_form_files)])
                 return jsonify({
                     "errors": ["No File provided!", str(input_form_files)]
                 }), 400
 
             filename = secure_filename(file.filename)
             if filename == '':
+                print("errors", ["No File provided!", str(input_form_files)])
                 return jsonify({
                     "errors": ["No File provided!", str(input_form_files)]
                 }), 400
@@ -565,6 +572,7 @@ def external_orders_edit():
     ]
 
     if not items or len(items) == 0:
+        print("errors", ["No items found in request!", str(items), str(request.form)])
         return jsonify({
             "errors": ["No items found in request!", str(items), str(request.form)]
         }), 400
