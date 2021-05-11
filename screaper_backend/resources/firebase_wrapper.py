@@ -28,13 +28,22 @@ def check_authentication_token(f):
             # Make sure the user's email is in the whitelist
             print("User is: ", user)
             if 'email' not in user:
+                print("errors", ["Permission denied (E.002)", str(request.headers)])
                 return jsonify({
                     "errors": ["Permission denied (E.002)", str(request.headers)]
                 }), 403
 
             if user['email'] not in whitelist_emails:
+                print("errors", ["Permission denied (E.002)", str(request.headers)])
                 return jsonify({
                     "errors": ["Permission denied (E.002)", str(request.headers)]
+                }), 403
+
+            # Check if e-mail was verified
+            if not user['email_verified']:
+                print("errors", ["Please verify your e-mail!", str(request.headers)])
+                return jsonify({
+                    "errors": ["Please verify your e-mail!", str(request.headers)]
                 }), 403
 
             request.user = user

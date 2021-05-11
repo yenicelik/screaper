@@ -16,7 +16,7 @@ class Database:
         Delete
     """
 
-    def __init__(self, dev=False):
+    def __init__(self, dev=True):
         # Create sqlalchemy database connection
         self.db = db
 
@@ -308,6 +308,105 @@ class Database:
 
         return out
 
+
+    def read_order_by_order_id(self, order_id):
+
+        # TODO: Write more efficient queries here
+        customers = self.session.query(Customer).all()
+
+        # Expand this object to a tree-like structure
+        # Only select top 50 orders
+        # Also include to read all files associated to this order ...
+        out = []
+
+        # TODO: Incredibly inefficient loop; make this more efficient
+        for customer in customers:
+
+            # Fixate the customer that has the correct email
+            for order in customer.rel_orders:
+
+                # Fixate the order that has the correct order_id
+                if order.id != order_id:
+                    print("Skip: ", order.id, order_id, type(order.id), type(order_id))
+                    continue
+
+                print("Dont skip: ", order)
+
+                # Just return the order dictionary that matches it
+                tmp1 = order.to_dict()
+                tmp1["order_id"] = tmp1["id"]
+                tmp1.update(customer.to_dict())
+                tmp1['items'] = []
+                tmp1['files'] = []
+                for order_item in order.rel_order_items:
+                    tmp2 = order_item.to_dict()
+                    del tmp2['owner']
+                    tmp2.update(order_item.rel_part.to_dict())
+                    tmp1['items'].append(tmp2)
+
+                for file_item in order.rel_files:
+                    tmp2 = file_item.to_dict()
+                    del tmp2['order_id']
+                    del tmp2['id']
+                    tmp1['files'].append(tmp2)
+
+                out.append(tmp1)
+
+        assert len(out) <= 1, ("More orders than possible!")
+
+        out_order = out[0] if len(out) > 0 else None
+        return out_order
+
+
+    def read_order_by_user_and_order_id(self, user_email, order_id):
+        customers = self.session.query(Customer).filter(Customer.email == user_email).all()
+
+        # Expand this object to a tree-like structure
+        # Only select top 50 orders
+        # Also include to read all files associated to this order ...
+        out = []
+        for customer in customers:
+
+            # Fixate the customer that has the correct email
+            if customer.email != user_email:
+                continue
+
+            for order in customer.rel_orders:
+
+                # Fixate the order that has the correct order_id
+                if order.id != order_id:
+                    continue
+
+                # Just return the order dictionary that matches it
+                tmp1 = order.to_dict()
+                tmp1["order_id"] = tmp1["id"]
+                tmp1.update(customer.to_dict())
+                tmp1['items'] = []
+                tmp1['files'] = []
+                for order_item in order.rel_order_items:
+                    tmp2 = order_item.to_dict()
+                    del tmp2['owner']
+                    tmp2.update(order_item.rel_part.to_dict())
+                    tmp1['items'].append(tmp2)
+
+                print("rel files are: ", order.rel_files)
+                print(tmp1)
+                for file_item in order.rel_files:
+                    tmp2 = file_item.to_dict()
+                    del tmp2['order_id']
+                    del tmp2['id']
+                    print("tmp 2 bfr is: ", tmp2['filename'])
+                    print("tmp 2 is: ", tmp2['filename'])
+                    tmp1['files'].append(tmp2)
+
+                print("tmp1 files are: ", len(tmp1['files']))
+                out.append(tmp1)
+
+        assert len(out) <= 1, ("More orders than possible!")
+
+        out_order = out[0] if len(out) > 0 else None
+        return out_order
+
     def read_customers(self):
         customers = self.session.query(Customer).all()
 
@@ -459,11 +558,6 @@ class Database:
         # (I hope, this also deletes the backreference (?) )
         self.session.query(FileRecord).filter(FileRecord.order_id == order.id).delete()
         self.session.commit()
-
-
-
-
-
 
 
 screaper_database = Database()

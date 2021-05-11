@@ -9,6 +9,37 @@ from sqlalchemy.sql import func
 
 from screaper_backend.application import db
 
+class Customer(db.Model, SerializerMixin):
+    # These are also the users
+    # TODO: Implement some unique user-id to this! e-mail is probably alright,
+    # but then everyone needs to have an e-mail
+    __tablename__ = "customers"
+    serialize_rules = ("-rel_orders", "-owner")
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True)
+
+    # Personal information
+    # Use as UUID
+    user_name = db.Column(db.String, index=True, unique=True)
+    # The email is the respective username, which we use to connect this with an order
+    email = db.Column(db.String, index=True, unique=True)
+
+    # Company information
+    company_name = db.Column(db.String)
+    domain_name = db.Column(db.String)
+    phone_number = db.Column(db.String)
+    fax_number = db.Column(db.String)
+    address = db.Column(db.String)
+    city = db.Column(db.String)
+    country = db.Column(db.String)
+    contact_name = db.Column(db.String)
+
+    created_at = db.Column(db.DateTime, server_default=func.now())
+
+    rel_orders = db.relationship('Order', backref='owner')
+
+# TODO Have a list of associated e-mails with each customers (or just have fields "email1, email2, email3")
+# TODO Have a list of addresses. do an address dropdown select, can filter by users again
 
 class Part(db.Model, SerializerMixin):
     # Whenever a new catalogue comes in, just append these parts! (and update the timestamp)
@@ -43,36 +74,6 @@ class Part(db.Model, SerializerMixin):
     created_at = db.Column(db.DateTime, server_default=func.now())
 
     _children = db.relationship('OrderItem', back_populates="rel_part")
-
-
-class Customer(db.Model, SerializerMixin):
-    # These are also the users
-    # TODO: Implement some unique user-id to this! e-mail is probably alright,
-    # but then everyone needs to have an e-mail
-    __tablename__ = "customers"
-    serialize_rules = ("-rel_orders", "-owner")
-
-    id = db.Column(db.Integer, autoincrement=True, primary_key=True)
-
-    # Personal information
-    # Use as UUID
-    user_name = db.Column(db.String, index=True, unique=True)
-    # The email is the respective username, which we use to connect this with an order
-    email = db.Column(db.String, index=True, unique=True)
-
-    # Company information
-    company_name = db.Column(db.String)
-    domain_name = db.Column(db.String)
-    phone_number = db.Column(db.String)
-    fax_number = db.Column(db.String)
-    address = db.Column(db.String)
-    city = db.Column(db.String)
-    country = db.Column(db.String)
-    contact_name = db.Column(db.String)
-
-    created_at = db.Column(db.DateTime, server_default=func.now())
-
-    rel_orders = db.relationship('Order', backref='owner')
 
 
 class Order(db.Model, SerializerMixin):
