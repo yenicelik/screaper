@@ -43,5 +43,6 @@ whitelist_emails = [
     "mcyenicelik@hotmail.com",
     "baker@bakermagnetics.com.tr",
     "auguryenicelik@hotmail.com",
+    "mmarinayenicelik@hotmail.com",
     "mcyenicelik@bakermagnetics.com.tr"
 ]
