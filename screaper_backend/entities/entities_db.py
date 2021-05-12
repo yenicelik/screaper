@@ -16,6 +16,9 @@ class Customer(db.Model, SerializerMixin):
     __tablename__ = "customers"
     serialize_rules = ("-rel_orders", "-owner")
 
+    # TODO: Perhaps in future, share e-mails for one customer
+    # Gotta have some identifier, or group, and implement a role-based-access-model lol
+
     id = db.Column(db.Integer, autoincrement=True, primary_key=True)
 
     # Personal information
@@ -48,7 +51,8 @@ class Address(db.Model, SerializerMixin):
 
     created_at = db.Column(db.DateTime, server_default=func.now())
 
-    rel_address = db.relationship("Customer", back_populates="_children")
+    customer_id = db.Column(db.Integer, db.ForeignKey("customer.id"), nullable=False)
+    rel_customer = db.relationship("Customer", back_populates="_children")
 
 
 # TODO Have a list of associated e-mails with each customers (or just have fields "email1, email2, email3")

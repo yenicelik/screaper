@@ -14,19 +14,11 @@ class Addresses:
         self._addresses = screaper_database.read_customers()
         print(f"{len(self._addresses)} customers collected")
 
-    def customers(self):
-        return self._customers
+    def addresses(self):
+        return screaper_database.read_addresses()
 
-    def customer_usernames(self):
-        print("Customer usernames are: ", [x["user_name"] for x in self._customers])
-        return set(x["user_name"]for x in self._customers)
-
-    def customer_emails(self):
-        print("Customer emails are: ", [x["email"] for x in self._customers])
-        return set(x["email"]for x in self._customers)
-
-    def customer_by_username(self, username):
-        return screaper_database.read_customers_by_customer_username(username=username)
+    def address_by_user_email(self, email):
+        return screaper_database.read_addresses_by_customer_email(email=email)
 
 
 model_addresses = Addresses()

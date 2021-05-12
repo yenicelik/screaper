@@ -4,7 +4,7 @@
 import screaper_backend.scripts.database.initialize_db
 import screaper_backend.scripts.database.initialize_mock
 from screaper_backend.application import db
-from screaper_backend.entities.entities_db import OrderItem, Order, Part, Customer, FileRecord
+from screaper_backend.entities.entities_db import OrderItem, Order, Part, Customer, FileRecord, Address
 
 
 class Database:
@@ -439,6 +439,16 @@ class Database:
         customer = self.session.query(Customer).filter(Customer.email == email).one_or_none()
         assert customer, ("We previously had checked if this customer exists. There is something wrong in the code", customer)
         return customer
+
+    def read_address(self):
+        addresses = self.session.query(Address).all()
+        assert addresses, ("We previously had checked if this customer exists. There is something wrong in the code", addresses)
+        return addresses
+
+    def read_addresses_by_customer_email(self, email):
+        addresses = self.session.query(Address).join(Customer).filter(Customer.email == email).all()
+        assert addresses, ("We previously had checked if this customer exists. There is something wrong in the code", addresses)
+        return addresses
 
     def read_parts(self):
         parts = self.session.query(Part).all()

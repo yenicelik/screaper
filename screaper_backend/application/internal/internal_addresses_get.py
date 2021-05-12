@@ -2,8 +2,8 @@ import json
 
 from flask import jsonify
 
+from screaper_backend.application.authentication import admin_emails
 from screaper_backend.models.addresses import model_addresses
-from screaper_backend.models.customers import model_customers
 
 
 def _external_addresses_get(request):
@@ -27,18 +27,13 @@ def _external_addresses_get(request):
             "errors": ["user_uuid empty!", str(input_json)]
         }), 400
 
-    customer_email = request.user.get('email')
-
     # Check if customer e-mail is valid
-    customers = model_customers.customer_emails()
-    if (not customer_email) or (customer_email not in customers):
-        print("Customers are: ", customers)
-        print(f"customer_email not recognized!!", str(customer_email), str(input_json))
+    if request.user['email'] not in admin_emails:
         return jsonify({
-            "errors": [f"customer_email not recognized!!", str(customer_email), str(input_json)]
-        }), 400
+            "errors": ["Permission denied (F.002)", str(request.headers)]
+        }), 403
 
-    out = model_addresses.address_by_user_email(email=customer_email)
+    out = model_addresses.addresses()
 
     # Turn into one mega-dictionary per object
     out = [x for x in out]

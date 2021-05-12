@@ -1,20 +1,9 @@
-import datetime
-import json
-import random
-
-from flask import request, jsonify
-from werkzeug.utils import secure_filename
+from flask import request
 
 from screaper_backend.application import application
-from screaper_backend.application.authentication import admin_emails
 from screaper_backend.application.internal.internal_customers_get import _internal_customers_get
 from screaper_backend.application.internal.internal_orders_edit import _internal_orders_edit
 from screaper_backend.application.internal.internal_orders_get import _internal_orders_get
-from screaper_backend.application.utils import algorithm_product_similarity, check_property_is_included_formdata, \
-    check_property_is_included, check_property_is_included_typed
-from screaper_backend.models.customers import model_customers
-from screaper_backend.models.orders import model_orders
-from screaper_backend.models.parts import model_parts
 from screaper_backend.resources.firebase_wrapper import check_authentication_token
 
 
