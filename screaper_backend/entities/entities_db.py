@@ -29,14 +29,27 @@ class Customer(db.Model, SerializerMixin):
     domain_name = db.Column(db.String)
     phone_number = db.Column(db.String)
     fax_number = db.Column(db.String)
-    address = db.Column(db.String)
-    city = db.Column(db.String)
-    country = db.Column(db.String)
     contact_name = db.Column(db.String)
 
     created_at = db.Column(db.DateTime, server_default=func.now())
 
     rel_orders = db.relationship('Order', backref='owner')
+
+class Address(db.Model, SerializerMixin):
+
+    __tablename__ = "customers"
+    serialize_rules = ("-rel_orders", "-owner")
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True)
+
+    address = db.Column(db.String)
+    city = db.Column(db.String)
+    country = db.Column(db.String)
+
+    created_at = db.Column(db.DateTime, server_default=func.now())
+
+    rel_address = db.relationship("Customer", back_populates="_children")
+
 
 # TODO Have a list of associated e-mails with each customers (or just have fields "email1, email2, email3")
 # TODO Have a list of addresses. do an address dropdown select, can filter by users again
